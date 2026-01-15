@@ -32,9 +32,30 @@ public partial class MainMenuController : Control
             loadBtn.Pressed += OnLoadPressed;
         }
 
+        // Connect Lobby Buttons
+        var hostBtn = FindChild("HostBtn", true, false) as Button;
+        if (hostBtn != null) hostBtn.Pressed += OnHostPressed;
+
+        var joinBtn = FindChild("JoinBtn", true, false) as Button;
+        if (joinBtn != null) joinBtn.Pressed += OnJoinPressed;
+
         // Hide Putting Range if found (User request)
         var puttingBtn = FindChild("PuttingRangeBtn", true, false) as Button; // Guessing name
         if (puttingBtn != null) puttingBtn.Visible = false;
+    }
+
+    private void OnHostPressed()
+    {
+        GD.Print("Host Pressed");
+        NetworkManager.Instance.HostGame();
+    }
+
+    private void OnJoinPressed()
+    {
+        var ipInput = FindChild("IPInput", true, false) as LineEdit;
+        string ip = ipInput?.Text ?? "127.0.0.1";
+        GD.Print($"Join Pressed: {ip}");
+        NetworkManager.Instance.JoinGame(ip);
     }
 
     private void SetupLoadDialog()

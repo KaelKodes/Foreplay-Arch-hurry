@@ -20,9 +20,9 @@ public partial class CameraController : Camera3D
     public override void _Ready()
     {
         SetAsTopLevel(true); // Detach from parent transform to prevent spin
-        if (TargetPath != null)
+        if (TargetPath != null && !TargetPath.IsEmpty)
         {
-            _target = GetNode<Node3D>(TargetPath);
+            _target = GetNodeOrNull<Node3D>(TargetPath); // Use GetNodeOrNull for safety
             GD.Print($"CameraController: Ready. Initial Target Path: {TargetPath}, Resolved Target: {(_target != null ? _target.Name : "null")}");
             if (_target != null) SetTarget(_target, true);
         }
@@ -38,6 +38,9 @@ public partial class CameraController : Camera3D
         // unless we strictly want to block it. 
         // For "Walking Mode", we want Orbit.
 
+        // Guard: Only the active camera should process mouse input
+        if (!Current) return;
+
         if (@event is InputEventMouseMotion motion && Input.IsMouseButtonPressed(MouseButton.Right))
         {
             // Rotate camera based on mouse motion
@@ -52,7 +55,13 @@ public partial class CameraController : Camera3D
 
     public override void _PhysicsProcess(double delta)
     {
-        if (_target == null) return;
+        if (_target == null)
+        {
+            // Debug print once periodically? 
+            return;
+        }
+
+        // if (Engine.GetFramesDrawn() % 60 == 0) GD.Print($"Cam Target: {_target.Name} @ {_target.GlobalPosition}, CamPos: {GlobalPosition}");
 
         // If Debug/Free Look is enabled, skip automatic following logic
         if (_canFreeLook) return;

@@ -15,6 +15,16 @@ public partial class AimAssist : Node3D
     private WindSystem _windSystem;
     private bool _isLocked = false;
 
+    public override void _ExitTree()
+    {
+        if (_archerySystem != null)
+        {
+            _archerySystem.ModeChanged -= OnModeChanged;
+            _archerySystem.DrawStageChanged -= OnStageChanged;
+            _archerySystem.ShotModeChanged -= OnShotModeChanged;
+        }
+    }
+
     public override void _Ready()
     {
         _aimLine = GetNodeOrNull<MeshInstance3D>("AimLine");
@@ -39,7 +49,8 @@ public partial class AimAssist : Node3D
 
         if (_archerySystem == null)
         {
-            _archerySystem = GetNodeOrNull<ArcherySystem>("/root/DrivingRange/ArcherySystem");
+            _archerySystem = GetNodeOrNull<ArcherySystem>("/root/TerrainTest/ArcherySystem");
+            if (_archerySystem == null) _archerySystem = GetNodeOrNull<ArcherySystem>("/root/DrivingRange/ArcherySystem");
             if (_archerySystem == null) _archerySystem = GetTree().Root.FindChild("ArcherySystem", true, false) as ArcherySystem;
         }
 
@@ -51,6 +62,7 @@ public partial class AimAssist : Node3D
         if (_archerySystem != null)
         {
             GD.Print($"AimAssist: Linked to ArcherySystem at {_archerySystem.GetPath()}");
+            // Unsubscribe first to avoid double subscription if re-entering
             _archerySystem.ModeChanged -= OnModeChanged;
             _archerySystem.ModeChanged += OnModeChanged;
 

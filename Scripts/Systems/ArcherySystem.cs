@@ -25,6 +25,7 @@ namespace Archery
 	{
 		[Export] public PackedScene ArrowScene; // Assigned in _Ready or Editor
 		public int ArrowCount { get; private set; } = 10;
+		private int _shotTicket = 0; // Unique ID for each shot to prevent naming collisions
 
 		[Export] public float DrawSpeed = 1.0f;
 		[Export] public NodePath ArrowPath;
@@ -96,9 +97,9 @@ namespace Archery
 				if (sceneArrow != null) sceneArrow.QueueFree();
 			}
 
-			if (CameraPath != null) _camera = GetNode<CameraController>(CameraPath);
+			if (CameraPath != null && !CameraPath.IsEmpty) _camera = GetNodeOrNull<CameraController>(CameraPath);
 			GD.Print($"ArcherySystem: Ready. Camera Found: {(_camera != null)}");
-			if (WindSystemPath != null) _windSystem = GetNode<WindSystem>(WindSystemPath);
+			if (WindSystemPath != null && !WindSystemPath.IsEmpty) _windSystem = GetNodeOrNull<WindSystem>(WindSystemPath);
 
 			_statsService = new StatsService();
 			_statsService.Name = "StatsService";
@@ -115,6 +116,80 @@ namespace Archery
 
 			CallDeferred(MethodName.ExitCombatMode);
 			CallDeferred(MethodName.UpdateArrowLabel);
+
+			// Notify NetworkManager that scene is ready for spawning
+			if (NetworkManager.Instance != null)
+			{
+				// Defer to avoid "Parent node busy" error during _Ready
+				NetworkManager.Instance.CallDeferred("LevelLoaded", GetParent());
+			}
+
+			// [FIX] Initialize TeePosition from Scene (with fallbacks)
+			Node3D spawnPoint = GetParent().GetNodeOrNull<Node3D>("SpawnPoint");
+			if (spawnPoint == null) spawnPoint = GetParent().FindChild("TeeBox", true, false) as Node3D;
+			if (spawnPoint == null) spawnPoint = GetParent().FindChild("VisualTee", true, false) as Node3D;
+			if (spawnPoint == null) spawnPoint = GetParent().FindChild("Tee", true, false) as Node3D;
+
+			if (spawnPoint != null)
+			{
+				TeePosition = spawnPoint.GlobalPosition;
+				GD.Print($"ArcherySystem: TeePosition set to {TeePosition} from {spawnPoint.Name}");
+			}
+			else
+			{
+				GD.PrintErr("ArcherySystem: No spawn point found (tried SpawnPoint, TeeBox, VisualTee, Tee)! Home teleport will default to (0,0,0).");
+			}
+
+			// Connect to ProjectileSpawner to catch arrows as they are spawned/replicated
+			var spawner = GetTree().CurrentScene.GetNodeOrNull<MultiplayerSpawner>("ProjectileSpawner");
+			if (spawner != null)
+			{
+				spawner.Spawned += OnArrowSpawned;
+				GD.Print("ArcherySystem: Connected to ProjectileSpawner.Spawned");
+			}
+			else
+			{
+				GD.PrintErr("ArcherySystem: ProjectileSpawner not found in scene!");
+			}
+		}
+
+		private void OnArrowSpawned(Node node)
+		{
+			if (node is ArrowController arrow)
+			{
+				string currentPlayerName = _currentPlayer?.Name ?? "NULL";
+				GD.Print($"ArcherySystem: Arrow Spawned/Replicated: {arrow.Name}, MyCurrentPlayer: {currentPlayerName}");
+
+				// Parse Name to see if it belongs to us: Arrow_{PlayerID}_{Ticket}
+				string[] parts = arrow.Name.ToString().Split('_');
+				if (parts.Length >= 2 && long.TryParse(parts[1], out long ownerId))
+				{
+					// Is this MY arrow?
+					if (_currentPlayer != null && ownerId.ToString() == _currentPlayer.Name)
+					{
+						GD.Print($"ArcherySystem: It's MY arrow! Taking control. (Owner: {ownerId}, MyPlayer: {_currentPlayer.Name})");
+						_arrow = arrow;
+					}
+					else
+					{
+						GD.Print($"ArcherySystem: It's Player {ownerId}'s arrow. (Not mine, MyPlayer: {currentPlayerName})");
+					}
+
+					// For EVERYONE (Host and Client): Setup visual properties
+					// Lookup player instance by Name (ID) instead of Dictionary (Server-only)
+					PlayerController pc = GetTree().CurrentScene.FindChild(ownerId.ToString(), true, false) as PlayerController;
+
+					if (pc != null)
+					{
+						SetupArrow(arrow, pc);
+					}
+					else
+					{
+						// Fallback setup if player not found yet (e.g. late join race)
+						SetupArrow(arrow, null);
+					}
+				}
+			}
 		}
 
 		public void CollectArrow()
@@ -152,43 +227,43 @@ namespace Archery
 				_arrow = null;
 			}
 
-			// Spawn new arrow (decrement count when shot, not prep)
+			// Increment ticket for unique naming
+			_shotTicket++;
+
+			// Spawn new arrow (Networked)
 			if (ArrowScene != null)
 			{
-				_arrow = ArrowScene.Instantiate<ArrowController>();
-				GetTree().CurrentScene.AddChild(_arrow);
-
-				_arrow.Connect(ArrowController.SignalName.ArrowSettled, new Callable(this, MethodName.OnArrowSettled));
-				_arrow.Connect(ArrowController.SignalName.ArrowCollected, new Callable(this, MethodName.CollectArrow));
-
-				// Exclude player
-				if (_currentPlayer != null) _arrow.SetCollisionException(_currentPlayer);
-
-				_arrow.Visible = true;
-
-				// Position it
-				if (_currentPlayer != null)
+				// If Singleplayer, do old logic
+				if (Multiplayer.MultiplayerPeer == null || Multiplayer.MultiplayerPeer.GetConnectionStatus() == MultiplayerPeer.ConnectionStatus.Disconnected)
 				{
-					Vector3 spawnPos = _currentPlayer.GlobalPosition + (_currentPlayer.GlobalBasis * (ChestOffset + new Vector3(0, 0, 0.5f)));
-					_arrow.GlobalPosition = spawnPos;
-
-					Vector3 rot = _currentPlayer.GlobalRotationDegrees;
-					rot.Y += 180.0f;
-					_arrow.GlobalRotationDegrees = rot;
-
-					// Apply Player Color
-					_arrow.SetColor(GetPlayerColor(_currentPlayer.PlayerIndex));
+					_arrow = ArrowScene.Instantiate<ArrowController>();
+					GetTree().CurrentScene.AddChild(_arrow);
+					SetupArrow(_arrow);
+				}
+				else
+				{
+					// Multiplayer:
+					if (_currentPlayer != null)
+					{
+						if (Multiplayer.IsServer())
+						{
+							// If we are the server, just spawn it directly. 
+							// RpcId(1) to self is blocked by CallLocal=false.
+							SpawnNetworkedArrow(int.Parse(_currentPlayer.Name.ToString()), _shotTicket);
+						}
+						else
+						{
+							// Client: Request Server to spawn arrow for us
+							RpcId(1, nameof(RequestSpawnArrow), int.Parse(_currentPlayer.Name.ToString()), _shotTicket);
+						}
+					}
 				}
 			}
 
 			_stage = DrawStage.Idle;
-
 			_timer = 0.0f;
-
 			_isReturnPhase = false;
-
 			_lockedPower = -1.0f;
-
 			_lockedAccuracy = -1.0f;
 
 
@@ -199,17 +274,120 @@ namespace Archery
 			UpdateArrowLabel();
 		}
 
+
+
+		[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false)]
+		private void RequestSpawnArrow(long playerId, int ticket)
+		{
+			// SERVER ONLY
+			if (!Multiplayer.IsServer()) return;
+			SpawnNetworkedArrow(playerId, ticket);
+		}
+
+		private void SpawnNetworkedArrow(long playerId, int ticket)
+		{
+			var arrow = ArrowScene.Instantiate<ArrowController>();
+			// Name must be consistent for Spawner? 
+			// Actually, MultiplayerSpawner handles naming if it spawns it. 
+			// But if we manually spawn it, we must ensure it matches the pattern or let Spawner handle it.
+			// With Custom Spawn, we usually use Spawn() on the spawner.
+			// However, Godot 4 MultiplayerSpawner automatically detects added children if auto_spawn is true.
+			// We just need to make sure we add it to the 'Projectiles' node.
+
+			string uniqueName = $"Arrow_{playerId}_{ticket}";
+			arrow.Name = uniqueName;
+
+			// Add to Projectiles container
+			var projectiles = GetTree().CurrentScene.GetNodeOrNull("Projectiles");
+			if (projectiles == null)
+			{
+				GD.PrintErr("ArcherySystem: 'Projectiles' node not found in scene! Spawning at Root, but this may fail replication if Spawner is watching Projectiles.");
+				GetTree().CurrentScene.AddChild(arrow);
+			}
+			else
+			{
+				projectiles.AddChild(arrow, true); // force_readable_name = true
+			}
+
+			// Server keeps authority (Default 1).
+			GD.Print($"ArcherySystem: Spawned Networked Arrow '{uniqueName}' for Player {playerId}");
+
+			// SERVER-SIDE SETUP
+			// We need to set up the arrow logic/visuals on the server immediately.
+			// (The Spawned signal might NOT fire on the server if we added it manually).
+
+			PlayerController owner = null;
+			if (NetworkManager.Instance != null && NetworkManager.Instance.GetPlayer(playerId) is PlayerController pc)
+			{
+				owner = pc;
+			}
+
+			// Assign ownership if it belongs to the Host (who is also _currentPlayer on the server)
+			if (_currentPlayer != null && playerId.ToString() == _currentPlayer.Name)
+			{
+				GD.Print("ArcherySystem (Server): It's Host's arrow! Taking control.");
+				_arrow = arrow;
+			}
+
+			SetupArrow(arrow, owner);
+		}
+
+		private void SetupArrow(ArrowController arrow, PlayerController owner = null)
+		{
+			arrow.Connect(ArrowController.SignalName.ArrowSettled, new Callable(this, MethodName.OnArrowSettled));
+			arrow.Connect(ArrowController.SignalName.ArrowCollected, new Callable(this, MethodName.CollectArrow));
+
+			// Default owner is _currentPlayer if not specified
+			PlayerController actualOwner = owner ?? _currentPlayer;
+
+			// Exclude player
+			if (actualOwner != null) arrow.SetCollisionException(actualOwner);
+
+			arrow.Visible = true;
+
+			// Ensure physics are reset for a new arrow (or re-setup)
+			// But only if it's NOT already flying? SetupArrow is usually called on spawn.
+			// If we are late-joining and it's flying, we shouldn't freeze.
+			// Check 'HasBeenShot' - which might be synced?
+            // HasBeenShot is not a synced property in the ReplicationConfig we saw (only transform/vel).
+			// But 'freeze' IS synced. 
+            // If we set Freeze=true here, we might overwrite sync.
+            // HOWEVER, SetupArrow is called by SpawnNetworkedArrow (Server) and OnArrowSpawned (Client).
+            // On Server: New arrow -> Freeze it.
+            // On Client: New spawn -> Freeze it?
+            // If Client joins late, OnArrowSpawned fires. If arrow is mid-air, Sync says Freeze=false.
+            // If we set Freeze=true here, we stop it.
+			// WORKAROUND: Only freeze if we govern it (our arrow) OR if it's brand new (velocity zero).
+
+			if (arrow.LinearVelocity.LengthSquared() < 0.1f)
+			{
+				arrow.Freeze = true;
+			}
+
+			// Apply Player Color
+			if (actualOwner != null) arrow.SetColor(GetPlayerColor(actualOwner.PlayerIndex));
+
+			// Initial Pose only if it's OUR arrow and we haven't fired it (handled in UpdateArrowPose)
+			if (actualOwner == _currentPlayer)
+			{
+				UpdateArrowPose();
+			}
+		}
+
 		private void UpdateArrowPose()
 		{
 			if (_arrow == null || _currentPlayer == null || _arrow.HasBeenShot) return;
 
-			// Position it
+			// Position and Rotate it
 			Vector3 spawnPos = _currentPlayer.GlobalPosition + (_currentPlayer.GlobalBasis * (ChestOffset + new Vector3(0, 0, 0.5f)));
-			_arrow.GlobalPosition = spawnPos;
 
-			Vector3 rot = _currentPlayer.GlobalRotationDegrees;
-			rot.Y += 180.0f;
-			_arrow.GlobalRotationDegrees = rot;
+			Transform3D t = _currentPlayer.GlobalTransform;
+			t.Origin = spawnPos;
+			// Rotate 180 (Arrow orientation)
+			t.Basis = t.Basis.Rotated(Vector3.Up, Mathf.Pi);
+
+			_arrow.GlobalTransform = t;
+			// Note: No network sync here - arrow position syncs at Launch time via RPC
 		}
 
 		public void CancelDraw()
@@ -245,7 +423,38 @@ namespace Archery
 		}
 		public void RegisterPlayer(PlayerController player)
 		{
+			// SAFETY: Only accept local players to prevent remote player registration bugs
+			if (!player.IsLocal)
+			{
+				GD.PrintErr($"ArcherySystem: REJECTED RegisterPlayer for remote player {player.Name}! Only local players should be registered.");
+				return;
+			}
+
+			GD.Print($"ArcherySystem: RegisterPlayer called for {player.Name}, IsLocal={player.IsLocal}, Authority={player.GetMultiplayerAuthority()}, MyPeer={player.Multiplayer.GetUniqueId()}");
+
 			_currentPlayer = player;
+			if (_buildManager != null) _buildManager.Player = player;
+
+			// Link camera if local
+			if (player.IsLocal)
+			{
+				// Try direct child name first (standard), then property path
+				var cam = player.GetNodeOrNull<CameraController>("Camera3D");
+				if (cam == null && player.CameraPath != null && !player.CameraPath.IsEmpty)
+				{
+					cam = player.GetNodeOrNull<CameraController>(player.CameraPath);
+				}
+
+				if (cam != null)
+				{
+					_camera = cam;
+					GD.Print($"ArcherySystem: Registered Local Player Camera: {_camera.Name}");
+				}
+				else
+				{
+					GD.PrintErr("ArcherySystem: Registered Local Player but could NOT find Camera!");
+				}
+			}
 		}
 
 		public void SetPrompt(bool visible, string message = "")
@@ -312,239 +521,277 @@ namespace Archery
 
 			// Fallback: If no group, we could find all InteractableObjects in scene
 			// For now, let's assume we can search the scene for targetables
-			FindTargetablesRecursive(GetTree().Root, targets);
+            FindTargetablesRecursive(GetTree().Root, targets);
 
-			if (targets.Count == 0)
-			{
-				ClearTarget();
-				return;
-			}
+            if (targets.Count == 0)
+            {
+                ClearTarget();
+                return;
+            }
 
-			// Sort by proximity to player
-			targets.Sort((a, b) => a.GlobalPosition.DistanceSquaredTo(_currentPlayer.GlobalPosition).CompareTo(b.GlobalPosition.DistanceSquaredTo(_currentPlayer.GlobalPosition)));
+            // Sort by proximity to player
+            targets.Sort((a, b) => a.GlobalPosition.DistanceSquaredTo(_currentPlayer.GlobalPosition).CompareTo(b.GlobalPosition.DistanceSquaredTo(_currentPlayer.GlobalPosition)));
 
-			int currentIndex = (_currentTarget != null) ? targets.IndexOf(_currentTarget) : -1;
-			int nextIndex = (currentIndex + 1) % targets.Count;
+            int currentIndex = (_currentTarget != null) ? targets.IndexOf(_currentTarget) : -1;
+            int nextIndex = (currentIndex + 1) % targets.Count;
 
-			_currentTarget = targets[nextIndex];
-			GD.Print($"[ArcherySystem] Target Locked: {_currentTarget.Name}");
-			EmitSignal(SignalName.TargetChanged, _currentTarget);
+            _currentTarget = targets[nextIndex];
+            GD.Print($"[ArcherySystem] Target Locked: {_currentTarget.Name}");
+            EmitSignal(SignalName.TargetChanged, _currentTarget);
 
-			if (_camera != null && _camera is CameraController camCtrl)
-			{
-				camCtrl.SetLockedTarget(_currentTarget);
-			}
-		}
+            if (_camera != null && _camera is CameraController camCtrl)
+            {
+                camCtrl.SetLockedTarget(_currentTarget);
+            }
+        }
 
-		private void FindTargetablesRecursive(Node node, System.Collections.Generic.List<Node3D> results)
-		{
-			if (node is InteractableObject io && io.IsTargetable)
-			{
-				results.Add(io);
-			}
+        private void FindTargetablesRecursive(Node node, System.Collections.Generic.List<Node3D> results)
+        {
+            if (node is InteractableObject io && io.IsTargetable)
+            {
+                results.Add(io);
+            }
 
-			foreach (Node child in node.GetChildren())
-			{
-				FindTargetablesRecursive(child, results);
-			}
-		}
+            foreach (Node child in node.GetChildren())
+            {
+                FindTargetablesRecursive(child, results);
+            }
+        }
 
-		public void ClearTarget()
-		{
-			if (_currentTarget == null) return;
-			GD.Print("[ArcherySystem] Target Cleared");
-			_currentTarget = null;
-			EmitSignal(SignalName.TargetChanged, null);
+        public void ClearTarget()
+        {
+            if (_currentTarget == null) return;
+            GD.Print("[ArcherySystem] Target Cleared");
+            _currentTarget = null;
+            EmitSignal(SignalName.TargetChanged, null);
 
-			if (_camera != null && _camera is CameraController camCtrl)
-			{
-				camCtrl.SetLockedTarget(null);
-			}
-		}
+            if (_camera != null && _camera is CameraController camCtrl)
+            {
+                camCtrl.SetLockedTarget(null);
+            }
+        }
 
-		private void OnArrowSettled(float distance)
-		{
-			SetPrompt(true, $"Shot settled: {distance * ArcheryConstants.UNIT_RATIO:F1}y");
-		}
+        private void OnArrowSettled(float distance)
+        {
+            SetPrompt(true, $"Shot settled: {distance * ArcheryConstants.UNIT_RATIO:F1}y");
+        }
 
-		public void HandleInput()
-		{
-			// Prevent multiple advances in the same frame
-			long currentFrame = Engine.GetFramesDrawn();
-			if (currentFrame == _lastInputFrame) return;
-			_lastInputFrame = currentFrame;
+        public void HandleInput()
+        {
+            // Prevent multiple advances in the same frame
+            long currentFrame = Engine.GetFramesDrawn();
+            if (currentFrame == _lastInputFrame) return;
+            _lastInputFrame = currentFrame;
 
-			// Cooldown to prevent accidental double-clicks (e.g. 200ms)
-			float currentTime = (float)(Time.GetTicksMsec() / 1000.0);
-			if (currentTime - _lastAdvanceTime < 0.2f) return;
-			_lastAdvanceTime = currentTime;
+            // Cooldown to prevent accidental double-clicks (e.g. 200ms)
+            float currentTime = (float)(Time.GetTicksMsec() / 1000.0);
+            if (currentTime - _lastAdvanceTime < 0.2f) return;
+            _lastAdvanceTime = currentTime;
 
-			if (_stage == DrawStage.Idle || _stage == DrawStage.ShotComplete)
-			{
-				if (_stage == DrawStage.ShotComplete) PrepareNextShot();
-				GD.Print($"[ArcherySystem] {currentFrame} Phase 1: Start Drawing");
-				_stage = DrawStage.Drawing;
-				_timer = 0.0f;
-				_isReturnPhase = false;
-				_lockedPower = -1.0f;
-				_lockedAccuracy = -1.0f;
-				EmitSignal(SignalName.DrawStageChanged, (int)_stage);
-			}
-			else if (_stage == DrawStage.Drawing)
-			{
-				// Lock Power
-				_lockedPower = Mathf.PingPong(_timer * DrawSpeed * 100.0f, 100.0f);
-				GD.Print($"[ArcherySystem] {currentFrame} Phase 2: Power Locked at {_lockedPower:F1}");
-				_stage = DrawStage.Aiming;
-				// Continue timer, do NOT reset. Bar will naturally hit 100 and come back for Aiming.
-				EmitSignal(SignalName.ArcheryValuesUpdated, _lockedPower, _lockedPower, -1);
-				EmitSignal(SignalName.DrawStageChanged, (int)_stage);
-			}
-			else if (_stage == DrawStage.Aiming)
-			{
-				// Lock Accuracy
-				_lockedAccuracy = Mathf.PingPong(_timer * DrawSpeed * 100.0f, 100.0f);
-				GD.Print($"[ArcherySystem] {currentFrame} Phase 3: Accuracy Locked at {_lockedAccuracy:F1}");
-				_stage = DrawStage.Executing;
-				EmitSignal(SignalName.ArcheryValuesUpdated, _lockedAccuracy, _lockedPower, _lockedAccuracy);
-				EmitSignal(SignalName.DrawStageChanged, (int)_stage);
-				ExecuteShot();
-			}
-		}
+            if (_stage == DrawStage.Idle || _stage == DrawStage.ShotComplete)
+            {
+                if (_stage == DrawStage.ShotComplete) PrepareNextShot();
+                GD.Print($"[ArcherySystem] {currentFrame} Phase 1: Start Drawing");
+                _stage = DrawStage.Drawing;
+                _timer = 0.0f;
+                _isReturnPhase = false;
+                _lockedPower = -1.0f;
+                _lockedAccuracy = -1.0f;
+                EmitSignal(SignalName.DrawStageChanged, (int)_stage);
+            }
+            else if (_stage == DrawStage.Drawing)
+            {
+                // Lock Power
+                _lockedPower = Mathf.PingPong(_timer * DrawSpeed * 100.0f, 100.0f);
+                GD.Print($"[ArcherySystem] {currentFrame} Phase 2: Power Locked at {_lockedPower:F1}");
+                _stage = DrawStage.Aiming;
+                // Continue timer, do NOT reset. Bar will naturally hit 100 and come back for Aiming.
+                EmitSignal(SignalName.ArcheryValuesUpdated, _lockedPower, _lockedPower, -1);
+                EmitSignal(SignalName.DrawStageChanged, (int)_stage);
+            }
+            else if (_stage == DrawStage.Aiming)
+            {
+                // Lock Accuracy
+                _lockedAccuracy = Mathf.PingPong(_timer * DrawSpeed * 100.0f, 100.0f);
+                GD.Print($"[ArcherySystem] {currentFrame} Phase 3: Accuracy Locked at {_lockedAccuracy:F1}");
+                _stage = DrawStage.Executing;
+                EmitSignal(SignalName.ArcheryValuesUpdated, _lockedAccuracy, _lockedPower, _lockedAccuracy);
+                EmitSignal(SignalName.DrawStageChanged, (int)_stage);
+                ExecuteShot();
+            }
+        }
 
-		// Process loop for bar animation
-		public override void _Process(double delta)
-		{
-			if (_stage == DrawStage.Idle || _stage == DrawStage.Drawing || _stage == DrawStage.Aiming)
-			{
-				UpdateArrowPose();
-			}
+        // Process loop for bar animation
+        public override void _Process(double delta)
+        {
+            if (_stage == DrawStage.Idle || _stage == DrawStage.Drawing || _stage == DrawStage.Aiming)
+            {
+                UpdateArrowPose();
+            }
 
-			if (_stage == DrawStage.Drawing)
-			{
-				_timer += (float)delta;
-				float val = Mathf.PingPong(_timer * DrawSpeed * 100.0f, 100.0f);
-				EmitSignal(SignalName.ArcheryValuesUpdated, val, -1, -1);
-			}
-			else if (_stage == DrawStage.Aiming)
-			{
-				_timer += (float)delta;
-				float val = Mathf.PingPong(_timer * DrawSpeed * 100.0f, 100.0f);
-				EmitSignal(SignalName.ArcheryValuesUpdated, val, _lockedPower, -1);
-			}
-		}
+            if (_stage == DrawStage.Drawing)
+            {
+                _timer += (float)delta;
+                float val = Mathf.PingPong(_timer * DrawSpeed * 100.0f, 100.0f);
+                EmitSignal(SignalName.ArcheryValuesUpdated, val, -1, -1);
+            }
+            else if (_stage == DrawStage.Aiming)
+            {
+                _timer += (float)delta;
+                float val = Mathf.PingPong(_timer * DrawSpeed * 100.0f, 100.0f);
+                EmitSignal(SignalName.ArcheryValuesUpdated, val, _lockedPower, -1);
+            }
+        }
 
-		private void ExecuteShot()
-		{
-			// 1. Power Calculation (Incorporate Stats + Locked Power)
-			float powerFactor = _lockedPower / 100.0f;
-			float powerStatMult = PlayerStats.Power / 10.0f;
+        private void ExecuteShot()
+        {
+            // 1. Power Calculation (Incorporate Stats + Locked Power)
+            float powerFactor = _lockedPower / 100.0f;
+            float powerStatMult = PlayerStats.Power / 10.0f;
 
-			// Apply Forgiveness (Snap to perfect)
-			if (Mathf.Abs(_lockedPower - ArcheryConstants.PERFECT_POWER_VALUE) < ArcheryConstants.TOLERANCE_POWER)
-			{
-				_lockedPower = ArcheryConstants.PERFECT_POWER_VALUE;
-				powerFactor = _lockedPower / 100.0f;
-			}
+            // Apply Forgiveness (Snap to perfect)
+            if (Mathf.Abs(_lockedPower - ArcheryConstants.PERFECT_POWER_VALUE) < ArcheryConstants.TOLERANCE_POWER)
+            {
+                _lockedPower = ArcheryConstants.PERFECT_POWER_VALUE;
+                powerFactor = _lockedPower / 100.0f;
+            }
 
-			float velocityMag = ArcheryConstants.BASE_VELOCITY * powerFactor * powerStatMult;
+            float velocityMag = ArcheryConstants.BASE_VELOCITY * powerFactor * powerStatMult;
 
-			// 2. Accuracy Calculation
-			// Perfect Target is 25.0 on the return trip.
-			float accuracyError = _lockedAccuracy - ArcheryConstants.PERFECT_ACCURACY_VALUE;
+            // 2. Accuracy Calculation
+            // Perfect Target is 25.0 on the return trip.
+            float accuracyError = _lockedAccuracy - ArcheryConstants.PERFECT_ACCURACY_VALUE;
 
-			// Apply Forgiveness
-			if (Mathf.Abs(accuracyError) < ArcheryConstants.TOLERANCE_ACCURACY)
-			{
-				accuracyError = 0.0f;
-				_lockedAccuracy = ArcheryConstants.PERFECT_ACCURACY_VALUE;
-			}
+            // Apply Forgiveness
+            if (Mathf.Abs(accuracyError) < ArcheryConstants.TOLERANCE_ACCURACY)
+            {
+                accuracyError = 0.0f;
+                _lockedAccuracy = ArcheryConstants.PERFECT_ACCURACY_VALUE;
+            }
 
-			// Power Multiplier for Error: Going over Perfect Power (94) amplifies accuracy errors
-			if (_lockedPower > ArcheryConstants.PERFECT_POWER_VALUE)
-			{
-				float overPower = _lockedPower - ArcheryConstants.PERFECT_POWER_VALUE;
-				accuracyError *= (1.0f + overPower * 0.15f); // 15% more error per point over perfect
-			}
+            // Power Multiplier for Error: Going over Perfect Power (94) amplifies accuracy errors
+            if (_lockedPower > ArcheryConstants.PERFECT_POWER_VALUE)
+            {
+                float overPower = _lockedPower - ArcheryConstants.PERFECT_POWER_VALUE;
+                accuracyError *= (1.0f + overPower * 0.15f); // 15% more error per point over perfect
+            }
 
-			if (_arrow != null)
-			{
-				Vector3 launchDir;
-				if (_currentTarget != null)
-				{
-					// Snap aiming to target
-					Vector3 targetPos = _currentTarget.GlobalPosition;
-					if (_currentTarget is InteractableObject io)
-					{
-						// Aim for the center of the mesh if possible
-						targetPos = io.GlobalPosition + new Vector3(0, 1.0f, 0); // Offset upwards slightly for signs
-					}
-					launchDir = (targetPos - _arrow.GlobalPosition).Normalized();
-				}
-				else
-				{
-					Vector3 camFwd = -_camera.GlobalBasis.Z;
-					launchDir = (_camera != null) ? new Vector3(camFwd.X, 0, camFwd.Z).Normalized() : Vector3.Forward;
-				}
+            if (_arrow != null)
+            {
+                Vector3 launchDir;
+                if (_currentTarget != null)
+                {
+                    // Snap aiming to target
+                    Vector3 targetPos = _currentTarget.GlobalPosition;
+                    if (_currentTarget is InteractableObject io)
+                    {
+                        // Aim for the center of the mesh if possible
+                        targetPos = io.GlobalPosition + new Vector3(0, 1.0f, 0); // Offset upwards slightly for signs
+                    }
+                    launchDir = (targetPos - _arrow.GlobalPosition).Normalized();
+                }
+                else
+                {
+                    Vector3 camFwd = -_camera.GlobalBasis.Z;
+                    launchDir = (_camera != null) ? new Vector3(camFwd.X, 0, camFwd.Z).Normalized() : Vector3.Forward;
+                }
 
-				// Apply Loft based on Shot Mode
-				float loftDeg = 12.0f;
-				switch (_currentMode)
-				{
-					case ArcheryShotMode.Standard: loftDeg = 12.0f; break;
-					case ArcheryShotMode.Long: loftDeg = 25.0f; break;
-					case ArcheryShotMode.Max: loftDeg = 45.0f; break;
-				}
+                // Apply Loft based on Shot Mode
+                float loftDeg = 12.0f;
+                switch (_currentMode)
+                {
+                    case ArcheryShotMode.Standard: loftDeg = 12.0f; break;
+                    case ArcheryShotMode.Long: loftDeg = 25.0f; break;
+                    case ArcheryShotMode.Max: loftDeg = 45.0f; break;
+                }
 
-				float loftRad = Mathf.DegToRad(loftDeg);
-				launchDir.Y = Mathf.Sin(loftRad);
-				launchDir = launchDir.Normalized();
+                float loftRad = Mathf.DegToRad(loftDeg);
+                launchDir.Y = Mathf.Sin(loftRad);
+                launchDir = launchDir.Normalized();
 
-				// Apply Accuracy Deviation (Left/Right)
-				// User: "over 25 causes a right veering arrow, and after the line (lower than 25) to cause a left veering arrow"
-				// accuracyError > 0 means lockedAccuracy > 25.0. 
-				// Right veer in Godot (with -Z Forward) is a NEGATIVE rotation around Up axis.
-				float rotationDeg = -accuracyError * 0.75f; // +/- 0.75 deg per unit error
-				launchDir = launchDir.Rotated(Vector3.Up, Mathf.DegToRad(rotationDeg));
+                // Apply Accuracy Deviation (Left/Right)
+                // User: "over 25 causes a right veering arrow, and after the line (lower than 25) to cause a left veering arrow"
+                // accuracyError > 0 means lockedAccuracy > 25.0. 
+                // Right veer in Godot (with -Z Forward) is a NEGATIVE rotation around Up axis.
+                float rotationDeg = -accuracyError * 0.75f; // +/- 0.75 deg per unit error
+                launchDir = launchDir.Rotated(Vector3.Up, Mathf.DegToRad(rotationDeg));
 
-				// Apply Wind to Arrow before launch
-				if (_windSystem != null && _windSystem.IsWindEnabled)
-				{
-					Vector3 wind = _windSystem.WindDirection * _windSystem.WindSpeedMph;
-					_arrow.SetWind(wind);
-				}
-				else if (_arrow != null)
-				{
-					_arrow.SetWind(Vector3.Zero);
-				}
+                // Apply Wind to Arrow before launch
+                if (_windSystem != null && _windSystem.IsWindEnabled)
+                {
+                    Vector3 wind = _windSystem.WindDirection * _windSystem.WindSpeedMph;
+                    _arrow.SetWind(wind);
+                }
+                else if (_arrow != null)
+                {
+                    _arrow.SetWind(Vector3.Zero);
+                }
 
-				_arrow.Launch(launchDir * velocityMag, Vector3.Zero);
+                if (Multiplayer.MultiplayerPeer != null && !Multiplayer.IsServer())
+                {
+                    // Client: Request Server to launch our specific arrow (by Name)
+                    RpcId(1, nameof(RequestLaunchArrow), _arrow.Name, _arrow.GlobalPosition, _arrow.GlobalRotation, launchDir * velocityMag, Vector3.Zero);
+                }
+                else
+                {
+                    // Server / Singleplayer
+                    if (Multiplayer.MultiplayerPeer != null)
+                    {
+                        // Broadcast Launch to all clients (including self via CallLocal)
+                        _arrow.Rpc(nameof(ArrowController.Launch), _arrow.GlobalPosition, _arrow.GlobalRotation, launchDir * velocityMag, Vector3.Zero);
+                    }
+                    else
+                    {
+                        // Singleplayer local call
+                        _arrow.Launch(_arrow.GlobalPosition, _arrow.GlobalRotation, launchDir * velocityMag, Vector3.Zero);
+                    }
+                }
 
-				if (_camera != null)
-				{
+                if (_camera != null)
+                {
+                    // Camera recoil or follow logic here if needed
+                }
+            }
+
+            EmitSignal(SignalName.ShotResult, _lockedPower, _lockedAccuracy);
+            ArrowCount--;
+            UpdateArrowLabel();
+            _stage = DrawStage.ShotComplete;
+            EmitSignal(SignalName.DrawStageChanged, (int)_stage);
+            GD.Print($"[ArcherySystem] Shot Executed. Power: {_lockedPower:F1}, Accuracy: {_lockedAccuracy:F1}, Error: {accuracyError:F2}");
+        }
+
+        [Rpc(MultiplayerApi.RpcMode.AnyPeer)]
+        private void RequestLaunchArrow(string arrowName, Vector3 startPosition, Vector3 startRotation, Vector3 velocity, Vector3 spin)
+        {
+            // Received on Server from Client
+            // Find the specific arrow instance
+            var projectiles = GetTree().CurrentScene.GetNodeOrNull("Projectiles");
+            var arrow = projectiles?.GetNodeOrNull<ArrowController>(arrowName);
+
+            if (arrow != null)
+            {
+                // Broadcast execution to all (Syncs physics/visuals)
+                arrow.Rpc(nameof(ArrowController.Launch), startPosition, startRotation, velocity, spin);
+                GD.Print($"[ArcherySystem] Server launching Client arrow: {arrowName}");
+            }
+            else
+            {
+				GD.PrintErr($"[ArcherySystem] RequestLaunchArrow failed: Could not find arrow '{arrowName}'");
+            }
+        }
 
 
-				}
-			}
-
-			EmitSignal(SignalName.ShotResult, _lockedPower, _lockedAccuracy);
-			ArrowCount--;
-			UpdateArrowLabel();
-			_stage = DrawStage.ShotComplete;
-			EmitSignal(SignalName.DrawStageChanged, (int)_stage);
-			GD.Print($"[ArcherySystem] Shot Executed. Power: {_lockedPower:F1}, Accuracy: {_lockedAccuracy:F1}, Error: {accuracyError:F2}");
-		}
-
-		private Color GetPlayerColor(int index)
-		{
-			switch (index % 4)
-			{
-				case 0: return Colors.Blue;
-				case 1: return Colors.Red;
-				case 2: return Colors.Green;
-				case 3: return Colors.Yellow;
-				default: return Colors.White;
-			}
-		}
-	}
+        private Color GetPlayerColor(int index)
+        {
+            switch (index % 4)
+            {
+                case 0: return Colors.Blue;
+                case 1: return Colors.Red;
+                case 2: return Colors.Purple;
+                case 3: return Colors.Yellow;
+                default: return Colors.White;
+            }
+        }
+    }
 }

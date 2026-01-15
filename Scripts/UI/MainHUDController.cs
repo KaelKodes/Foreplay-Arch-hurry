@@ -44,6 +44,13 @@ public partial class MainHUDController : CanvasLayer
 	private List<ObjectAsset> _allAssets = new List<ObjectAsset>();
 	private string _currentCategory = "Trees";
 
+	public void RegisterPlayer(PlayerController player)
+	{
+		_player = player;
+		UpdateHUDForMode(_player.CurrentState);
+		GD.Print("MainHUD: Player Registered");
+	}
+
 	public override void _Ready()
 	{
 		_archerySystem = GetNodeOrNull<ArcherySystem>(ArcherySystemPath);
@@ -136,6 +143,7 @@ public partial class MainHUDController : CanvasLayer
 		{
 			modeText += $" - {_currentTool.ToString().ToUpper().Replace("NEWOBJECT", "NEW OBJECT")}";
 		}
+		if (_modeLabel == null) return;
 		_modeLabel.Text = modeText;
 
 		// Toggle sub-HUDs

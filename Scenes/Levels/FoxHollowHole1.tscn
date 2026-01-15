@@ -115,8 +115,8 @@ ArrowPath = NodePath("../Arrow")
 CameraPath = NodePath("../PlayerPlaceholder/Camera3D")
 WindSystemPath = NodePath("../WindSystem")
 
-[node name="Arrow" parent="." instance=ExtResource("2_ball")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100, 0.5, 20)
+
+
 
 [node name="HUD" parent="." instance=ExtResource("3_hud_scene")]
 ArcherySystemPath = NodePath("../ArcherySystem")

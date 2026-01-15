@@ -32,7 +32,29 @@ namespace Archery
 			AngularDamp = 0.0f;
 			BodyEntered += OnBodyEntered;
 			AddToGroup("arrows");
-			Freeze = true; // Stay put until launched
+
+			GD.Print($"ArrowController: Ready. Name: {Name}, Authority: {GetMultiplayerAuthority()}, Peer: {Multiplayer.GetUniqueId()}");
+		}
+
+		/// <summary>
+		/// Called by Server to set initial pose on all clients. Replaces MultiplayerSynchronizer.
+		/// </summary>
+		[Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true)]
+		public void SetInitialPose(Vector3 position, Vector3 rotation)
+		{
+			GlobalPosition = position;
+			GlobalRotation = rotation;
+			Freeze = true; // Ensure frozen until launched
+			GD.Print($"Arrow: SetInitialPose at {position}");
+		}
+
+		/// <summary>
+		/// Called by Server to set arrow color on all clients.
+		/// </summary>
+		[Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true)]
+		public void SetOwnerColor(float r, float g, float b)
+		{
+			SetColor(new Color(r, g, b));
 		}
 
 		public override void _IntegrateForces(PhysicsDirectBodyState3D state)
@@ -72,47 +94,60 @@ namespace Archery
 			EmitSignal(SignalName.ArrowCarried, currentDist);
 		}
 
-		public void Launch(Vector3 velocity, Vector3 spin)
+		[Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true)]
+		public void Launch(Vector3 startPosition, Vector3 startRotation, Vector3 velocity, Vector3 spin)
 		{
-			HasBeenShot = true;
-			GD.Print($"Arrow: Launch() called from {GlobalPosition} with velocity: {velocity}");
-			_isFlying = true;
-			_isStuck = false;
-			Freeze = false;
-			Sleeping = false;
-			_startPosition = GlobalPosition;
-			_pendingVelocity = velocity; // Apply in next IntegrateForces
-			_spin = spin;
+			// Set position/rotation first (critical for remote clients who haven't seen this arrow move)
+            GlobalPosition = startPosition;
+            GlobalRotation = startRotation;
 
-			// Force wake the physics engine
-			ApplyCentralImpulse(Vector3.Zero);
-		}
+            HasBeenShot = true;
+            GD.Print($"Arrow: Launch() called from {GlobalPosition} with velocity: {velocity}");
+            _isFlying = true;
+            _isStuck = false;
+            Freeze = false;
+            Sleeping = false;
+            _startPosition = GlobalPosition;
+            _pendingVelocity = velocity; // Apply in next IntegrateForces
+            _spin = spin;
 
-		public void SetCollisionException(CollisionObject3D other)
-		{
-			if (other != null)
-			{
-				AddCollisionExceptionWith(other);
-				_playerException = other; // Track it
-				GD.Print($"Arrow: Added collision exception for {other.Name}");
-			}
-		}
+            // Force wake the physics engine
+            ApplyCentralImpulse(Vector3.Zero);
+        }
 
-		private void OnBodyEntered(Node body)
-		{
-			// Collection Logic
-			if (IsCollectible)
-			{
-				if (body == _playerException || (body is CharacterBody3D && body.Name.ToString().Contains("Player")))
-				{
-					GD.Print("Arrow: Collected by player!");
-					EmitSignal(SignalName.ArrowCollected);
-					QueueFree();
-					return;
-				}
-			}
+        public void SetCollisionException(CollisionObject3D other)
+        {
+            if (other != null)
+            {
+                AddCollisionExceptionWith(other);
+                _playerException = other; // Track it
+                GD.Print($"Arrow: Added collision exception for {other.Name}");
+            }
+        }
 
-			if (!_isFlying || _isStuck) return;
+        private void OnBodyEntered(Node body)
+        {
+            // Collection Logic
+            if (IsCollectible)
+            {
+                if (body == _playerException || (body is CharacterBody3D && body.Name.ToString().Contains("Player")))
+                {
+                    GD.Print("Arrow: Collected by player!");
+                    EmitSignal(SignalName.ArrowCollected);
+                    // Networked Destruction
+                    if (Multiplayer.MultiplayerPeer != null)
+                    {
+                        RpcId(1, nameof(RequestDestroyArrow));
+                    }
+                    else
+                    {
+                        QueueFree();
+                    }
+                    return;
+                }
+            }
+
+            if (!_isFlying || _isStuck) return;
 
 			// Ignore the player's collision if we hit them accidentally on spawn (Flight Phase)
 			// OR if we are still in the launch grace period
@@ -194,8 +229,22 @@ namespace Archery
 			{
 				GD.Print("Arrow: Collected by interaction!");
 				EmitSignal(SignalName.ArrowCollected);
-				QueueFree();
+				// Networked Destruction
+				if (Multiplayer.MultiplayerPeer != null)
+				{
+					RpcId(1, nameof(RequestDestroyArrow));
+				}
+				else
+				{
+					QueueFree();
+				}
 			}
+		}
+		[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+		public void RequestDestroyArrow()
+		{
+			if (!Multiplayer.IsServer()) return;
+			QueueFree();
 		}
 	}
 }

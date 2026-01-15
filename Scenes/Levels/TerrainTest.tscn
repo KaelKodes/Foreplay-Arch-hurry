@@ -61,6 +61,9 @@ height = 1.8
 
 [node name="TerrainTest" type="Node3D"]
 
+[node name="SpawnPoint" type="Marker3D" parent="."]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 49.5, 2, -60)
+
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_1")
 
@@ -160,36 +163,7 @@ radius = 0.02
 height = 3.0
 material = SubResource("StandardMaterial3D_tee")
 
-[node name="PlayerPlaceholder" type="CharacterBody3D" parent="."]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 49.51819, 0.1, -59.909077)
-collision_mask = 2
-script = ExtResource("9_player")
-CameraPath = NodePath("Camera3D")
-ArcherySystemPath = NodePath("../ArcherySystem")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="PlayerPlaceholder"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-shape = SubResource("CapsuleShape3D_Player")
-
-[node name="AimAssist" type="Node3D" parent="PlayerPlaceholder"]
-script = ExtResource("10_aim")
-
-[node name="AimLine" type="MeshInstance3D" parent="PlayerPlaceholder/AimAssist"]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0.5)
-mesh = SubResource("CylinderMesh_AimLine")
-
-[node name="LandingMarker" type="MeshInstance3D" parent="PlayerPlaceholder/AimAssist"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 274.32)
-mesh = SubResource("CylinderMesh_Marker")
-
-[node name="AvatarMesh" type="MeshInstance3D" parent="PlayerPlaceholder"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-mesh = SubResource("CapsuleMesh_Avatar")
-
-[node name="Camera3D" type="Camera3D" parent="PlayerPlaceholder"]
-transform = Transform3D(1, 0, 0, 0, 0.939693, 0.34202, 0, -0.34202, 0.939693, 0, 2.5, 4.5)
-script = ExtResource("5_camera")
-TargetPath = NodePath("..")
 
 [node name="WindSystem" type="Node" parent="."]
 script = ExtResource("7_wind")
@@ -197,12 +171,21 @@ script = ExtResource("7_wind")
 [node name="ArcherySystem" type="Node" parent="."]
 script = ExtResource("1_swing")
 ArrowPath = NodePath("../Arrow")
-CameraPath = NodePath("../PlayerPlaceholder/Camera3D")
+CameraPath = NodePath("")
 WindSystemPath = NodePath("../WindSystem")
 
-[node name="Arrow" parent="." instance=ExtResource("2_ball")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.51819, 1, -59.909077)
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://Scenes/Entities/Player.tscn")
+spawn_path = NodePath("..")
+
+[node name="Projectiles" type="Node3D" parent="."]
+
+[node name="ProjectileSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://Scenes/Entities/Arrow.tscn")
+spawn_path = NodePath("../Projectiles")
+
+
 
 [node name="HUD" parent="." instance=ExtResource("3_hud_scene")]
 ArcherySystemPath = NodePath("../ArcherySystem")
-PlayerPath = NodePath("../PlayerPlaceholder")
+PlayerPath = NodePath("")

@@ -18,7 +18,7 @@ public partial class PlayerController : CharacterBody3D
     [Export] public float MoveSpeed = 5.0f;
     [Export] public float JumpForce = 5.0f;
     [Export] public float Gravity = 9.8f;
-    [Export] public NodePath CameraPath;
+    [Export] public NodePath CameraPath { get; set; } // Now a property for external access
     [Export] public NodePath ArcherySystemPath;
 
     // Physics State
@@ -26,8 +26,13 @@ public partial class PlayerController : CharacterBody3D
     private bool _isGrounded = true;
 
     // Multiplayer Properties
-    [Export] public int PlayerIndex { get; set; } = 0; // 0=Blue, 1=Red, 2=Green, 3=Yellow
-    public bool IsLocal { get; set; } = true;
+    [Export] public int PlayerIndex { get; set; } = 0;
+    private int _lastPlayerIndex = -1;
+
+    // IsLocal is now derived from Authority. 
+    // If not in a multiplayer session, we default to true (Authority is 1, UniqueId is 1).
+    public bool IsLocal => IsMultiplayerAuthority();
+
     private PlayerState _currentState = PlayerState.WalkMode;
     public PlayerState CurrentState
     {
@@ -51,16 +56,40 @@ public partial class PlayerController : CharacterBody3D
     private MainHUDController _hud;
     private float _inputCooldown = 0.0f;
 
+    public override void _EnterTree()
+    {
+        // 1. Establish Authority based on Node Name (which we expect to be the Peer ID)
+        if (long.TryParse(Name, out long id))
+        {
+            SetMultiplayerAuthority((int)id);
+        }
+    }
+
     public override void _Ready()
     {
-        if (CameraPath != null) _camera = GetNode<CameraController>(CameraPath);
-        if (ArcherySystemPath != null) _archerySystem = GetNode<ArcherySystem>(ArcherySystemPath);
 
-        if (_archerySystem != null) _archerySystem.RegisterPlayer(this);
+        // SetupReplication(); // Moved to Scene
+
+        if (CameraPath != null && !CameraPath.IsEmpty) _camera = GetNodeOrNull<CameraController>(CameraPath);
+
+        // Dynamic lookup for ArcherySystem if path is missing (common in MP spawn)
+        if (ArcherySystemPath != null && !ArcherySystemPath.IsEmpty)
+        {
+            _archerySystem = GetNodeOrNull<ArcherySystem>(ArcherySystemPath);
+        }
+
+        if (_archerySystem == null)
+        {
+            _archerySystem = GetTree().CurrentScene.FindChild("ArcherySystem", true, false) as ArcherySystem;
+        }
 
         // Attempt to find the visual avatar
         _avatarMesh = GetNodeOrNull<MeshInstance3D>("AvatarMesh");
-        UpdatePlayerColor();
+
+        // Color based on Index
+        long id = GetMultiplayerAuthority();
+        if (id != 0) SetPlayerIndex((int)id % 4);
+        else UpdatePlayerColor();
 
         // Create Facing Arrow (Visual Feedback)
         _facingArrow = new MeshInstance3D();
@@ -77,10 +106,41 @@ public partial class PlayerController : CharacterBody3D
         AddChild(_facingArrow);
 
         _hud = GetTree().CurrentScene.FindChild("HUD", true, false) as MainHUDController;
+        if (IsLocal)
+        {
+            if (_hud != null) _hud.RegisterPlayer(this);
+            if (_archerySystem != null) _archerySystem.RegisterPlayer(this);
+
+            // Camera Target
+            if (_camera != null)
+            {
+                _camera.SetTarget(this, true); // Snap initially
+                _camera.MakeCurrent(); // Ensure IT IS THE ACTIVE CAMERA
+            }
+        }
+        else
+        {
+            // Remote Player: Destroy Camera to prevent view hijacking
+            if (_camera != null)
+            {
+                _camera.QueueFree();
+                _camera = null;
+            }
+
+            // Also destroy AimAssist for remote players so we don't see their lines
+            var aimAssist = GetNodeOrNull<Node3D>("AimAssist");
+            if (aimAssist != null)
+            {
+                aimAssist.QueueFree();
+            }
+        }
 
         // Force initial orientation facing down-range (+Z)
         RotationDegrees = new Vector3(0, 180, 0);
     }
+
+    // Sync Property for looking up/down
+    [Export] public float HeadXRotation { get; set; }
 
     public void SetPlayerIndex(int index)
     {
@@ -97,7 +157,7 @@ public partial class PlayerController : CharacterBody3D
         {
             case 0: c = Colors.Blue; break;
             case 1: c = Colors.Red; break;
-            case 2: c = Colors.Green; break;
+            case 2: c = Colors.Purple; break;
             case 3: c = Colors.Yellow; break;
         }
 
@@ -108,8 +168,30 @@ public partial class PlayerController : CharacterBody3D
 
     public override void _PhysicsProcess(double delta)
     {
-        // 1. Authority Check: Only process input if this is OUR player
-        if (!IsLocal) return;
+        // 1. Authority Check
+        if (!IsLocal)
+        {
+            // Apply Remote State (Visuals) - e.g. rotating head/spine if we had one
+            if (_lastPlayerIndex != PlayerIndex)
+            {
+                _lastPlayerIndex = PlayerIndex;
+                UpdatePlayerColor();
+            }
+            return;
+        }
+
+        // Local Player Check as well (in case authority helps, but mainly for sync)
+        if (_lastPlayerIndex != PlayerIndex)
+        {
+            _lastPlayerIndex = PlayerIndex;
+            UpdatePlayerColor();
+        }
+
+        // Update Sync Properties (State -> Property)
+        if (_camera != null)
+        {
+            HeadXRotation = _camera.Rotation.X;
+        }
 
         if (_inputCooldown > 0) _inputCooldown -= (float)delta;
 
