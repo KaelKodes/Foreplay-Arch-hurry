@@ -87,9 +87,9 @@ public partial class PlayerController : CharacterBody3D
         _avatarMesh = GetNodeOrNull<MeshInstance3D>("AvatarMesh");
 
         // Color based on Index
-        long id = GetMultiplayerAuthority();
-        if (id != 0) SetPlayerIndex((int)id % 4);
-        else UpdatePlayerColor();
+        // REMOVED: Don't override PlayerIndex locally based on Authority! 
+        // network spawn sets the correct sequential index.
+        UpdatePlayerColor();
 
         // Create Facing Arrow (Visual Feedback)
         _facingArrow = new MeshInstance3D();
@@ -144,6 +144,7 @@ public partial class PlayerController : CharacterBody3D
 
     public void SetPlayerIndex(int index)
     {
+        GD.Print($"[PlayerController] SetPlayerIndex called: {index} (Old: {PlayerIndex}) for {Name}");
         PlayerIndex = index;
         UpdatePlayerColor();
     }
@@ -160,6 +161,8 @@ public partial class PlayerController : CharacterBody3D
             case 2: c = Colors.Purple; break;
             case 3: c = Colors.Yellow; break;
         }
+
+        GD.Print($"[PlayerController] UpdatePlayerColor: Index {PlayerIndex} -> {c}");
 
         var mat = new StandardMaterial3D();
         mat.AlbedoColor = c;
@@ -620,6 +623,25 @@ public partial class PlayerController : CharacterBody3D
         GlobalPosition = position;
         LookAt(new Vector3(lookAtTarget.X, GlobalPosition.Y, lookAtTarget.Z), Vector3.Up);
         RotationDegrees = new Vector3(0, RotationDegrees.Y, 0);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+    public void NetTeleport(Vector3 position, Vector3 rotationDegrees)
+    {
+        GD.Print($"[PlayerController] NetTeleport received: {position}");
+        GlobalPosition = position;
+        RotationDegrees = rotationDegrees;
+
+        // Reset physics
+        _velocity = Vector3.Zero;
+        Velocity = Vector3.Zero;
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+    public void NetSetPlayerIndex(int index)
+    {
+        GD.Print($"[PlayerController] NetSetPlayerIndex received: {index} (Old: {PlayerIndex})");
+        SetPlayerIndex(index);
     }
 
     private InteractableObject CheckInteractableRaycast()

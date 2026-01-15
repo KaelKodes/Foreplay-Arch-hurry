@@ -33,23 +33,20 @@ This project started as a creative sandbox with no specific end goal. It current
 |-----|--------|
 | WASD | Move |
 | Mouse | Look |
-| Left Click | Draw & Fire |
 | Home | Teleport to Spawn |
-| Tab | Toggle Combat/Walk Mode |
+| Tab | Cycle Targets |
+| Esc/` | Drop Target |
+| V | Toggle Survey Mode |
+| R | Toggle Combat Mode |
+| E | Interact / Retrieve Arrow |
+| Left Click | Draw & Fire |
+| Right Click | Cancel Fire |
+| Q | Change Fire Angle |
+
+
 
 ---
 
-## 📂 Project Structure
-
-```
-/Scenes     - Game levels, UI, and entity prefabs
-/Scripts    - C# game logic
-  /Systems  - Core systems (Archery, Camera, Networking)
-  /Entities - Arrow controllers, interactables
-  /UI       - HUD and menu controllers
-```
-
----
 
 ## ⚠️ Status
 

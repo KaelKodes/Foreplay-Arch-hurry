@@ -132,19 +132,8 @@ public partial class NetworkManager : Node
     {
         GD.Print($"Peer Connected: {id}");
 
-        // Ensure we only spawn on server
-        if (!Multiplayer.IsServer()) return;
-
-        // We need to find the root node (Level) to spawn into.
-        // Assuming the Main Scene (Level) is the current scene, or we can fallback to Root
-        Node root = GetTree().CurrentScene;
-
-        // If the current scene is clearly a Level (has MultiplayerSpawner), go for it.
-        // Safety check: Don't spawn if we are in Main Menu
-        if (root.Name != "MainMenu")
-        {
-            SpawnPlayer(id, root);
-        }
+        // REMOVED: Do NOT spawn immediately. Wait for Client to load map and send NotifyClientReady.
+        // This prevents void spawning.
     }
 
     private void OnPeerDisconnected(long id)
@@ -177,25 +166,51 @@ public partial class NetworkManager : Node
         // Cleanup?
     }
 
-
+    // Called by ArcherySystem._Ready() on both Client and Server
     public async void LevelLoaded(Node root)
     {
+        GD.Print($"NetworkManager: Level Loaded ({root.Name}). Waiting for physics bake...");
+
+        // Wait for physics frames to ensure collisions (CSG) are baked and ground is solid
+        await ToSignal(GetTree(), "physics_frame");
+        await ToSignal(GetTree(), "physics_frame");
+        await ToSignal(GetTree(), "physics_frame");
+
+        if (Multiplayer.IsServer())
+        {
+            // If we are the Host, spawn ourselves immediately
+            if (!_players.ContainsKey(1))
+            {
+                SpawnPlayer(1, root);
+            }
+        }
+        else
+        {
+            // If we are a Client, tell Server we are ready to receive our pawn
+            GD.Print("NetworkManager: Client Ready. Sending Spawn Request...");
+            RpcId(1, nameof(NotifyClientReady));
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    public void NotifyClientReady()
+    {
+        // Executed on Server when Client says "I'm loaded!"
         if (!Multiplayer.IsServer()) return;
 
-        GD.Print("NetworkManager: Level Loaded, Spawning Players...");
+        long senderId = Multiplayer.GetRemoteSenderId();
+        GD.Print($"NetworkManager: Received ClientReady from ID {senderId}. Spawning...");
 
-        // Wait for a physics frame to ensure collisions (CSG) are baked
-        await ToSignal(GetTree(), "physics_frame");
-        await ToSignal(GetTree(), "physics_frame"); // Double frame for safety
-
-        // Spawn for Self (Host)
-        SpawnPlayer(1, root);
-
-        // Spawn for connected clients
-        foreach (var id in Multiplayer.GetPeers())
+        // Safety check
+        if (_players.ContainsKey(senderId))
         {
-            SpawnPlayer(id, root);
+            GD.Print($"NetworkManager: Player {senderId} already exists. Ignoring duplicate spawn request.");
+            return;
         }
+
+        // Find root scene to spawn into
+        Node root = GetTree().CurrentScene;
+        SpawnPlayer(senderId, root);
     }
 
     private void SpawnPlayer(long id, Node root)
@@ -254,12 +269,18 @@ public partial class NetworkManager : Node
 
         // Add to scene at root (Walking sim style)
         // If there's a specific "Players" node, use it, otherwise root.
+        // Add to scene at root (Walking sim style)
+        // If there's a specific "Players" node, use it, otherwise root.
         var playersNode = root.GetNodeOrNull("Players") ?? root;
         playersNode.AddChild(player, true); // force_readable_name = true
 
         _players[id] = player;
-        // EmitSignal(SignalName.PlayerConnected, id, player);
 
-        GD.Print($"Spawned Player for ID: {id} at {player.GlobalPosition}");
+        // Force Teleport (RPC) to ensure everyone agrees on position
+        // This fixes cases where Client Auth overrides spawn position to (0,0,0)
+        player.Rpc(nameof(PlayerController.NetTeleport), spawnPos, player.RotationDegrees);
+        player.Rpc(nameof(PlayerController.NetSetPlayerIndex), newIndex);
+
+        GD.Print($"Spawned Player for ID: {id} at {spawnPos} (RPC Sent)");
     }
 }
