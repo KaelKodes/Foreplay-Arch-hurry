@@ -113,6 +113,9 @@ namespace Archery
 
             // Force wake the physics engine
             ApplyCentralImpulse(Vector3.Zero);
+
+            var trail = GetNodeOrNull<GpuParticles3D>("Trail");
+            if (trail != null) trail.Emitting = true;
         }
 
         public void SetCollisionException(CollisionObject3D other)
@@ -189,6 +192,9 @@ namespace Archery
 			float dist = _startPosition.DistanceTo(GlobalPosition);
 			GD.Print($"Arrow: Stuck to {target.Name}. Total Distance: {dist:F2}");
 			EmitSignal(SignalName.ArrowSettled, dist);
+
+			var trail = GetNodeOrNull<GpuParticles3D>("Trail");
+			if (trail != null) trail.Emitting = false;
 		}
 
 		public void SetWind(Vector3 wind) => _windVelocity = wind;
@@ -203,15 +209,78 @@ namespace Archery
 
 		public void SetColor(Color color)
 		{
-			var mesh = GetNodeOrNull<MeshInstance3D>("MeshInstance3D");
-			if (mesh != null)
+			// Apply to Shaft (Main body)
+			var shaft = GetNodeOrNull<MeshInstance3D>("Shaft");
+			if (shaft != null)
+			{
+				var mat = new StandardMaterial3D();
+				mat.AlbedoColor = color.Darkened(0.2f); // Slightly darker for shaft
+				mat.EmissionEnabled = true;
+				mat.Emission = color.Darkened(0.5f);
+				mat.EmissionEnergyMultiplier = 0.5f;
+				shaft.MaterialOverride = mat;
+			}
+
+			// Apply to Tip (Bright Glow)
+			var tip = GetNodeOrNull<MeshInstance3D>("Tip");
+			if (tip != null)
 			{
 				var mat = new StandardMaterial3D();
 				mat.AlbedoColor = color;
 				mat.EmissionEnabled = true;
 				mat.Emission = color;
-				mat.EmissionEnergyMultiplier = 2.0f;
-				mesh.MaterialOverride = mat;
+				mat.EmissionEnergyMultiplier = 5.0f; // Very bright tip
+				tip.MaterialOverride = mat;
+			}
+
+			// Apply to Fletching (Wings)
+			var fletching = GetNodeOrNull<MeshInstance3D>("Fletching");
+			if (fletching != null)
+			{
+				var mat = new StandardMaterial3D();
+				mat.AlbedoColor = color.Lightened(0.3f);
+				mat.CullMode = BaseMaterial3D.CullModeEnum.Disabled; // Double sided
+				mat.EmissionEnabled = true;
+				mat.Emission = color;
+				mat.EmissionEnergyMultiplier = 1.0f;
+				fletching.MaterialOverride = mat;
+			}
+
+			// Apply to Trail (Particles)
+			var trail = GetNodeOrNull<GpuParticles3D>("Trail");
+			if (trail != null)
+			{
+				// We need to clone the process material to set unique color
+				if (trail.ProcessMaterial is ParticleProcessMaterial ppm)
+				{
+					var newPpm = (ParticleProcessMaterial)ppm.Duplicate();
+					newPpm.Color = color;
+					newPpm.EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Point; // Ensure point emission
+					trail.ProcessMaterial = newPpm;
+
+					// Create a matching draw pass material for the ribbon
+					if (trail.DrawPass1 is QuadMesh qm && qm.Material is StandardMaterial3D sm)
+					{
+						var newSm = (StandardMaterial3D)sm.Duplicate();
+						newSm.AlbedoColor = color;
+						newSm.Emission = color;
+						trail.DrawPass1 = (Mesh)trail.DrawPass1.Duplicate();
+						((QuadMesh)trail.DrawPass1).Material = newSm;
+					}
+					else if (trail.DrawPass1 is RibbonTrailMesh rtm && rtm.Material is StandardMaterial3D rsm)
+					{
+						// Handle RibbonTrailMesh similarly
+						var newSm = (StandardMaterial3D)rsm.Duplicate();
+						// Keep transparency!
+						newSm.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+						newSm.AlbedoColor = new Color(color.R, color.G, color.B, 0.5f);
+						newSm.Emission = color;
+						newSm.VertexColorUseAsAlbedo = true; // IMPORTANT for Gradient fade
+
+						trail.DrawPass1 = (Mesh)trail.DrawPass1.Duplicate();
+						((RibbonTrailMesh)trail.DrawPass1).Material = newSm;
+					}
+				}
 			}
 		}
 
