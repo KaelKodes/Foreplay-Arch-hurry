@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Archery;
 
 public partial class MainHUDController : CanvasLayer
@@ -26,23 +27,28 @@ public partial class MainHUDController : CanvasLayer
 
 	private Control _toolsPanel;
 	private Control _objectGallery;
-	private HBoxContainer _categoryContainer;
+	private HBoxContainer _categoryContainer; // Kept for legacy reference if needed, but implementation uses specific ones
 	private GridContainer _objectGrid;
 	private Button _galleryToggleBtn;
 	private Control _galleryContent;
 
+	// Category UI
+	private HBoxContainer _mainCategoryContainer;
+	private HBoxContainer _subCategoryContainer;
+	private string _currentMainCategory = "Nature";
+	private string _currentSubCategory = "Trees";
+
 	public enum BuildTool { Selection, Survey, NewObject }
 	private BuildTool _currentTool = BuildTool.Selection;
 	public BuildTool CurrentTool => _currentTool;
-
 	private struct ObjectAsset
 	{
 		public string Name;
 		public string Path;
-		public string Category;
+		public string MainCategory;
+		public string SubCategory;
 	}
 	private List<ObjectAsset> _allAssets = new List<ObjectAsset>();
-	private string _currentCategory = "Trees";
 
 	public void RegisterPlayer(PlayerController player)
 	{
@@ -83,6 +89,7 @@ public partial class MainHUDController : CanvasLayer
 		_objectGallery = GetNode<Control>("ObjectGallery");
 		_galleryContent = GetNode<Control>("ObjectGallery/VBox");
 		_objectGrid = GetNode<GridContainer>("ObjectGallery/VBox/Scroll/Grid");
+		_objectGrid.Columns = 3;
 
 		// Setup Minimize/Expand Button
 		_galleryToggleBtn = new Button();
@@ -93,11 +100,20 @@ public partial class MainHUDController : CanvasLayer
 		_galleryToggleBtn.Pressed += () => SetGalleryExpanded(true);
 		AddChild(_galleryToggleBtn); // Add to HUD directly, not inside gallery
 
-		// Setup Category Container
-		_categoryContainer = new HBoxContainer();
-		_categoryContainer.Alignment = BoxContainer.AlignmentMode.Center;
-		GetNode<VBoxContainer>("ObjectGallery/VBox").AddChild(_categoryContainer);
-		GetNode<VBoxContainer>("ObjectGallery/VBox").MoveChild(_categoryContainer, 1); // Below Title
+		// Setup Category Containers
+		var vbox = GetNode<VBoxContainer>("ObjectGallery/VBox");
+
+		// Main Categories (Top Row)
+		_mainCategoryContainer = new HBoxContainer();
+		_mainCategoryContainer.Alignment = BoxContainer.AlignmentMode.Center;
+		vbox.AddChild(_mainCategoryContainer);
+		vbox.MoveChild(_mainCategoryContainer, 1);
+
+		// Sub Categories (Second Row) - Add a spacer or separator if needed
+		_subCategoryContainer = new HBoxContainer();
+		_subCategoryContainer.Alignment = BoxContainer.AlignmentMode.Center;
+		vbox.AddChild(_subCategoryContainer);
+		vbox.MoveChild(_subCategoryContainer, 2);
 
 		// Connect Tool Buttons
 		GetNode<Button>("ToolsPanel/VBox/SelectionBtn").Pressed += () => SetBuildTool(BuildTool.Selection);
@@ -105,7 +121,7 @@ public partial class MainHUDController : CanvasLayer
 		GetNode<Button>("ToolsPanel/VBox/NewObjectBtn").Pressed += () => SetBuildTool(BuildTool.NewObject);
 
 		ScanAssets();
-		CreateCategoryButtons();
+		InitializeCategories();
 
 		if (_archerySystem != null)
 		{
@@ -254,7 +270,7 @@ public partial class MainHUDController : CanvasLayer
 		if (tool == BuildTool.NewObject)
 		{
 			SetGalleryExpanded(true);
-			PopulateGallery(_currentCategory);
+			PopulateGallery(); // Uses current categories
 		}
 		else
 		{
@@ -341,72 +357,157 @@ public partial class MainHUDController : CanvasLayer
 	private void ScanAssets()
 	{
 		_allAssets.Clear();
-		_allAssets.Add(new ObjectAsset { Name = "TeePin", Category = "Utility", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Pin", Category = "Utility", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "DistanceSign", Category = "Utility", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "CourseMap", Category = "Utility", Path = "" });
+		// Hardcoded Utility items
+		_allAssets.Add(new ObjectAsset { Name = "TeePin", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Pin", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "DistanceSign", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "CourseMap", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
 
-		string path = "res://Assets/Textures/Objects/";
-		using var dir = DirAccess.Open(path);
-		if (dir != null)
+		string[] searchPaths = {
+			"res://Assets/Textures/NatureObjects/",
+			"res://Assets/Textures/ManObjects/",
+            "res://Assets/Textures/BuildingObjects/"
+		};
+
+		foreach (string path in searchPaths)
 		{
-			dir.ListDirBegin();
-			string fileName = dir.GetNext();
-			while (fileName != "")
+			using var dir = DirAccess.Open(path);
+			if (dir != null)
 			{
-				// In Exported builds, files are remapped to .remap
-				// OR we can find the .import file if included
-				if (fileName.EndsWith(".gltf") || fileName.EndsWith(".gltf.remap") || fileName.EndsWith(".gltf.import"))
+				dir.ListDirBegin();
+				string fileName = dir.GetNext();
+				while (fileName != "")
 				{
-					// Strip .remap or .import if present to get the logical loading path
-					string logicalName = fileName.Replace(".remap", "").Replace(".import", "");
-
-					string category = GetCategoryForFile(logicalName);
-					_allAssets.Add(new ObjectAsset
+					if (fileName.EndsWith(".gltf") || fileName.EndsWith(".gltf.remap") || fileName.EndsWith(".gltf.import"))
 					{
-						Name = logicalName.Replace(".gltf", ""),
-						Path = path + logicalName,
-						Category = category
-					});
+						string logicalName = fileName.Replace(".remap", "").Replace(".import", "");
+						string cleanName = logicalName.Replace(".gltf", "");
+
+						if (!_allAssets.Exists(a => a.Name == cleanName))
+						{
+							var (main, sub) = GetAssetCategories(cleanName);
+							_allAssets.Add(new ObjectAsset
+							{
+								Name = cleanName,
+								Path = path + logicalName,
+								MainCategory = main,
+								SubCategory = sub
+							});
+						}
+					}
+					fileName = dir.GetNext();
 				}
-				fileName = dir.GetNext();
 			}
 		}
 		GD.Print($"MainHUD: Scanned {_allAssets.Count} assets.");
 	}
 
-	private string GetCategoryForFile(string name)
+	private (string Main, string Sub) GetAssetCategories(string name)
 	{
 		name = name.ToLower();
-		if (name.Contains("tree") || name.Contains("pine")) return "Trees";
-		if (name.Contains("rock") || name.Contains("pebble")) return "Rocks";
-		if (name.Contains("flower") || name.Contains("bush") || name.Contains("grass") || name.Contains("fern") || name.Contains("clover") || name.Contains("plant")) return "Greenery";
-		if (name.Contains("mushroom")) return "Mushrooms";
-		return "Misc";
+
+		// --- NATURE ---
+		if (name.Contains("tree") || name.Contains("pine") || name.Contains("trunk") || name.Contains("log")) return ("Nature", "Trees");
+		if (name.Contains("rock") || name.Contains("pebble") || name.Contains("rubble")) return ("Nature", "Rocks");
+		if (name.Contains("flower") || name.Contains("bush") || name.Contains("grass") || name.Contains("fern") || name.Contains("clover") || name.Contains("plant") || name.Contains("vine") || name.Contains("leaf")) return ("Nature", "Greenery");
+		if (name.Contains("mushroom")) return ("Nature", "Mushrooms");
+
+		// --- STRUCTURES ---
+		if (name.Contains("wall") || name.Contains("barrier")) return ("Structures", "Walls");
+		if (name.Contains("roof") || name.Contains("overhang")) return ("Structures", "Roofs");
+		if (name.Contains("floor") || name.Contains("foundation") || name.Contains("ceiling")) return ("Structures", "Floors");
+		if (name.Contains("stair")) return ("Structures", "Stairs");
+		if (name.Contains("door") || name.Contains("window") || name.Contains("shutter")) return ("Structures", "Doors/Windows");
+		if (name.Contains("column") || name.Contains("pillar") || name.Contains("balcony") || name.Contains("support")) return ("Structures", "Columns");
+
+		// --- FURNITURE ---
+		if (name.Contains("chair") || name.Contains("stool") || name.Contains("bench")) return ("Furniture", "Seating");
+		if (name.Contains("table") || name.Contains("shelf") || name.Contains("shelves")) return ("Furniture", "Surfaces");
+		if (name.Contains("bed")) return ("Furniture", "Sleeping");
+		if (name.Contains("box") || name.Contains("crate") || name.Contains("barrel") || name.Contains("keg") || name.Contains("chest")) return ("Furniture", "Storage");
+
+		// --- DECOR ---
+		if (name.Contains("torch") || name.Contains("candle") || name.Contains("lantern")) return ("Decor", "Lighting");
+		if (name.Contains("banner") || name.Contains("flag") || name.Contains("shield") || name.Contains("sword") || name.Contains("weapon") || name.Contains("keyring")) return ("Decor", "Military");
+		if (name.Contains("bottle") || name.Contains("plate") || name.Contains("cup") || name.Contains("coin") || name.Contains("key") || name.Contains("book") || name.Contains("food")) return ("Decor", "Items");
+		if (name.Contains("prop") || name.Contains("cart") || name.Contains("wagon")) return ("Decor", "Misc");
+
+		return ("Misc", "General");
 	}
 
-	private void CreateCategoryButtons()
+	private void InitializeCategories()
 	{
-		string[] categories = { "Utility", "Trees", "Greenery", "Rocks", "Mushrooms", "Misc" };
+		CreateMainCategoryButtons();
+		SelectMainCategory("Nature"); // Default
+	}
+
+	private void CreateMainCategoryButtons()
+	{
+		// Clear existing
+		foreach (Node child in _mainCategoryContainer.GetChildren()) child.QueueFree();
+
+		string[] categories = { "Nature", "Structures", "Furniture", "Decor", "Utility", "Misc" };
 		foreach (var cat in categories)
 		{
 			var btn = new Button { Text = cat };
-			btn.CustomMinimumSize = new Vector2(100, 40);
-			btn.Pressed += () => PopulateGallery(cat);
-			_categoryContainer.AddChild(btn);
+			btn.CustomMinimumSize = new Vector2(90, 35);
+			btn.Pressed += () => SelectMainCategory(cat);
+			_mainCategoryContainer.AddChild(btn);
 		}
 	}
 
-	private void PopulateGallery(string category)
+	private void SelectMainCategory(string mainCategory)
 	{
-		_currentCategory = category;
+		_currentMainCategory = mainCategory;
+		UpdateSubCategoryButtons(mainCategory);
+
+		// Auto-select first available subcategory
+		var firstSub = _allAssets.Find(a => a.MainCategory == mainCategory).SubCategory;
+		if (string.IsNullOrEmpty(firstSub)) firstSub = "General"; // Fallback
+
+		SelectSubCategory(firstSub);
+	}
+
+	private void UpdateSubCategoryButtons(string mainCategory)
+	{
+		foreach (Node child in _subCategoryContainer.GetChildren()) child.QueueFree();
+
+		// Find distinct subcategories for this main category
+		var subCats = _allAssets
+			.FindAll(a => a.MainCategory == mainCategory)
+			.Select(a => a.SubCategory)
+			.Distinct()
+			.OrderBy(s => s)
+			.ToList();
+
+		if (subCats.Count == 0) return;
+
+		foreach (var sub in subCats)
+		{
+			var btn = new Button { Text = sub };
+			btn.CustomMinimumSize = new Vector2(80, 30);
+			btn.Pressed += () => SelectSubCategory(sub);
+			_subCategoryContainer.AddChild(btn);
+		}
+	}
+
+	private void SelectSubCategory(string subCategory)
+	{
+		_currentSubCategory = subCategory;
+		PopulateGallery();
+	}
+
+	private void PopulateGallery()
+	{
 		foreach (Node child in _objectGrid.GetChildren()) child.QueueFree();
 
-		var filtered = _allAssets.FindAll(a => a.Category == category);
+		var filtered = _allAssets.FindAll(a => a.MainCategory == _currentMainCategory && a.SubCategory == _currentSubCategory);
 		foreach (var asset in filtered)
 		{
 			var btn = new Button { Text = asset.Name };
-			btn.CustomMinimumSize = new Vector2(150, 40);
+			// Fill width
+			btn.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+			btn.CustomMinimumSize = new Vector2(120, 40); // Slightly smaller min width to fit grid
 			btn.Pressed += () => SelectObjectToPlace(asset.Name);
 			_objectGrid.AddChild(btn);
 		}
