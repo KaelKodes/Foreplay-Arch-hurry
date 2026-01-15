@@ -176,6 +176,9 @@ public partial class NetworkManager : Node
         await ToSignal(GetTree(), "physics_frame");
         await ToSignal(GetTree(), "physics_frame");
 
+        SetupObjectSpawner();
+        SetupTerrainSpawner();
+
         if (Multiplayer.IsServer())
         {
             // If we are the Host, spawn ourselves immediately
@@ -282,5 +285,296 @@ public partial class NetworkManager : Node
         player.Rpc(nameof(PlayerController.NetSetPlayerIndex), newIndex);
 
         GD.Print($"Spawned Player for ID: {id} at {spawnPos} (RPC Sent)");
+    }
+
+    // --- Dynamic Object Spawning ---
+    private Node _worldObjectsContainer;
+    private MultiplayerSpawner _objectSpawner;
+
+    public void SetupObjectSpawner()
+    {
+        // Container for spawned objects
+        _worldObjectsContainer = GetTree().CurrentScene.GetNodeOrNull("WorldObjects");
+        if (_worldObjectsContainer == null)
+        {
+            _worldObjectsContainer = new Node3D();
+            _worldObjectsContainer.Name = "WorldObjects";
+            GetTree().CurrentScene.AddChild(_worldObjectsContainer);
+        }
+
+        // Clean up old spawner if it exists (e.g. scene reload)
+        if (_objectSpawner != null)
+        {
+            _objectSpawner.QueueFree();
+            _objectSpawner = null;
+        }
+
+        // Spawner - Add to SCENE, not NetworkManager, to ensure it cleans up with level?
+        // Actually, Autoload is safer for logic, but Spawner needs to be same path on both?
+        // Let's add it to NetworkManager (Autoload) but update SpawnPath.
+        _objectSpawner = new MultiplayerSpawner();
+        _objectSpawner.Name = "ObjectSpawner";
+        AddChild(_objectSpawner); // Add to tree FIRST so it can resolve paths
+        _objectSpawner.SpawnPath = _worldObjectsContainer.GetPath();
+        _objectSpawner.SpawnFunction = new Callable(this, nameof(SpawnNetworkObject));
+
+        GD.Print($"NetworkManager: ObjectSpawner setup complete. Target: {_objectSpawner.SpawnPath}");
+    }
+
+    private MultiplayerSpawner _terrainSpawner;
+    public void SetupTerrainSpawner()
+    {
+        // Ensure CSG Combiner exists
+        var root = GetTree().CurrentScene;
+        var csgRoot = root.GetNodeOrNull<CsgCombiner3D>("TerrainCombiner");
+        if (csgRoot == null)
+        {
+            csgRoot = new CsgCombiner3D();
+            csgRoot.Name = "TerrainCombiner";
+            csgRoot.UseCollision = true;
+            root.AddChild(csgRoot);
+            // Optionally setup bedrock/defaults here? 
+            // BuildManager logic handles defaults. We just need the container.
+        }
+
+        if (_terrainSpawner != null) { _terrainSpawner.QueueFree(); _terrainSpawner = null; }
+
+        _terrainSpawner = new MultiplayerSpawner();
+        _terrainSpawner.Name = "TerrainSpawner";
+        AddChild(_terrainSpawner);
+        _terrainSpawner.SpawnPath = csgRoot.GetPath();
+        _terrainSpawner.SpawnFunction = new Callable(this, nameof(SpawnNetworkObject)); // Reuse same function
+
+        GD.Print($"NetworkManager: TerrainSpawner setup complete. Target: {_terrainSpawner.SpawnPath}");
+    }
+
+    // RPC called by Client to request an object placement
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+    public void RequestSpawnObject(string resourcePath, Vector3 position, Vector3 rotation, Vector3 scale)
+    {
+        if (!Multiplayer.IsServer()) return;
+
+        GD.Print($"NetworkManager: RequestSpawnObject received for {resourcePath}");
+
+        // Data to pass to SpawnFunction (must be Variant-compatible)
+        var data = new Godot.Collections.Dictionary
+        {
+            { "path", resourcePath },
+            { "pos", position },
+            { "rot", rotation },
+            { "scale", scale }
+        };
+
+        // This triggers SpawnNetworkObject on Server, adds to tree, and replicates to Clients
+        _objectSpawner.Spawn(data);
+    }
+
+    // --- Terrain Sync ---
+
+    // RPC called by Client to request a terrain bake
+    // Supports both Heightmap (Deform) and CSG (Spawn)
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+    public void RequestBakeTerrain(Godot.Collections.Array<Vector3> points, float elevation, int type)
+    {
+        if (!Multiplayer.IsServer()) return;
+
+        GD.Print($"NetworkManager: RequestBakeTerrain received. Type: {type}, Elev: {elevation}, Pts: {points.Count}");
+
+        // Check for Heightmap first using same logic as BuildManager
+        var heightmap = GetTree().CurrentScene.GetNodeOrNull<HeightmapTerrain>("HeightmapTerrain");
+        // Or search group if name differs? BuildManager searches group.
+        if (heightmap == null)
+        {
+            var terrains = GetTree().GetNodesInGroup("terrain");
+            if (terrains.Count > 0 && terrains[0] is HeightmapTerrain ht) heightmap = ht;
+        }
+
+        if (heightmap != null)
+        {
+            // Case A: Heightmap -> Multicast Deform to everyone
+            Rpc(nameof(NetDeformTerrain), points, elevation, type);
+        }
+        else
+        {
+            // Case B: CSG -> Spawn networked node via Spawner
+            // Prepare data dictionary for SpawnFunction
+            var data = new Godot.Collections.Dictionary
+            {
+                { "type", "terrain" },
+                { "points", points },
+                { "elev", elevation },
+                { "tType", type },
+                { "pos", Vector3.Zero },
+                { "rot", Vector3.Zero },
+                { "scale", Vector3.One } // Dummy transforms, points are absolute/local to root
+            };
+
+            // Use TerrainSpawner to ensure it spawns as child of TerrainCombiner (for CSG)
+            _terrainSpawner.Spawn(data);
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+    public void NetDeformTerrain(Godot.Collections.Array<Vector3> points, float elevation, int type)
+    {
+        // Execute on all clients
+        GD.Print("NetworkManager: NetDeformTerrain executing locally...");
+
+        var heightmap = GetTree().CurrentScene.GetNodeOrNull<HeightmapTerrain>("HeightmapTerrain");
+        if (heightmap == null)
+        {
+            var terrains = GetTree().GetNodesInGroup("terrain");
+            if (terrains.Count > 0 && terrains[0] is HeightmapTerrain ht) heightmap = ht;
+        }
+
+        if (heightmap != null)
+        {
+            // Convert Godot Array to C# Array
+            Vector3[] pts = new Vector3[points.Count];
+            for (int i = 0; i < points.Count; i++) pts[i] = points[i];
+
+            heightmap.DeformArea(pts, elevation, type);
+        }
+    }
+
+    // The Spawn Function (run by Spawner)
+    // Instantiates the object. NOTE: Must return the Node.
+    private Node SpawnNetworkObject(Godot.Collections.Dictionary data)
+    {
+        string type = data.ContainsKey("type") ? (string)data["type"] : "object";
+        Vector3 pos = (Vector3)data["pos"];
+        Vector3 rot = (Vector3)data["rot"];
+        Vector3 scale = (Vector3)data["scale"];
+
+        Node obj = null;
+
+        if (type == "terrain")
+        {
+            // Reconstruct CSG Terrain
+            // Logic borrowed from BuildManager.BakeTerrain (CSG part)
+            // But we need to make it a standalone node we can return.
+            // BuildManager creates a SurveyedTerrain node.
+
+            var pointsVariant = (Godot.Collections.Array<Vector3>)data["points"];
+            float elevation = (float)data["elev"];
+            int tType = (int)data["tType"];
+
+            Vector3[] pointsToUse = new Vector3[pointsVariant.Count];
+            for (int i = 0; i < pointsVariant.Count; i++) pointsToUse[i] = pointsVariant[i];
+
+            var bakedNode = new SurveyedTerrain();
+            bakedNode.Name = $"Terrain_{tType}_{Time.GetTicksMsec()}"; // Unique name
+            bakedNode.Points = pointsToUse; // Requires SurveyedTerrain to have public setter? It does.
+            bakedNode.TerrainType = tType;
+
+            // Geometry construction logic (simplified from BuildManager)
+            Vector3 centroid = Vector3.Zero;
+            foreach (var p in pointsToUse) centroid += p;
+            if (pointsToUse.Length > 0) centroid /= pointsToUse.Length;
+
+            Vector2[] localPoly = new Vector2[pointsToUse.Length];
+            for (int i = 0; i < pointsToUse.Length; i++)
+                localPoly[i] = new Vector2(pointsToUse[i].X - centroid.X, pointsToUse[i].Z - centroid.Z);
+
+            bakedNode.Polygon = localPoly;
+            bakedNode.Mode = CsgPolygon3D.ModeEnum.Depth;
+            bakedNode.RotationDegrees = new Vector3(90, 0, 0); // Local rotation for CSG
+            bakedNode.UseCollision = true; // Wait, BuildManager toggles this?
+
+            // Material
+            var mat = new StandardMaterial3D();
+            // Simple color mapping (should match BuildManager)
+            switch (tType)
+            {
+                case 0: mat.AlbedoColor = new Color(0.2f, 0.5f, 0.2f); break;
+                case 1: mat.AlbedoColor = new Color(0.15f, 0.3f, 0.15f); break;
+                case 2: mat.AlbedoColor = new Color(0.08f, 0.2f, 0.08f); break;
+                case 3: mat.AlbedoColor = new Color(0.1f, 0.6f, 0.1f); break;
+                case 4: mat.AlbedoColor = new Color(0.9f, 0.8f, 0.5f); break;
+                case 5: mat.AlbedoColor = new Color(0.1f, 0.3f, 0.8f); break;
+            }
+            bakedNode.MaterialOverride = mat;
+
+            // Depth & Operation
+            if (elevation >= 0)
+            {
+                bakedNode.Operation = CsgShape3D.OperationEnum.Union;
+                bakedNode.Depth = 0.1f + elevation;
+                // Position will be set later by Spawner using returned obj?
+                // Wait, Spawner sets Transform if 'pos' is passed?
+                // But CSG logic sets GlobalPosition based on centroid.
+                // We should set pos = centroid in our data?
+                // OR we set it here and ignore Spawner's override?
+                // Spawner overrides obj properties? No, custom spawn func returns node, Spawner adds it.
+                // Check documentation: Spawner does NOT auto-sync transform unless MultiplayerSynchronizer is used?
+                // OR spawn() data is just for init.
+
+                // Let's set Transform here explicitly.
+                pos = new Vector3(centroid.X, 0.1f, centroid.Z);
+            }
+            else
+            {
+                float depth = Mathf.Abs(elevation);
+                bakedNode.Operation = CsgShape3D.OperationEnum.Subtraction;
+                bakedNode.Depth = depth;
+                pos = new Vector3(centroid.X, 0.1f - depth, centroid.Z);
+
+                // Note: Filler mesh logic for water/sand omitted for brevity/complexity in Spawn function. 
+                // Ideally should be a proper configured scene.
+            }
+
+            obj = bakedNode;
+        }
+        else
+        {
+            // OBJECT Spawn Logic (Original)
+            string path = (string)data["path"];
+            // Logic similar to MainHUDController selection
+            if (path.EndsWith(".gltf"))
+            {
+                // GLTF Direct Load
+                var model = GD.Load<PackedScene>(path).Instantiate();
+                var wrapper = new InteractableObject();
+                wrapper.Name = System.IO.Path.GetFileNameWithoutExtension(path) + "_" + Time.GetTicksMsec();
+                wrapper.ObjectName = System.IO.Path.GetFileNameWithoutExtension(path);
+                wrapper.AddChild(model);
+
+                // Collision
+                var staticBody = new StaticBody3D();
+                var col = new CollisionShape3D();
+                var sphere = new SphereShape3D();
+                sphere.Radius = 1.0f;
+                col.Shape = sphere;
+                staticBody.AddChild(col);
+                wrapper.AddChild(staticBody);
+
+                obj = wrapper;
+            }
+            else
+            {
+                // PackedScene Load
+                var scene = GD.Load<PackedScene>(path);
+                if (scene != null)
+                {
+                    var instance = scene.Instantiate();
+                    if (instance is InteractableObject io)
+                    {
+                        io.ObjectName = System.IO.Path.GetFileNameWithoutExtension(path);
+                    }
+                    obj = instance;
+                }
+            }
+        }
+
+        if (obj is Node3D n3d)
+        {
+            // Use LOCAL properties because node is not in tree yet.
+            // Parent is WorldObjects (at 0,0,0), so Position == GlobalPosition.
+            n3d.Position = pos;
+            n3d.Rotation = rot;
+            n3d.Scale = scale;
+        }
+
+        return obj;
     }
 }

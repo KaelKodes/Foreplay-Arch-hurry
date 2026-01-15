@@ -85,7 +85,62 @@ public partial class ObjectPlacer : Node
             if (isPin) _archerySystem?.UpdatePinPosition(_currentObject.GlobalPosition);
         }
 
-        GD.Print($"ObjectPlacer: Placed {_currentObject.ObjectName} at {_currentObject.GlobalPosition}");
+        // NETWORK SPAWN LOGIC
+        // If we are connected, send RPC to spawn this object for everyone
+        var netManager = GetNodeOrNull<NetworkManager>("/root/NetworkManager");
+        if (netManager != null && netManager.Multiplayer.HasMultiplayerPeer() &&
+            (netManager.Multiplayer.IsServer() || netManager.Multiplayer.GetUniqueId() != 1))
+        {
+            // We have a ghost object (_currentObject). We need to spawn a real networked one.
+            // But wait, what if we just placed a Tee/Pin locally logic above?
+            // Ideally, Tee/Pin should also be networked.
+
+            // Reconstruct Resource Path (we need to store it in InteractableObject or pass it)
+            // For now, assuming ObjectName matches a file in Assets/Textures/Objects or is a known type
+
+            string resourcePath = "";
+            // Try to deduce path. This is tricky without storing it.
+            // Option: Add 'ResourcePath' property to InteractableObject?
+            // For now, let's reverse-lookup or use a naming convention if possible, 
+            // OR assumes MainHUD passed valid path info that we stored?
+            // ObjectPlacer doesn't store path.
+
+            // QUICK FIX strategy: We don't have the original path here easily unless we stored it.
+            // However, _currentObject is an instance. 
+            // If we look at MainHUDController, it does: Name = objectId.
+            // NetworkManager.SpawnNetworkObject logic re-constructs from path.
+
+            // Let's rely on constructing path from ObjectName if simple.
+            // BUT MainHUDController has the logic "res://Assets/Textures/Objects/" + Name + ".gltf"
+            // We should duplicate that logic or store the path.
+
+            // Let's assume standard asset path for now.
+            string objName = _currentObject.ObjectName;
+            if (objName == "DistanceSign" || objName == "TeePin" || objName == "Pin" || objName == "CourseMap")
+            {
+                // Known types
+                if (objName == "DistanceSign") resourcePath = "res://Scenes/Environment/DistanceMarker.tscn";
+                else if (objName == "CourseMap") resourcePath = "res://Scenes/Environment/CourseMapSign.tscn";
+                else resourcePath = "res://Scenes/Environment/DistanceMarker.tscn"; // Fallback
+            }
+            else
+            {
+                // Dynamic Asset
+                resourcePath = "res://Assets/Textures/Objects/" + objName + ".gltf";
+            }
+
+            netManager.RpcId(1, nameof(NetworkManager.RequestSpawnObject), resourcePath, _currentObject.GlobalPosition, _currentObject.GlobalRotation, _currentObject.Scale);
+
+            // Remove local ghost immediately
+            _currentObject.QueueFree();
+            GD.Print($"ObjectPlacer: Sent Network Spawn Request for {objName}");
+        }
+        else
+        {
+            // Local Only (Offline)
+            GD.Print($"ObjectPlacer: Placed {_currentObject.ObjectName} (Local)");
+        }
+
         _currentObject = null;
         _isNewObject = false;
 

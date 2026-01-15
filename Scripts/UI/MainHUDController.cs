@@ -354,13 +354,18 @@ public partial class MainHUDController : CanvasLayer
 			string fileName = dir.GetNext();
 			while (fileName != "")
 			{
-				if (fileName.EndsWith(".gltf"))
+				// In Exported builds, files are remapped to .remap
+				// OR we can find the .import file if included
+				if (fileName.EndsWith(".gltf") || fileName.EndsWith(".gltf.remap") || fileName.EndsWith(".gltf.import"))
 				{
-					string category = GetCategoryForFile(fileName);
+					// Strip .remap or .import if present to get the logical loading path
+					string logicalName = fileName.Replace(".remap", "").Replace(".import", "");
+
+					string category = GetCategoryForFile(logicalName);
 					_allAssets.Add(new ObjectAsset
 					{
-						Name = fileName.Replace(".gltf", ""),
-						Path = path + fileName,
+						Name = logicalName.Replace(".gltf", ""),
+						Path = path + logicalName,
 						Category = category
 					});
 				}

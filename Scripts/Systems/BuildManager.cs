@@ -411,6 +411,22 @@ public partial class BuildManager : Node3D
         var pointsToUse = GetSmoothedPoints();
         if (pointsToUse.Count < 3) return;
 
+        // NETWORK SYNC
+        var netManager = GetNodeOrNull<NetworkManager>("/root/NetworkManager");
+        if (netManager != null && netManager.Multiplayer.HasMultiplayerPeer())
+        {
+            // Convert List to Godot.Collections.Array for RPC
+            var gdPoints = new Godot.Collections.Array<Vector3>();
+            foreach (var p in pointsToUse) gdPoints.Add(p);
+
+            // Send to Server (ID 1). RPC is CallLocal=true, so if we are Server, it runs locally too.
+            netManager.RpcId(1, nameof(NetworkManager.RequestBakeTerrain), gdPoints, CurrentElevation, terrainType);
+
+            CurrentElevation = 0.0f;
+            ClearSurvey();
+            return;
+        }
+
         var heightmap = GetTree().CurrentScene.GetNodeOrNull<HeightmapTerrain>("HeightmapTerrain");
         if (heightmap == null)
         {

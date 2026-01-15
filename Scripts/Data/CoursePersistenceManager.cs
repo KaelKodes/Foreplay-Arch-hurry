@@ -231,6 +231,19 @@ public partial class CoursePersistenceManager
 
                 if (string.IsNullOrEmpty(spawnPath)) continue;
 
+                // NETWORKed LOAD: If we are Server, spawn via NetworkManager so everyone sees it
+                var netManager = rootNode.GetNodeOrNull<NetworkManager>("/root/NetworkManager");
+                if (netManager != null && netManager.Multiplayer.HasMultiplayerPeer() && netManager.Multiplayer.IsServer())
+                {
+                    // Pass to spawner
+                    netManager.RequestSpawnObject(spawnPath,
+                        new Vector3(objData.PosX, objData.PosY, objData.PosZ),
+                        new Vector3(objData.RotX, objData.RotY, objData.RotZ),
+                        new Vector3(objData.ScaleX, objData.ScaleY, objData.ScaleZ)
+                    );
+                    continue;
+                }
+
                 var scene = GD.Load<PackedScene>(spawnPath);
                 if (scene != null)
                 {
