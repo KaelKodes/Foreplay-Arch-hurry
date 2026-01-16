@@ -1,6 +1,8 @@
 using Godot;
 using System.Collections.Generic;
 
+namespace Archery;
+
 public partial class HeightmapTerrain : StaticBody3D
 {
 	[Export] public int GridWidth = 200;  // X axis
@@ -24,13 +26,60 @@ public partial class HeightmapTerrain : StaticBody3D
 	public float[,] GetHeightData() => _heightData;
 	public int[,] GetTerrainTypeData() => _terrainTypeData;
 
+	public float[] GetFlattenedHeightData()
+	{
+		float[] flattened = new float[(GridWidth + 1) * (GridDepth + 1)];
+		for (int z = 0; z <= GridDepth; z++)
+		{
+			for (int x = 0; x <= GridWidth; x++)
+			{
+				flattened[z * (GridWidth + 1) + x] = _heightData[x, z];
+			}
+		}
+		return flattened;
+	}
+
+	public int[] GetFlattenedTypeData()
+	{
+		int[] flattened = new int[(GridWidth + 1) * (GridDepth + 1)];
+		for (int z = 0; z <= GridDepth; z++)
+		{
+			for (int x = 0; x <= GridWidth; x++)
+			{
+				flattened[z * (GridWidth + 1) + x] = _terrainTypeData[x, z];
+			}
+		}
+		return flattened;
+	}
+
+	public void SetFlattenedData(float[] heights, int[] types)
+	{
+		if (_heightData == null) InitializeData();
+		if (heights.Length != (GridWidth + 1) * (GridDepth + 1))
+		{
+			GD.PrintErr($"HeightmapTerrain: Sync data length mismatch! Expected {(GridWidth + 1) * (GridDepth + 1)}, got {heights.Length}");
+			return;
+		}
+
+		for (int z = 0; z <= GridDepth; z++)
+		{
+			for (int x = 0; x <= GridWidth; x++)
+			{
+				int idx = z * (GridWidth + 1) + x;
+				_heightData[x, z] = heights[idx];
+				_terrainTypeData[x, z] = types[idx];
+			}
+		}
+		UpdateMesh();
+	}
+
 	// Components
 	private MeshInstance3D _meshInstance;
 	private CollisionShape3D _collisionShape;
 
 	public override void _Ready()
 	{
-		InitializeData();
+		if (_heightData == null) InitializeData();
 		// Try to find existing nodes to satisfy editor/user setup
 		_meshInstance = GetNodeOrNull<MeshInstance3D>("TerrainMesh");
 		_collisionShape = GetNodeOrNull<CollisionShape3D>("CollisionShape3D");
@@ -132,14 +181,14 @@ public partial class HeightmapTerrain : StaticBody3D
 			var mat = new StandardMaterial3D();
 			mat.VertexColorUseAsAlbedo = true;
 			mat.AlbedoColor = Colors.White; // Ensure base color isn't black
-			_meshInstance.MaterialOverride = mat;
-		}
+            _meshInstance.MaterialOverride = mat;
+        }
 
-		UpdateCollision(mesh);
-	}
+        UpdateCollision(mesh);
+    }
 
-	private void UpdateCollision(Mesh mesh)
-	{
+    private void UpdateCollision(Mesh mesh)
+    {
 		// Don't create a new collision shape - use the one from the scene
 		if (_collisionShape == null)
 		{
@@ -218,106 +267,106 @@ public partial class HeightmapTerrain : StaticBody3D
 			UpdateMesh();
 
 			// Create fill mesh for sand (4) or water (5) hazards if it's a hole
-			if (heightDelta < 0 && (terrainType == 4 || terrainType == 5))
-			{
-				CreateFillMesh(globalPoints, heightDelta, terrainType);
-			}
-		}
-	}
+            if (heightDelta < 0 && (terrainType == 4 || terrainType == 5))
+            {
+                CreateFillMesh(globalPoints, heightDelta, terrainType);
+            }
+        }
+    }
 
-	private void CreateFillMesh(Vector3[] globalPoints, float heightDelta, int terrainType)
-	{
-		// Calculate fill height (80% by default)
-		float fillPercentage = 0.8f;
-		float holeDepth = Mathf.Abs(heightDelta);
-		float fillHeight = heightDelta + (holeDepth * fillPercentage);
+    private void CreateFillMesh(Vector3[] globalPoints, float heightDelta, int terrainType)
+    {
+        // Calculate fill height (80% by default)
+        float fillPercentage = 0.8f;
+        float holeDepth = Mathf.Abs(heightDelta);
+        float fillHeight = heightDelta + (holeDepth * fillPercentage);
 
-		// Convert global points to local 2D polygon
-		Vector2[] localPoly2D = new Vector2[globalPoints.Length];
-		Vector3 centroid = Vector3.Zero;
+        // Convert global points to local 2D polygon
+        Vector2[] localPoly2D = new Vector2[globalPoints.Length];
+        Vector3 centroid = Vector3.Zero;
 
-		for (int i = 0; i < globalPoints.Length; i++)
-		{
-			centroid += globalPoints[i];
-			Vector3 local3D = ToLocal(globalPoints[i]);
-			localPoly2D[i] = new Vector2(local3D.X, local3D.Z);
-		}
-		centroid /= globalPoints.Length;
+        for (int i = 0; i < globalPoints.Length; i++)
+        {
+            centroid += globalPoints[i];
+            Vector3 local3D = ToLocal(globalPoints[i]);
+            localPoly2D[i] = new Vector2(local3D.X, local3D.Z);
+        }
+        centroid /= globalPoints.Length;
 
-		// Create a flat mesh at the fill height
-		var surfaceTool = new SurfaceTool();
-		surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
+        // Create a flat mesh at the fill height
+        var surfaceTool = new SurfaceTool();
+        surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
 
-		// Triangulate the polygon using ear clipping (simple fan triangulation for now)
-		Vector3 localCentroid = ToLocal(centroid);
+        // Triangulate the polygon using ear clipping (simple fan triangulation for now)
+        Vector3 localCentroid = ToLocal(centroid);
 
-		// Add center vertex
-		Color fillColor = terrainType == 4 ? Colors.SandyBrown : new Color(0.2f, 0.4f, 0.8f, 0.7f);
-		surfaceTool.SetColor(fillColor);
-		surfaceTool.AddVertex(new Vector3(localCentroid.X, fillHeight, localCentroid.Z));
+        // Add center vertex
+        Color fillColor = terrainType == 4 ? Colors.SandyBrown : new Color(0.2f, 0.4f, 0.8f, 0.7f);
+        surfaceTool.SetColor(fillColor);
+        surfaceTool.AddVertex(new Vector3(localCentroid.X, fillHeight, localCentroid.Z));
 
-		// Add perimeter vertices
-		for (int i = 0; i < localPoly2D.Length; i++)
-		{
-			surfaceTool.SetColor(fillColor);
-			surfaceTool.AddVertex(new Vector3(localPoly2D[i].X, fillHeight, localPoly2D[i].Y));
-		}
+        // Add perimeter vertices
+        for (int i = 0; i < localPoly2D.Length; i++)
+        {
+            surfaceTool.SetColor(fillColor);
+            surfaceTool.AddVertex(new Vector3(localPoly2D[i].X, fillHeight, localPoly2D[i].Y));
+        }
 
-		// Create triangles (fan from center)
-		for (int i = 0; i < localPoly2D.Length; i++)
-		{
-			int next = (i + 1) % localPoly2D.Length;
-			surfaceTool.AddIndex(0); // Center
-			surfaceTool.AddIndex(i + 1);
-			surfaceTool.AddIndex(next + 1);
-		}
+        // Create triangles (fan from center)
+        for (int i = 0; i < localPoly2D.Length; i++)
+        {
+            int next = (i + 1) % localPoly2D.Length;
+            surfaceTool.AddIndex(0); // Center
+            surfaceTool.AddIndex(i + 1);
+            surfaceTool.AddIndex(next + 1);
+        }
 
-		surfaceTool.GenerateNormals();
-		var fillMesh = surfaceTool.Commit();
+        surfaceTool.GenerateNormals();
+        var fillMesh = surfaceTool.Commit();
 
-		// Apply material
-		var mat = new StandardMaterial3D();
-		mat.VertexColorUseAsAlbedo = true;
+        // Apply material
+        var mat = new StandardMaterial3D();
+        mat.VertexColorUseAsAlbedo = true;
 
-		if (terrainType == 5) // Water
-		{
-			mat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-			mat.AlbedoColor = new Color(0.2f, 0.4f, 0.8f, 0.7f);
+        if (terrainType == 5) // Water
+        {
+            mat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+            mat.AlbedoColor = new Color(0.2f, 0.4f, 0.8f, 0.7f);
 
-			// Water is visual only - no collision
-			var fillInstance = new MeshInstance3D();
-			fillInstance.Mesh = fillMesh;
-			fillInstance.Name = $"Fill_Water_{Time.GetTicksMsec()}";
-			fillInstance.MaterialOverride = mat;
-			AddChild(fillInstance);
+            // Water is visual only - no collision
+            var fillInstance = new MeshInstance3D();
+            fillInstance.Mesh = fillMesh;
+            fillInstance.Name = $"Fill_Water_{Time.GetTicksMsec()}";
+            fillInstance.MaterialOverride = mat;
+            AddChild(fillInstance);
 
-			GD.Print($"Created water fill mesh at height {fillHeight}");
-		}
-		else // Sand (type 4)
-		{
-			mat.AlbedoColor = Colors.SandyBrown;
+            GD.Print($"Created water fill mesh at height {fillHeight}");
+        }
+        else // Sand (type 4)
+        {
+            mat.AlbedoColor = Colors.SandyBrown;
 
-			// Sand has collision so player sinks into it
-			var sandBody = new StaticBody3D();
-			sandBody.Name = $"Fill_Sand_{Time.GetTicksMsec()}";
-			sandBody.CollisionLayer = 2; // Same as terrain
-			sandBody.CollisionMask = 0;
+            // Sand has collision so player sinks into it
+            var sandBody = new StaticBody3D();
+            sandBody.Name = $"Fill_Sand_{Time.GetTicksMsec()}";
+            sandBody.CollisionLayer = 2; // Same as terrain
+            sandBody.CollisionMask = 0;
 
-			// Add mesh instance
-			var fillInstance = new MeshInstance3D();
-			fillInstance.Mesh = fillMesh;
-			fillInstance.MaterialOverride = mat;
-			sandBody.AddChild(fillInstance);
+            // Add mesh instance
+            var fillInstance = new MeshInstance3D();
+            fillInstance.Mesh = fillMesh;
+            fillInstance.MaterialOverride = mat;
+            sandBody.AddChild(fillInstance);
 
-			// Add collision shape
-			var collisionShape = new CollisionShape3D();
-			var trimeshShape = fillMesh.CreateTrimeshShape();
-			collisionShape.Shape = trimeshShape;
-			sandBody.AddChild(collisionShape);
+            // Add collision shape
+            var collisionShape = new CollisionShape3D();
+            var trimeshShape = fillMesh.CreateTrimeshShape();
+            collisionShape.Shape = trimeshShape;
+            sandBody.AddChild(collisionShape);
 
-			AddChild(sandBody);
+            AddChild(sandBody);
 
-			GD.Print($"Created sand fill mesh with collision at height {fillHeight}");
-		}
-	}
+            GD.Print($"Created sand fill mesh with collision at height {fillHeight}");
+        }
+    }
 }

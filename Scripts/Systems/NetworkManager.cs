@@ -1,6 +1,9 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using Archery;
+
+namespace Archery;
 
 public partial class NetworkManager : Node
 {
@@ -29,7 +32,7 @@ public partial class NetworkManager : Node
 			Instance = this;
 			// Prevent this node from being destroyed when loading new scenes
 			// Note: If added via Autoload in Project Settings, this is automatic (it's in /root/).
-			// If instantiated manually, we might need to be careful. 
+			// If instantiated manually, we might need to be careful.
 			// We'll assume strict Autoload usage.
 		}
 		else
@@ -214,6 +217,36 @@ public partial class NetworkManager : Node
 		// Find root scene to spawn into
 		Node root = GetTree().CurrentScene;
 		SpawnPlayer(senderId, root);
+
+		// Sync terrain data to this client
+		SyncTerrainToClient(senderId);
+	}
+
+	private void SyncTerrainToClient(long clientId)
+	{
+		var terrain = GetTree().GetFirstNodeInGroup("terrain") as HeightmapTerrain;
+		if (terrain != null)
+		{
+			GD.Print($"NetworkManager: Syncing Heightmap to client {clientId}...");
+			float[] heights = terrain.GetFlattenedHeightData();
+			int[] types = terrain.GetFlattenedTypeData();
+			RpcId((int)clientId, nameof(NetSyncHeightmap), heights, types);
+		}
+	}
+
+	[Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	public void NetSyncHeightmap(float[] heights, int[] types)
+	{
+		GD.Print("NetworkManager: Received Heightmap Sync from Server.");
+		var terrain = GetTree().GetFirstNodeInGroup("terrain") as HeightmapTerrain;
+		if (terrain != null)
+		{
+			terrain.SetFlattenedData(heights, types);
+		}
+		else
+		{
+			GD.PrintErr("NetworkManager: Could not find terrain for sync!");
+		}
 	}
 
 	private void SpawnPlayer(long id, Node root)
@@ -333,7 +366,7 @@ public partial class NetworkManager : Node
 			csgRoot.Name = "TerrainCombiner";
 			csgRoot.UseCollision = true;
 			root.AddChild(csgRoot);
-			// Optionally setup bedrock/defaults here? 
+			// Optionally setup bedrock/defaults here?
 			// BuildManager logic handles defaults. We just need the container.
 		}
 
@@ -550,7 +583,7 @@ public partial class NetworkManager : Node
 				bakedNode.Depth = depth;
 				pos = new Vector3(centroid.X, 0.1f - depth, centroid.Z);
 
-				// Note: Filler mesh logic for water/sand omitted for brevity/complexity in Spawn function. 
+				// Note: Filler mesh logic for water/sand omitted for brevity/complexity in Spawn function.
 				// Ideally should be a proper configured scene.
 			}
 
@@ -596,28 +629,43 @@ public partial class NetworkManager : Node
 			else
 			{
 				// PackedScene Load
-				if (!ResourceLoader.Exists(path))
+				string actualPath = path;
+				string species = "";
+				int colonIndex = path.LastIndexOf(':');
+				// Check if the colon is not the one in 'res://' (index 3)
+				if (colonIndex > 4)
 				{
-					GD.PrintErr($"[NetworkManager] PackedScene NOT found at {path}");
+					actualPath = path.Substring(0, colonIndex);
+					species = path.Substring(colonIndex + 1);
+				}
+
+				if (!ResourceLoader.Exists(actualPath))
+				{
+					GD.PrintErr($"[NetworkManager] PackedScene NOT found at {actualPath}");
 					return null;
 				}
-				var scene = GD.Load<PackedScene>(path);
+				var scene = GD.Load<PackedScene>(actualPath);
 				if (scene != null)
 				{
 					var instance = scene.Instantiate();
-					instance.Name = System.IO.Path.GetFileNameWithoutExtension(path) + "_" + Time.GetTicksMsec();
+					instance.Name = System.IO.Path.GetFileNameWithoutExtension(actualPath) + "_" + Time.GetTicksMsec();
 
 					if (instance is InteractableObject io)
 					{
-						io.ObjectName = System.IO.Path.GetFileNameWithoutExtension(path);
-						io.ModelPath = path;
+						io.ObjectName = System.IO.Path.GetFileNameWithoutExtension(actualPath);
+						io.ModelPath = path; // Keep encoded path for persistence
+
+						if (io is Monster monster && !string.IsNullOrEmpty(species))
+						{
+							monster.Species = species;
+						}
 					}
 					obj = instance;
 					GD.Print($"[NetworkManager] Instantiated TSCN: {obj.Name}");
 				}
 				else
 				{
-					GD.PrintErr($"[NetworkManager] Failed to load PackedScene: {path}");
+					GD.PrintErr($"[NetworkManager] Failed to load PackedScene: {actualPath}");
 				}
 			}
 		}
