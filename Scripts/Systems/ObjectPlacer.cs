@@ -9,6 +9,7 @@ public partial class ObjectPlacer : Node
     private Vector3 _originalPosition;
     private Vector3 _originalRotation; // Vector3 (Euler)
     private bool _isNewObject = false;
+    private string _originalObjectName = ""; // Tracks original for networked move
 
     // Placement State
     private float _currentRotationY = 0.0f;
@@ -31,6 +32,7 @@ public partial class ObjectPlacer : Node
 
         _currentRotationY = obj.GlobalRotation.Y;
         _currentHeightOffset = 0.0f;
+        _originalObjectName = obj.GetParent() != null ? obj.Name : "";
 
         // Notify ArcherySystem/Player to enter placement mode
         var player = _archerySystem.GetNodeOrNull<PlayerController>("../PlayerPlaceholder"); // Assuming standard path
@@ -123,17 +125,28 @@ public partial class ObjectPlacer : Node
                 else if (objName == "CourseMap") resourcePath = "res://Scenes/Environment/CourseMapSign.tscn";
                 else resourcePath = "res://Scenes/Environment/DistanceMarker.tscn"; // Fallback
             }
+            // Dynamic Asset
+            if (!string.IsNullOrEmpty(_currentObject.ModelPath))
+            {
+                resourcePath = _currentObject.ModelPath;
+            }
             else
             {
-                // Dynamic Asset
-                resourcePath = "res://Assets/Textures/Objects/" + objName + ".gltf";
+                // Fallback for objects missing ModelPath (should not happen for new placements)
+                resourcePath = "res://Assets/Textures/NatureObjects/" + objName + ".gltf";
             }
 
             netManager.RpcId(1, nameof(NetworkManager.RequestSpawnObject), resourcePath, _currentObject.GlobalPosition, _currentObject.GlobalRotation, _currentObject.Scale);
 
+            // If this was a "Move" of an existing networked object, delete the old one
+            if (!string.IsNullOrEmpty(_originalObjectName))
+            {
+                netManager.RpcId(1, nameof(NetworkManager.RequestDeleteObject), _originalObjectName);
+            }
+
             // Remove local ghost immediately
             _currentObject.QueueFree();
-            GD.Print($"ObjectPlacer: Sent Network Spawn Request for {objName}");
+            GD.Print($"ObjectPlacer: Sent Network Spawn Request for {objName} (Move: {!string.IsNullOrEmpty(_originalObjectName)})");
         }
         else
         {
@@ -143,6 +156,7 @@ public partial class ObjectPlacer : Node
 
         _currentObject = null;
         _isNewObject = false;
+        _originalObjectName = "";
 
         ExitPlacementMode();
     }
@@ -165,6 +179,7 @@ public partial class ObjectPlacer : Node
         GD.Print($"ObjectPlacer: Cancelled placement of {_currentObject.Name}");
         _currentObject = null;
         _isNewObject = false;
+        _originalObjectName = "";
 
         ExitPlacementMode();
     }

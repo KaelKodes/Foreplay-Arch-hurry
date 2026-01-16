@@ -8,6 +8,7 @@ public partial class InteractableObject : Node3D
     [Export] public bool IsDeletable = true;
     [Export] public bool IsTargetable = false;
     public bool IsSelected { get; private set; } = false;
+    public string ModelPath { get; set; } = ""; // Path to the source .gltf or .tscn
 
     // Optional: Visual highlight
     private MeshInstance3D _mesh;

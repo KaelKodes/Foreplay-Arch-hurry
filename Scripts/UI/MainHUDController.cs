@@ -317,6 +317,7 @@ public partial class MainHUDController : CanvasLayer
 			var obj = new InteractableObject();
 			obj.Name = objectId;
 			obj.ObjectName = objectId;
+			obj.ModelPath = scenePath;
 			obj.AddChild(model);
 
 			// Add a simple collision if missing
@@ -340,6 +341,7 @@ public partial class MainHUDController : CanvasLayer
 			{
 				var obj = scene.Instantiate<InteractableObject>();
 				obj.ObjectName = objectId;
+				obj.ModelPath = scenePath;
 				_archerySystem.ObjectPlacer.SpawnAndPlace(obj);
 			}
 		}

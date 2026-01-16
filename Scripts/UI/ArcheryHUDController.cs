@@ -15,7 +15,6 @@ public partial class ArcheryHUDController : Control
 	private ColorRect _lockedPowerLine;
 	private ColorRect _lockedAccuracyLine;
 
-	private Button _btnNextShot;
 	private Label _arrowsLabel;
 	private Label _distanceLabel;
 	private Label _speedLabel;
@@ -44,7 +43,6 @@ public partial class ArcheryHUDController : Control
 		_toggleWindBtn = GetNodeOrNull<Button>("StatsPanel/ToggleWindBtn");
 		_windSpeedSpin = GetNodeOrNull<SpinBox>("WindContainer/WindSpeedSpin");
 
-		_btnNextShot = GetNodeOrNull<Button>("SwingContainer/BtnNextShot");
 		_arrowsLabel = GetNodeOrNull<Label>("StatsPanel/StrokeLabel"); // Reusing label name for now
 		_distanceLabel = GetNodeOrNull<Label>("StatsPanel/DistanceLabel");
 		_speedLabel = GetNodeOrNull<Label>("StatsPanel/SpeedLabel");
@@ -60,16 +58,8 @@ public partial class ArcheryHUDController : Control
 			// Update initial mode display
 			OnShotModeChanged((int)_archerySystem.CurrentMode);
 
-			// Connect to Arrow signals via ArcherySystem reference
-			if (_archerySystem.ArrowPath != null)
-			{
-				var arrow = _archerySystem.GetNodeOrNull<ArrowController>(_archerySystem.ArrowPath);
-				if (arrow != null)
-				{
-					arrow.Connect(ArrowController.SignalName.ArrowSettled, new Callable(this, MethodName.OnArrowSettled));
-					arrow.Connect(ArrowController.SignalName.ArrowCarried, new Callable(this, MethodName.OnArrowCarried));
-				}
-			}
+			_archerySystem.Connect(ArcherySystem.SignalName.ArrowInitialized, new Callable(this, MethodName.OnArrowInitialized));
+
 		}
 
 		if (_windSystem != null)
@@ -106,8 +96,6 @@ public partial class ArcheryHUDController : Control
 
 		var exitBtn = GetNodeOrNull<Button>("StatsPanel/ExitGolfBtn");
 		if (exitBtn != null) exitBtn.Pressed += () => _archerySystem?.ExitCombatMode();
-
-		if (_btnNextShot != null) _btnNextShot.Pressed += OnNextShotPressed;
 	}
 
 	private void OnToggleWindPressed()
@@ -147,13 +135,21 @@ public partial class ArcheryHUDController : Control
 	{
 		if (!Visible) return;
 
-		if (@event is InputEventMouseButton mouseBtn && mouseBtn.Pressed && mouseBtn.ButtonIndex == MouseButton.Left)
+		if (@event is InputEventMouseButton mouseBtn && mouseBtn.Pressed)
 		{
-			// Check if click is on UI
-			if (IsPointOnInteractionUI(mouseBtn.Position)) return;
+			if (mouseBtn.ButtonIndex == MouseButton.Left)
+			{
+				// Check if click is on UI
+				if (IsPointOnInteractionUI(mouseBtn.Position)) return;
 
-			_archerySystem?.HandleInput();
-			GetViewport().SetInputAsHandled();
+				_archerySystem?.HandleInput();
+				GetViewport().SetInputAsHandled();
+			}
+			else if (mouseBtn.ButtonIndex == MouseButton.Right)
+			{
+				_archerySystem?.CancelDraw();
+				GetViewport().SetInputAsHandled();
+			}
 		}
 	}
 
@@ -165,15 +161,9 @@ public partial class ArcheryHUDController : Control
 		var windContainer = GetNodeOrNull<Control>("WindContainer");
 		if (windContainer != null && windContainer.GetGlobalRect().HasPoint(pos)) return true;
 
-		if (_btnNextShot != null && _btnNextShot.Visible && _btnNextShot.GetGlobalRect().HasPoint(pos)) return true;
 		return false;
 	}
 
-	private void OnNextShotPressed()
-	{
-		if (_btnNextShot != null) _btnNextShot.Visible = false;
-		_archerySystem?.PrepareNextShot();
-	}
 
 	private void OnWindChanged(Vector3 direction, float speedMph)
 	{
@@ -206,6 +196,30 @@ public partial class ArcheryHUDController : Control
 		}
 	}
 
+	private void OnArrowInitialized(ArrowController arrow)
+	{
+		if (arrow == null) return;
+
+		// Reset stats for new arrow
+		if (_distanceLabel != null) _distanceLabel.Text = "Carry: 0.0y";
+		if (_speedLabel != null) _speedLabel.Text = "Speed: 0.0 m/s";
+
+		// Connect to the specific arrow's signals
+		if (!arrow.IsConnected(ArrowController.SignalName.ArrowCarried, new Callable(this, MethodName.OnArrowCarried)))
+			arrow.Connect(ArrowController.SignalName.ArrowCarried, new Callable(this, MethodName.OnArrowCarried));
+
+		if (!arrow.IsConnected(ArrowController.SignalName.ArrowSettled, new Callable(this, MethodName.OnArrowSettled)))
+			arrow.Connect(ArrowController.SignalName.ArrowSettled, new Callable(this, MethodName.OnArrowSettled));
+
+		if (!arrow.IsConnected(ArrowController.SignalName.ArrowSpeedUpdated, new Callable(this, MethodName.OnArrowSpeedUpdated)))
+			arrow.Connect(ArrowController.SignalName.ArrowSpeedUpdated, new Callable(this, MethodName.OnArrowSpeedUpdated));
+	}
+
+	private void OnArrowSpeedUpdated(float speed)
+	{
+		if (_speedLabel != null) _speedLabel.Text = $"Speed: {speed:F1} m/s";
+	}
+
 	private void OnArrowCarried(float distance)
 	{
 		if (_distanceLabel != null) _distanceLabel.Text = $"Carry: {distance * ArcheryConstants.UNIT_RATIO:F1}y";
@@ -214,7 +228,6 @@ public partial class ArcheryHUDController : Control
 	private void OnArrowSettled(float distance)
 	{
 		if (_distanceLabel != null) _distanceLabel.Text = $"Total: {distance * ArcheryConstants.UNIT_RATIO:F1}y";
-		if (_btnNextShot != null) _btnNextShot.Visible = true;
 	}
 
 	private void OnArcheryValuesUpdated(float currentBarValue, float lockedPower, float lockedAccuracy)

@@ -4,7 +4,6 @@
 [ext_resource type="Script" uid="uid://bvy7te4ev6ckr" path="res://Scripts/UI/ArcheryHUDController.cs" id="2_golf"]
 [ext_resource type="Script" uid="uid://dtqfmu3mbo0kx" path="res://Scripts/UI/BuildHUDController.cs" id="3_build"]
 [ext_resource type="Texture2D" uid="uid://c0hbtxjib02gc" path="res://Assets/Textures/UI/WindArrow.png" id="4_wind_arrow"]
-[ext_resource type="Script" path="res://Scripts/UI/NetworkHUD.cs" id="5_network"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_main")
@@ -455,6 +454,7 @@ layout_mode = 2
 text = "Carry: 0.0y"
 
 [node name="TotalLabel" type="Label" parent="ArcheryHUD/StatsPanel"]
+visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Total: 0.0y"
@@ -470,5 +470,3 @@ offset_right = 100.0
 offset_bottom = 400.0
 grow_horizontal = 2
 script = ExtResource("3_build")
-
-

@@ -48,479 +48,527 @@ namespace Archery
 		public ObjectPlacer ObjectPlacer => _objectPlacer;
 		public Stats PlayerStats => _statsService?.PlayerStats ?? new Stats { Power = 10, Control = 10, Touch = 10 };
 		public Vector3 ChestOffset => new Vector3(0, 1.3f, 0);
-		public Vector3 BallPosition => (_stage == DrawStage.Idle && _currentPlayer != null) ? _currentPlayer.GlobalPosition + (_currentPlayer.GlobalBasis * (ChestOffset + new Vector3(0, 0, 0.5f))) : ((_arrow != null) ? _arrow.GlobalPosition : Vector3.Zero);
-		public Vector3 TeePosition { get; private set; } = Vector3.Zero;
-
-		public void SetTeePosition(Vector3 pos) => TeePosition = pos;
-		public void UpdateTeePosition(Vector3 pos) => TeePosition = pos;
-		public void UpdatePinPosition(Vector3 pos) { /* Placeholder for future target logic */ }
-		public BallLie GetCurrentLie() => new BallLie { PowerEfficiency = 1.0f, LaunchAngleBonus = 0.0f, SpinModifier = 1.0f };
-		public float GetEstimatedPower() => 100.0f; // Placeholder
-		public float AoAOffset => 0.0f; // Placeholder
-
-		private DrawStage _stage = DrawStage.Idle;
-		private float _timer = 0.0f;
-		private bool _isReturnPhase = false;
-		private float _lockedPower = -1.0f;
-		private float _lockedAccuracy = -1.0f;
-		private Vector2 _spinIntent = Vector2.Zero;
-		private float _powerOverride = -1.0f;
-		public DrawStage CurrentStage => _stage;
-		private float _lastAdvanceTime = 0.0f;
-		private long _lastInputFrame = -1;
-		private ArcheryShotMode _currentMode = ArcheryShotMode.Standard;
-		public ArcheryShotMode CurrentMode => _currentMode;
-		private PlayerController _currentPlayer;
-		private Node3D _currentTarget;
-		public Node3D CurrentTarget => _currentTarget;
-
-		[Signal] public delegate void DrawStageChangedEventHandler(int newStage);
-		[Signal] public delegate void ArcheryValuesUpdatedEventHandler(float currentBarValue, float lockedPower, float lockedAccuracy);
-		[Signal] public delegate void ShotResultEventHandler(float power, float accuracy);
-		[Signal] public delegate void ModeChangedEventHandler(bool isCombat);
-		[Signal] public delegate void PromptChangedEventHandler(bool visible, string message);
-		[Signal] public delegate void ShotModeChangedEventHandler(int newMode);
-		[Signal] public delegate void TargetChangedEventHandler(Node3D target);
-
-		public override void _Ready()
+		public Vector3 BallPosition
 		{
-			var placeholder = GetNodeOrNull<PlayerController>("../PlayerPlaceholder");
-			if (placeholder != null) RegisterPlayer(placeholder);
-
-			// Load Arrow Scene resource if not assigned
-			if (ArrowScene == null) ArrowScene = GD.Load<PackedScene>("res://Scenes/Entities/Arrow.tscn");
-
-			// Remove the scene-resident arrow if it exists (we will spawn our own)
-			if (ArrowPath != null)
+			get
 			{
-				var sceneArrow = GetNodeOrNull(ArrowPath);
-				if (sceneArrow != null) sceneArrow.QueueFree();
-			}
+				if (_currentPlayer == null) return (_arrow != null) ? _arrow.GlobalPosition : Vector3.Zero;
 
-			if (CameraPath != null && !CameraPath.IsEmpty) _camera = GetNodeOrNull<CameraController>(CameraPath);
-			GD.Print($"ArcherySystem: Ready. Camera Found: {(_camera != null)}");
-			if (WindSystemPath != null && !WindSystemPath.IsEmpty) _windSystem = GetNodeOrNull<WindSystem>(WindSystemPath);
+				// While not yet launched, follow the player's face/chest
+                if (_stage == DrawStage.Idle || _stage == DrawStage.Drawing || _stage == DrawStage.Aiming)
+                {
+                    return _currentPlayer.GlobalPosition + (_currentPlayer.GlobalBasis * (ChestOffset + new Vector3(0, 0, 0.5f)));
+                }
 
-			_statsService = new StatsService();
-			_statsService.Name = "StatsService";
-			AddChild(_statsService);
-			_statsService.LoadStats();
+                return (_arrow != null) ? _arrow.GlobalPosition : Vector3.Zero;
+            }
+        }
+        public Vector3 TeePosition { get; private set; } = Vector3.Zero;
 
-			_buildManager = new BuildManager();
-			_buildManager.Name = "BuildManager";
-			AddChild(_buildManager);
+        public void SetTeePosition(Vector3 pos) => TeePosition = pos;
+        public void UpdateTeePosition(Vector3 pos) => TeePosition = pos;
+        public void UpdatePinPosition(Vector3 pos) { /* Placeholder for future target logic */ }
+        public BallLie GetCurrentLie() => new BallLie { PowerEfficiency = 1.0f, LaunchAngleBonus = 0.0f, SpinModifier = 1.0f };
+        public float GetEstimatedPower() => 100.0f; // Placeholder
+        public float AoAOffset => 0.0f; // Placeholder
 
-			_objectPlacer = new ObjectPlacer();
-			_objectPlacer.Name = "ObjectPlacer";
-			AddChild(_objectPlacer);
+        private DrawStage _stage = DrawStage.Idle;
+        private float _timer = 0.0f;
+        private bool _isReturnPhase = false;
+        private float _lockedPower = -1.0f;
+        private float _lockedAccuracy = -1.0f;
+        private Vector2 _spinIntent = Vector2.Zero;
+        private float _powerOverride = -1.0f;
+        public DrawStage CurrentStage => _stage;
+        private float _lastAdvanceTime = 0.0f;
+        private long _lastInputFrame = -1;
+        private ArcheryShotMode _currentMode = ArcheryShotMode.Standard;
+        public ArcheryShotMode CurrentMode => _currentMode;
+        private PlayerController _currentPlayer;
+        private Node3D _currentTarget;
+        public Node3D CurrentTarget => _currentTarget;
 
-			CallDeferred(MethodName.ExitCombatMode);
-			CallDeferred(MethodName.UpdateArrowLabel);
+        [Signal] public delegate void DrawStageChangedEventHandler(int newStage);
+        [Signal] public delegate void ArcheryValuesUpdatedEventHandler(float currentBarValue, float lockedPower, float lockedAccuracy);
+        [Signal] public delegate void ShotResultEventHandler(float power, float accuracy);
+        [Signal] public delegate void ModeChangedEventHandler(bool isCombat);
+        [Signal] public delegate void PromptChangedEventHandler(bool visible, string message);
+        [Signal] public delegate void ShotModeChangedEventHandler(int newMode);
+        [Signal] public delegate void TargetChangedEventHandler(Node3D target);
+        [Signal] public delegate void ArrowInitializedEventHandler(ArrowController arrow);
 
-			// Notify NetworkManager that scene is ready for spawning
-			if (NetworkManager.Instance != null)
-			{
-				// Defer to avoid "Parent node busy" error during _Ready
-				NetworkManager.Instance.CallDeferred("LevelLoaded", GetParent());
-			}
+        public override void _Ready()
+        {
+            var placeholder = GetNodeOrNull<PlayerController>("../PlayerPlaceholder");
+            if (placeholder != null) RegisterPlayer(placeholder);
 
-			// [FIX] Initialize TeePosition from Scene (with fallbacks)
-			Node3D spawnPoint = GetParent().GetNodeOrNull<Node3D>("SpawnPoint");
-			if (spawnPoint == null) spawnPoint = GetParent().FindChild("TeeBox", true, false) as Node3D;
-			if (spawnPoint == null) spawnPoint = GetParent().FindChild("VisualTee", true, false) as Node3D;
-			if (spawnPoint == null) spawnPoint = GetParent().FindChild("Tee", true, false) as Node3D;
+            // Load Arrow Scene resource if not assigned
+            if (ArrowScene == null) ArrowScene = GD.Load<PackedScene>("res://Scenes/Entities/Arrow.tscn");
 
-			if (spawnPoint != null)
-			{
-				TeePosition = spawnPoint.GlobalPosition;
-				GD.Print($"ArcherySystem: TeePosition set to {TeePosition} from {spawnPoint.Name}");
-			}
-			else
-			{
-				GD.PrintErr("ArcherySystem: No spawn point found (tried SpawnPoint, TeeBox, VisualTee, Tee)! Home teleport will default to (0,0,0).");
-			}
+            // Remove the scene-resident arrow if it exists (we will spawn our own)
+            if (ArrowPath != null)
+            {
+                var sceneArrow = GetNodeOrNull(ArrowPath);
+                if (sceneArrow != null) sceneArrow.QueueFree();
+            }
 
-			// Connect to ProjectileSpawner to catch arrows as they are spawned/replicated
-			var spawner = GetTree().CurrentScene.GetNodeOrNull<MultiplayerSpawner>("ProjectileSpawner");
-			if (spawner != null)
-			{
-				spawner.Spawned += OnArrowSpawned;
-				GD.Print("ArcherySystem: Connected to ProjectileSpawner.Spawned");
-			}
-			else
-			{
-				GD.PrintErr("ArcherySystem: ProjectileSpawner not found in scene!");
-			}
-		}
+            if (CameraPath != null && !CameraPath.IsEmpty) _camera = GetNodeOrNull<CameraController>(CameraPath);
+            GD.Print($"ArcherySystem: Ready. Camera Found: {(_camera != null)}");
+            if (WindSystemPath != null && !WindSystemPath.IsEmpty) _windSystem = GetNodeOrNull<WindSystem>(WindSystemPath);
 
-		private void OnArrowSpawned(Node node)
-		{
-			if (node is ArrowController arrow)
-			{
-				string currentPlayerName = _currentPlayer?.Name ?? "NULL";
-				GD.Print($"ArcherySystem: Arrow Spawned/Replicated: {arrow.Name}, MyCurrentPlayer: {currentPlayerName}");
+            _statsService = new StatsService();
+            _statsService.Name = "StatsService";
+            AddChild(_statsService);
+            _statsService.LoadStats();
 
-				// Parse Name to see if it belongs to us: Arrow_{PlayerID}_{Ticket}
+            _buildManager = new BuildManager();
+            _buildManager.Name = "BuildManager";
+            AddChild(_buildManager);
+
+            _objectPlacer = new ObjectPlacer();
+            _objectPlacer.Name = "ObjectPlacer";
+            AddChild(_objectPlacer);
+
+            CallDeferred(MethodName.ExitCombatMode);
+            CallDeferred(MethodName.UpdateArrowLabel);
+
+            // Notify NetworkManager that scene is ready for spawning
+            if (NetworkManager.Instance != null)
+            {
+                // Defer to avoid "Parent node busy" error during _Ready
+                NetworkManager.Instance.CallDeferred("LevelLoaded", GetParent());
+            }
+
+            // [FIX] Initialize TeePosition from Scene (with fallbacks)
+            Node3D spawnPoint = GetParent().GetNodeOrNull<Node3D>("SpawnPoint");
+            if (spawnPoint == null) spawnPoint = GetParent().FindChild("TeeBox", true, false) as Node3D;
+            if (spawnPoint == null) spawnPoint = GetParent().FindChild("VisualTee", true, false) as Node3D;
+            if (spawnPoint == null) spawnPoint = GetParent().FindChild("Tee", true, false) as Node3D;
+
+            if (spawnPoint != null)
+            {
+                TeePosition = spawnPoint.GlobalPosition;
+                GD.Print($"ArcherySystem: TeePosition set to {TeePosition} from {spawnPoint.Name}");
+            }
+            else
+            {
+                GD.PrintErr("ArcherySystem: No spawn point found (tried SpawnPoint, TeeBox, VisualTee, Tee)! Home teleport will default to (0,0,0).");
+            }
+
+            // Connect to ProjectileSpawner to catch arrows as they are spawned/replicated
+            var spawner = GetTree().CurrentScene.GetNodeOrNull<MultiplayerSpawner>("ProjectileSpawner");
+            if (spawner != null)
+            {
+                spawner.SpawnFunction = new Callable(this, nameof(SpawnArrowLocally));
+                spawner.Spawned += OnArrowSpawned;
+                GD.Print("ArcherySystem: Connected to ProjectileSpawner with Custom SpawnFunction.");
+            }
+            else
+            {
+                GD.PrintErr("ArcherySystem: ProjectileSpawner not found in scene!");
+            }
+        }
+
+        /// <summary>
+        /// Custom Spawn Function for MultiplayerSpawner. Handles instantiating the arrow 
+        /// and applying the initial color received in the spawn data.
+        /// </summary>
+        private Node SpawnArrowLocally(Godot.Collections.Dictionary data)
+        {
+            if (ArrowScene == null) ArrowScene = GD.Load<PackedScene>("res://Scenes/Entities/Arrow.tscn");
+            var arrow = ArrowScene.Instantiate<ArrowController>();
+
+            // Apply name from spawn data to prevent parent->has_node(name) collisions
+            if (data != null && data.ContainsKey("name"))
+            {
+                arrow.Name = (string)data["name"];
+            }
+
+            // Apply color from spawn data
+            if (data != null && data.ContainsKey("color_r"))
+            {
+                float r = (float)data["color_r"];
+                float g = (float)data["color_g"];
+                float b = (float)data["color_b"];
+                arrow.SetColor(new Color(r, g, b));
+                GD.Print($"ArcherySystem: SpawnArrowLocally applied color ({r},{g},{b}) to {arrow.Name}");
+            }
+
+            return arrow;
+        }
+
+        private void OnArrowSpawned(Node node)
+        {
+            if (node is ArrowController arrow)
+            {
+                string currentPlayerName = _currentPlayer?.Name ?? "NULL";
+                GD.Print($"ArcherySystem: Arrow Spawned/Replicated: {arrow.Name}, MyCurrentPlayer: {currentPlayerName}");
+
+                // Parse Name to see if it belongs to us: Arrow_{PlayerID}_{Ticket}
 				string[] parts = arrow.Name.ToString().Split('_');
-				if (parts.Length >= 2 && long.TryParse(parts[1], out long ownerId))
-				{
-					// Is this MY arrow?
-					if (_currentPlayer != null && ownerId.ToString() == _currentPlayer.Name)
-					{
+                if (parts.Length >= 2 && long.TryParse(parts[1], out long ownerId))
+                {
+                    // Is this MY arrow?
+                    if (_currentPlayer != null && ownerId.ToString() == _currentPlayer.Name)
+                    {
 						GD.Print($"ArcherySystem: It's MY arrow! Taking control. (Owner: {ownerId}, MyPlayer: {_currentPlayer.Name})");
-						_arrow = arrow;
-					}
-					else
-					{
+                        _arrow = arrow;
+                    }
+                    else
+                    {
 						GD.Print($"ArcherySystem: It's Player {ownerId}'s arrow. (Not mine, MyPlayer: {currentPlayerName})");
-					}
+                    }
 
-					// For EVERYONE (Host and Client): Setup visual properties
-					// Lookup player instance by Name (ID) instead of Dictionary (Server-only)
-					PlayerController pc = GetTree().CurrentScene.FindChild(ownerId.ToString(), true, false) as PlayerController;
+                    // SetupArrow will handle connecting signals and initial setup
+                    PlayerController pc = GetTree().CurrentScene.FindChild(ownerId.ToString(), true, false) as PlayerController;
+                    SetupArrow(arrow, pc);
+                }
+            }
+        }
 
-					if (pc != null)
-					{
-						SetupArrow(arrow, pc);
-					}
-					else
-					{
-						// Fallback setup if player not found yet (e.g. late join race)
-						SetupArrow(arrow, null);
-					}
-				}
-			}
-		}
+        private Color GetPlayerColorByOwnerId(long ownerId)
+        {
+            PlayerController pc = GetTree().CurrentScene.FindChild(ownerId.ToString(), true, false) as PlayerController;
+            if (pc != null) return GetPlayerColor(pc.PlayerIndex);
+            return Colors.White;
+        }
 
-		public void CollectArrow()
-		{
-			ArrowCount++;
-			UpdateArrowLabel();
-			// Play sound?
-		}
+        public void CollectArrow()
+        {
+            ArrowCount++;
+            UpdateArrowLabel();
+            // Play sound?
+        }
 
-		private void UpdateArrowLabel()
-		{
-			// Try to update the label via signal or direct access if HUD connects to us
-			EmitSignal(SignalName.ArcheryValuesUpdated, 0, -1, -1); // Force HUD refresh? 
-																	// Ideally HUD listens to a specific signal, but we'll use the existing value update or add a new one?
-																	// Actually, let's just piggyback on prompt or add a specialized method if HUD has reference.
-																	// For now, simpler: modify ArcheryHUDController to read ArrowCount.
-		}
+        private void UpdateArrowLabel()
+        {
+            // Try to update the label via signal or direct access if HUD connects to us
+            EmitSignal(SignalName.ArcheryValuesUpdated, 0, -1, -1); // Force HUD refresh? 
+                                                                    // Ideally HUD listens to a specific signal, but we'll use the existing value update or add a new one?
+                                                                    // Actually, let's just piggyback on prompt or add a specialized method if HUD has reference.
+                                                                    // For now, simpler: modify ArcheryHUDController to read ArrowCount.
+        }
 
-		// ...
+        // ...
 
-		public void PrepareNextShot()
-		{
-			if (ArrowCount <= 0)
-			{
+        public void PrepareNextShot()
+        {
+            if (ArrowCount <= 0)
+            {
 				SetPrompt(true, "Out of Arrows!");
-				return;
-			}
+                return;
+            }
 
-			if (_arrow != null)
-			{
-				if (!_arrow.HasBeenShot)
-				{
-					_arrow.QueueFree();
-				}
-				_arrow = null;
-			}
+            if (_arrow != null)
+            {
+                if (!_arrow.HasBeenShot)
+                {
+                    _arrow.QueueFree();
+                }
+                _arrow = null;
+            }
 
-			// Increment ticket for unique naming
-			_shotTicket++;
+            // Increment ticket for unique naming
+            _shotTicket++;
 
-			// Spawn new arrow (Networked)
-			if (ArrowScene != null)
-			{
-				// If Singleplayer, do old logic
-				if (Multiplayer.MultiplayerPeer == null || Multiplayer.MultiplayerPeer.GetConnectionStatus() == MultiplayerPeer.ConnectionStatus.Disconnected)
-				{
-					_arrow = ArrowScene.Instantiate<ArrowController>();
-					GetTree().CurrentScene.AddChild(_arrow);
-					SetupArrow(_arrow);
-				}
-				else
-				{
-					// Multiplayer:
-					if (_currentPlayer != null)
-					{
-						if (Multiplayer.IsServer())
-						{
-							// If we are the server, just spawn it directly. 
-							// RpcId(1) to self is blocked by CallLocal=false.
-							SpawnNetworkedArrow(int.Parse(_currentPlayer.Name.ToString()), _shotTicket);
-						}
-						else
-						{
-							// Client: Request Server to spawn arrow for us
-							RpcId(1, nameof(RequestSpawnArrow), int.Parse(_currentPlayer.Name.ToString()), _shotTicket);
-						}
-					}
-				}
-			}
+            // Spawn new arrow (Networked)
+            if (ArrowScene != null)
+            {
+                // If Singleplayer, do old logic
+                if (Multiplayer.MultiplayerPeer == null || Multiplayer.MultiplayerPeer.GetConnectionStatus() == MultiplayerPeer.ConnectionStatus.Disconnected)
+                {
+                    _arrow = ArrowScene.Instantiate<ArrowController>();
+                    GetTree().CurrentScene.AddChild(_arrow);
+                    SetupArrow(_arrow);
+                }
+                else
+                {
+                    // Multiplayer:
+                    if (_currentPlayer != null)
+                    {
+                        if (Multiplayer.IsServer())
+                        {
+                            // If we are the server, just spawn it directly. 
+                            // RpcId(1) to self is blocked by CallLocal=false.
+                            SpawnNetworkedArrow(int.Parse(_currentPlayer.Name.ToString()), _shotTicket);
+                        }
+                        else
+                        {
+                            // Client: Request Server to spawn arrow for us
+                            RpcId(1, nameof(RequestSpawnArrow), int.Parse(_currentPlayer.Name.ToString()), _shotTicket);
+                        }
+                    }
+                }
+            }
 
-			_stage = DrawStage.Idle;
-			_timer = 0.0f;
-			_isReturnPhase = false;
-			_lockedPower = -1.0f;
-			_lockedAccuracy = -1.0f;
-
-
-			if (_camera != null) { _camera.SetTarget(_currentPlayer, true); _camera.SetFollowing(false); _camera.SetFreeLook(false); }
-			EmitSignal(SignalName.DrawStageChanged, (int)_stage);
-			EmitSignal(SignalName.ArcheryValuesUpdated, 0, -1, -1);
-
-			UpdateArrowLabel();
-		}
+            _stage = DrawStage.Idle;
+            _timer = 0.0f;
+            _isReturnPhase = false;
+            _lockedPower = -1.0f;
+            _lockedAccuracy = -1.0f;
 
 
+            if (_camera != null) { _camera.SetTarget(_currentPlayer, true); _camera.SetFollowing(false); _camera.SetFreeLook(false); }
+            EmitSignal(SignalName.DrawStageChanged, (int)_stage);
+            EmitSignal(SignalName.ArcheryValuesUpdated, 0, -1, -1);
 
-		[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false)]
-		private void RequestSpawnArrow(long playerId, int ticket)
-		{
-			// SERVER ONLY
-			if (!Multiplayer.IsServer()) return;
-			SpawnNetworkedArrow(playerId, ticket);
-		}
+            UpdateArrowLabel();
+        }
 
-		private void SpawnNetworkedArrow(long playerId, int ticket)
-		{
-			var arrow = ArrowScene.Instantiate<ArrowController>();
-			// Name must be consistent for Spawner? 
-			// Actually, MultiplayerSpawner handles naming if it spawns it. 
-			// But if we manually spawn it, we must ensure it matches the pattern or let Spawner handle it.
-			// With Custom Spawn, we usually use Spawn() on the spawner.
-			// However, Godot 4 MultiplayerSpawner automatically detects added children if auto_spawn is true.
-			// We just need to make sure we add it to the 'Projectiles' node.
 
+
+        [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false)]
+        private void RequestSpawnArrow(long playerId, int ticket)
+        {
+            // SERVER ONLY
+            if (!Multiplayer.IsServer()) return;
+            SpawnNetworkedArrow(playerId, ticket);
+        }
+
+        private void SpawnNetworkedArrow(long playerId, int ticket)
+        {
 			string uniqueName = $"Arrow_{playerId}_{ticket}";
-			arrow.Name = uniqueName;
 
-			// Add to Projectiles container
-			var projectiles = GetTree().CurrentScene.GetNodeOrNull("Projectiles");
-			if (projectiles == null)
-			{
-				GD.PrintErr("ArcherySystem: 'Projectiles' node not found in scene! Spawning at Root, but this may fail replication if Spawner is watching Projectiles.");
-				GetTree().CurrentScene.AddChild(arrow);
-			}
-			else
-			{
-				projectiles.AddChild(arrow, true); // force_readable_name = true
-			}
+            PlayerController owner = null;
+            if (NetworkManager.Instance != null && NetworkManager.Instance.GetPlayer(playerId) is PlayerController pc)
+            {
+                owner = pc;
+            }
 
-			// Server keeps authority (Default 1).
-			GD.Print($"ArcherySystem: Spawned Networked Arrow '{uniqueName}' for Player {playerId}");
+            // Use the ProjectileSpawner to spawn the arrow (Godot 4 native way)
+			var spawner = GetTree().CurrentScene.GetNodeOrNull<MultiplayerSpawner>("ProjectileSpawner");
+            ArrowController arrow = null;
 
-			// SERVER-SIDE SETUP
-			// We need to set up the arrow logic/visuals on the server immediately.
-			// (The Spawned signal might NOT fire on the server if we added it manually).
+            if (spawner == null)
+            {
+				GD.PrintErr("ArcherySystem: ProjectileSpawner NOT found! Falling back to AddChild.");
+                arrow = ArrowScene.Instantiate<ArrowController>();
+                arrow.Name = uniqueName;
+				var projectiles = GetTree().CurrentScene.GetNodeOrNull("Projectiles");
+                if (projectiles != null) projectiles.AddChild(arrow, true);
+                else GetTree().CurrentScene.AddChild(arrow);
+            }
+            else
+            {
+                // Passing the color in the spawn data ensures it's available immediately on the client
+                Color playerColor = owner != null ? GetPlayerColor(owner.PlayerIndex) : Colors.White;
+                var spawnData = new Godot.Collections.Dictionary {
+			{ "color_r", playerColor.R },
+			{ "color_g", playerColor.G },
+			{ "color_b", playerColor.B },
+			{ "player_id", playerId },
+			{ "name", uniqueName }
+        };
 
-			PlayerController owner = null;
-			if (NetworkManager.Instance != null && NetworkManager.Instance.GetPlayer(playerId) is PlayerController pc)
-			{
-				owner = pc;
-			}
+                // spawner.Spawn() will handle instantiation on all peers via SpawnArrowLocally
+                arrow = spawner.Spawn(spawnData) as ArrowController;
+            }
 
-			// Assign ownership if it belongs to the Host (who is also _currentPlayer on the server)
-			if (_currentPlayer != null && playerId.ToString() == _currentPlayer.Name)
-			{
-				GD.Print("ArcherySystem (Server): It's Host's arrow! Taking control.");
-				_arrow = arrow;
-			}
+            if (arrow != null)
+            {
+				GD.Print($"ArcherySystem: Spawned Networked Arrow '{arrow.Name}' for Player {playerId}");
 
-			SetupArrow(arrow, owner);
-		}
+                // Assign ownership if it belongs to the Host (who is also _currentPlayer on the server)
+                if (_currentPlayer != null && playerId.ToString() == _currentPlayer.Name)
+                {
+					GD.Print("ArcherySystem (Server): It's Host's arrow! Taking control.");
+                    _arrow = arrow;
+                }
 
-		private void SetupArrow(ArrowController arrow, PlayerController owner = null)
-		{
-			arrow.Connect(ArrowController.SignalName.ArrowSettled, new Callable(this, MethodName.OnArrowSettled));
-			arrow.Connect(ArrowController.SignalName.ArrowCollected, new Callable(this, MethodName.CollectArrow));
+                SetupArrow(arrow, owner);
+            }
+        }
 
-			// Default owner is _currentPlayer if not specified
-			PlayerController actualOwner = owner ?? _currentPlayer;
+        private void SetupArrow(ArrowController arrow, PlayerController owner = null)
+        {
+            arrow.Connect(ArrowController.SignalName.ArrowSettled, new Callable(this, MethodName.OnArrowSettled));
+            arrow.Connect(ArrowController.SignalName.ArrowCollected, new Callable(this, MethodName.CollectArrow));
+            EmitSignal(SignalName.ArrowInitialized, arrow);
 
-			// Exclude player
-			if (actualOwner != null) arrow.SetCollisionException(actualOwner);
+            // Default owner is _currentPlayer if not specified
+            PlayerController actualOwner = owner ?? _currentPlayer;
 
-			arrow.Visible = true;
+            // Exclude player
+            if (actualOwner != null) arrow.SetCollisionException(actualOwner);
 
-			// Ensure physics are reset for a new arrow (or re-setup)
-			// But only if it's NOT already flying? SetupArrow is usually called on spawn.
-			// If we are late-joining and it's flying, we shouldn't freeze.
-			// Check 'HasBeenShot' - which might be synced?
+            arrow.Visible = true;
+
+            // Ensure physics are reset for a new arrow (or re-setup)
+            // But only if it's NOT already flying? SetupArrow is usually called on spawn.
+            // If we are late-joining and it's flying, we shouldn't freeze.
+            // Check 'HasBeenShot' - which might be synced?
             // HasBeenShot is not a synced property in the ReplicationConfig we saw (only transform/vel).
-			// But 'freeze' IS synced. 
+            // But 'freeze' IS synced. 
             // If we set Freeze=true here, we might overwrite sync.
             // HOWEVER, SetupArrow is called by SpawnNetworkedArrow (Server) and OnArrowSpawned (Client).
             // On Server: New arrow -> Freeze it.
             // On Client: New spawn -> Freeze it?
             // If Client joins late, OnArrowSpawned fires. If arrow is mid-air, Sync says Freeze=false.
             // If we set Freeze=true here, we stop it.
-			// WORKAROUND: Only freeze if we govern it (our arrow) OR if it's brand new (velocity zero).
+            // WORKAROUND: Only freeze if we govern it (our arrow) OR if it's brand new (velocity zero).
 
-			if (arrow.LinearVelocity.LengthSquared() < 0.1f)
-			{
-				arrow.Freeze = true;
-			}
+            if (arrow.LinearVelocity.LengthSquared() < 0.1f)
+            {
+                arrow.Freeze = true;
+            }
 
-			// Apply Player Color
-			if (actualOwner != null) arrow.SetColor(GetPlayerColor(actualOwner.PlayerIndex));
+            // Apply Player Color
+            if (actualOwner != null) arrow.SetColor(GetPlayerColor(actualOwner.PlayerIndex));
 
-			// Initial Pose only if it's OUR arrow and we haven't fired it (handled in UpdateArrowPose)
-			if (actualOwner == _currentPlayer)
-			{
-				UpdateArrowPose();
-			}
-		}
+            // Initial Pose only if it's OUR arrow and we haven't fired it (handled in UpdateArrowPose)
+            if (actualOwner == _currentPlayer)
+            {
+                UpdateArrowPose();
+            }
+        }
 
-		private void UpdateArrowPose()
-		{
-			if (_arrow == null || _currentPlayer == null || _arrow.HasBeenShot) return;
+        private void UpdateArrowPose()
+        {
+            if (_arrow == null || _currentPlayer == null || _arrow.HasBeenShot) return;
 
-			// Position and Rotate it
-			Vector3 spawnPos = _currentPlayer.GlobalPosition + (_currentPlayer.GlobalBasis * (ChestOffset + new Vector3(0, 0, 0.5f)));
+            // Position and Rotate it
+            Vector3 spawnPos = _currentPlayer.GlobalPosition + (_currentPlayer.GlobalBasis * (ChestOffset + new Vector3(0, 0, 0.5f)));
 
-			Transform3D t = _currentPlayer.GlobalTransform;
-			t.Origin = spawnPos;
-			// Rotate 180 (Arrow orientation)
-			t.Basis = t.Basis.Rotated(Vector3.Up, Mathf.Pi);
+            Transform3D t = _currentPlayer.GlobalTransform;
+            t.Origin = spawnPos;
+            // Rotate 180 (Arrow orientation)
+            t.Basis = t.Basis.Rotated(Vector3.Up, Mathf.Pi);
 
-			_arrow.GlobalTransform = t;
-			// Note: No network sync here - arrow position syncs at Launch time via RPC
-		}
+            _arrow.GlobalTransform = t;
+            // Note: No network sync here - arrow position syncs at Launch time via RPC
+        }
 
-		public void CancelDraw()
-		{
-			_stage = DrawStage.Idle;
-			_timer = 0.0f;
-			_isReturnPhase = false;
-			_lockedPower = -1.0f;
-			_lockedAccuracy = -1.0f;
-			EmitSignal(SignalName.DrawStageChanged, (int)_stage);
-			EmitSignal(SignalName.ArcheryValuesUpdated, 0, -1, -1);
-		}
+        public void CancelDraw()
+        {
+            _stage = DrawStage.Idle;
+            _timer = 0.0f;
+            _isReturnPhase = false;
+            _lockedPower = -1.0f;
+            _lockedAccuracy = -1.0f;
+            EmitSignal(SignalName.DrawStageChanged, (int)_stage);
+            EmitSignal(SignalName.ArcheryValuesUpdated, 0, -1, -1);
+        }
 
-		public void ResetMatch()
-		{
-			// Refund current/last shot if it was just completed
-			if (_stage == DrawStage.ShotComplete || _stage == DrawStage.Executing)
-			{
-				ArrowCount++;
-			}
+        public void ResetMatch()
+        {
+            // Refund current/last shot if it was just completed
+            if (_stage == DrawStage.ShotComplete || _stage == DrawStage.Executing)
+            {
+                ArrowCount++;
+            }
 
-			_stage = DrawStage.Idle;
-			_timer = 0.0f;
-			_isReturnPhase = false;
-			_lockedPower = -1.0f;
-			_lockedAccuracy = -1.0f;
+            _stage = DrawStage.Idle;
+            _timer = 0.0f;
+            _isReturnPhase = false;
+            _lockedPower = -1.0f;
+            _lockedAccuracy = -1.0f;
 
-			// Clean up previous arrow and prepare a fresh one
-			PrepareNextShot();
+            // Clean up previous arrow and prepare a fresh one
+            PrepareNextShot();
 
-			EmitSignal(SignalName.DrawStageChanged, (int)_stage);
-			EmitSignal(SignalName.ArcheryValuesUpdated, 0, -1, -1);
-		}
-		public void RegisterPlayer(PlayerController player)
-		{
-			// SAFETY: Only accept local players to prevent remote player registration bugs
-			if (!player.IsLocal)
-			{
+            EmitSignal(SignalName.DrawStageChanged, (int)_stage);
+            EmitSignal(SignalName.ArcheryValuesUpdated, 0, -1, -1);
+        }
+        public void RegisterPlayer(PlayerController player)
+        {
+            // SAFETY: Only accept local players to prevent remote player registration bugs
+            if (!player.IsLocal)
+            {
 				GD.PrintErr($"ArcherySystem: REJECTED RegisterPlayer for remote player {player.Name}! Only local players should be registered.");
-				return;
-			}
+                return;
+            }
 
 			GD.Print($"ArcherySystem: RegisterPlayer called for {player.Name}, IsLocal={player.IsLocal}, Authority={player.GetMultiplayerAuthority()}, MyPeer={player.Multiplayer.GetUniqueId()}");
 
-			_currentPlayer = player;
-			if (_buildManager != null) _buildManager.Player = player;
+            _currentPlayer = player;
+            if (_buildManager != null) _buildManager.Player = player;
 
-			// Link camera if local
-			if (player.IsLocal)
-			{
-				// Try direct child name first (standard), then property path
+            // Link camera if local
+            if (player.IsLocal)
+            {
+                // Try direct child name first (standard), then property path
 				var cam = player.GetNodeOrNull<CameraController>("Camera3D");
-				if (cam == null && player.CameraPath != null && !player.CameraPath.IsEmpty)
-				{
-					cam = player.GetNodeOrNull<CameraController>(player.CameraPath);
-				}
+                if (cam == null && player.CameraPath != null && !player.CameraPath.IsEmpty)
+                {
+                    cam = player.GetNodeOrNull<CameraController>(player.CameraPath);
+                }
 
-				if (cam != null)
-				{
-					_camera = cam;
+                if (cam != null)
+                {
+                    _camera = cam;
 					GD.Print($"ArcherySystem: Registered Local Player Camera: {_camera.Name}");
-				}
-				else
-				{
+                }
+                else
+                {
 					GD.PrintErr("ArcherySystem: Registered Local Player but could NOT find Camera!");
-				}
-			}
-		}
+                }
+            }
+        }
 
 		public void SetPrompt(bool visible, string message = "")
-		{
-			EmitSignal(SignalName.PromptChanged, visible, message);
-		}
+        {
+            EmitSignal(SignalName.PromptChanged, visible, message);
+        }
 
-		public void ExitCombatMode()
-		{
-			_stage = DrawStage.Idle;
-			if (_currentPlayer != null) _currentPlayer.CurrentState = PlayerState.WalkMode;
-			if (_camera != null)
-			{
-				_camera.SetTarget(_currentPlayer, true); // Snap to player
+        public void ExitCombatMode()
+        {
+            _stage = DrawStage.Idle;
+            if (_currentPlayer != null) _currentPlayer.CurrentState = PlayerState.WalkMode;
+            if (_camera != null)
+            {
+                _camera.SetTarget(_currentPlayer, true); // Snap to player
 
 
-			}
-			EmitSignal(SignalName.ModeChanged, false);
+            }
+            EmitSignal(SignalName.ModeChanged, false);
 			SetPrompt(false, "");
-		}
+        }
 
-		public void EnterCombatMode()
-		{
-			_stage = DrawStage.Idle;
-			if (_currentPlayer != null) _currentPlayer.CurrentState = PlayerState.CombatMode;
+        public void EnterCombatMode()
+        {
+            _stage = DrawStage.Idle;
+            if (_currentPlayer != null) _currentPlayer.CurrentState = PlayerState.CombatMode;
 
-			EmitSignal(SignalName.ModeChanged, true);
+            EmitSignal(SignalName.ModeChanged, true);
 
-			// Ensure an arrow is ready as soon as we enter combat
-			if (_arrow == null || _arrow.HasBeenShot)
-			{
-				PrepareNextShot();
-			}
-		}
+            // Ensure an arrow is ready as soon as we enter combat
+            if (_arrow == null || _arrow.HasBeenShot)
+            {
+                PrepareNextShot();
+            }
+        }
 
-		public void EnterBuildMode()
-		{
-			_stage = DrawStage.Idle;
-			if (_currentPlayer != null) _currentPlayer.CurrentState = PlayerState.BuildMode;
-			EmitSignal(SignalName.ModeChanged, false);
-			SetPrompt(false);
-		}
+        public void EnterBuildMode()
+        {
+            _stage = DrawStage.Idle;
+            if (_currentPlayer != null) _currentPlayer.CurrentState = PlayerState.BuildMode;
+            EmitSignal(SignalName.ModeChanged, false);
+            SetPrompt(false);
+        }
 
-		public void ExitBuildMode()
-		{
-			if (_currentPlayer != null) _currentPlayer.CurrentState = PlayerState.WalkMode;
-			SetPrompt(false);
-		}
+        public void ExitBuildMode()
+        {
+            if (_currentPlayer != null) _currentPlayer.CurrentState = PlayerState.WalkMode;
+            SetPrompt(false);
+        }
 
-		public void CycleShotMode()
-		{
-			_currentMode = (ArcheryShotMode)(((int)_currentMode + 1) % 3);
+        public void CycleShotMode()
+        {
+            _currentMode = (ArcheryShotMode)(((int)_currentMode + 1) % 3);
 			GD.Print($"[ArcherySystem] Shot Mode changed to: {_currentMode}");
-			EmitSignal(SignalName.ShotModeChanged, (int)_currentMode);
-		}
+            EmitSignal(SignalName.ShotModeChanged, (int)_currentMode);
+        }
 
-		public void CycleTarget()
-		{
-			if (_currentPlayer == null) return;
+        public void CycleTarget()
+        {
+            if (_currentPlayer == null) return;
 
-			// Simple proximity-based target cycle
-			var targets = new System.Collections.Generic.List<Node3D>();
+            // Simple proximity-based target cycle
+            var targets = new System.Collections.Generic.List<Node3D>();
 			var allInteractables = GetTree().GetNodesInGroup("interactables"); // Assuming they are in a group, otherwise we search all nodes in root
 
-			// Fallback: If no group, we could find all InteractableObjects in scene
-			// For now, let's assume we can search the scene for targetables
+            // Fallback: If no group, we could find all InteractableObjects in scene
+            // For now, let's assume we can search the scene for targetables
             FindTargetablesRecursive(GetTree().Root, targets);
 
             if (targets.Count == 0)
@@ -536,7 +584,7 @@ namespace Archery
             int nextIndex = (currentIndex + 1) % targets.Count;
 
             _currentTarget = targets[nextIndex];
-            GD.Print($"[ArcherySystem] Target Locked: {_currentTarget.Name}");
+			GD.Print($"[ArcherySystem] Target Locked: {_currentTarget.Name}");
             EmitSignal(SignalName.TargetChanged, _currentTarget);
 
             if (_camera != null && _camera is CameraController camCtrl)
@@ -561,7 +609,7 @@ namespace Archery
         public void ClearTarget()
         {
             if (_currentTarget == null) return;
-            GD.Print("[ArcherySystem] Target Cleared");
+			GD.Print("[ArcherySystem] Target Cleared");
             _currentTarget = null;
             EmitSignal(SignalName.TargetChanged, null);
 
@@ -573,7 +621,7 @@ namespace Archery
 
         private void OnArrowSettled(float distance)
         {
-            SetPrompt(true, $"Shot settled: {distance * ArcheryConstants.UNIT_RATIO:F1}y");
+			SetPrompt(true, $"Shot settled: {distance * ArcheryConstants.UNIT_RATIO:F1}y");
         }
 
         public void HandleInput()
@@ -591,7 +639,7 @@ namespace Archery
             if (_stage == DrawStage.Idle || _stage == DrawStage.ShotComplete)
             {
                 if (_stage == DrawStage.ShotComplete) PrepareNextShot();
-                GD.Print($"[ArcherySystem] {currentFrame} Phase 1: Start Drawing");
+				GD.Print($"[ArcherySystem] {currentFrame} Phase 1: Start Drawing");
                 _stage = DrawStage.Drawing;
                 _timer = 0.0f;
                 _isReturnPhase = false;
@@ -603,7 +651,7 @@ namespace Archery
             {
                 // Lock Power
                 _lockedPower = Mathf.PingPong(_timer * DrawSpeed * 100.0f, 100.0f);
-                GD.Print($"[ArcherySystem] {currentFrame} Phase 2: Power Locked at {_lockedPower:F1}");
+				GD.Print($"[ArcherySystem] {currentFrame} Phase 2: Power Locked at {_lockedPower:F1}");
                 _stage = DrawStage.Aiming;
                 // Continue timer, do NOT reset. Bar will naturally hit 100 and come back for Aiming.
                 EmitSignal(SignalName.ArcheryValuesUpdated, _lockedPower, _lockedPower, -1);
@@ -613,7 +661,7 @@ namespace Archery
             {
                 // Lock Accuracy
                 _lockedAccuracy = Mathf.PingPong(_timer * DrawSpeed * 100.0f, 100.0f);
-                GD.Print($"[ArcherySystem] {currentFrame} Phase 3: Accuracy Locked at {_lockedAccuracy:F1}");
+				GD.Print($"[ArcherySystem] {currentFrame} Phase 3: Accuracy Locked at {_lockedAccuracy:F1}");
                 _stage = DrawStage.Executing;
                 EmitSignal(SignalName.ArcheryValuesUpdated, _lockedAccuracy, _lockedPower, _lockedAccuracy);
                 EmitSignal(SignalName.DrawStageChanged, (int)_stage);
@@ -710,7 +758,7 @@ namespace Archery
                 launchDir = launchDir.Normalized();
 
                 // Apply Accuracy Deviation (Left/Right)
-                // User: "over 25 causes a right veering arrow, and after the line (lower than 25) to cause a left veering arrow"
+				// User: "over 25 causes a right veering arrow, and after the line (lower than 25) to cause a left veering arrow"
                 // accuracyError > 0 means lockedAccuracy > 25.0. 
                 // Right veer in Godot (with -Z Forward) is a NEGATIVE rotation around Up axis.
                 float rotationDeg = -accuracyError * 0.75f; // +/- 0.75 deg per unit error
@@ -758,7 +806,7 @@ namespace Archery
             UpdateArrowLabel();
             _stage = DrawStage.ShotComplete;
             EmitSignal(SignalName.DrawStageChanged, (int)_stage);
-            GD.Print($"[ArcherySystem] Shot Executed. Power: {_lockedPower:F1}, Accuracy: {_lockedAccuracy:F1}, Error: {accuracyError:F2}");
+			GD.Print($"[ArcherySystem] Shot Executed. Power: {_lockedPower:F1}, Accuracy: {_lockedAccuracy:F1}, Error: {accuracyError:F2}");
         }
 
         [Rpc(MultiplayerApi.RpcMode.AnyPeer)]
@@ -766,14 +814,14 @@ namespace Archery
         {
             // Received on Server from Client
             // Find the specific arrow instance
-            var projectiles = GetTree().CurrentScene.GetNodeOrNull("Projectiles");
+			var projectiles = GetTree().CurrentScene.GetNodeOrNull("Projectiles");
             var arrow = projectiles?.GetNodeOrNull<ArrowController>(arrowName);
 
             if (arrow != null)
             {
                 // Broadcast execution to all (Syncs physics/visuals)
                 arrow.Rpc(nameof(ArrowController.Launch), startPosition, startRotation, velocity, spin);
-                GD.Print($"[ArcherySystem] Server launching Client arrow: {arrowName}");
+				GD.Print($"[ArcherySystem] Server launching Client arrow: {arrowName}");
             }
             else
             {
@@ -784,12 +832,16 @@ namespace Archery
 
         private Color GetPlayerColor(int index)
         {
-            switch (index % 4)
+            switch (index % 8)
             {
-                case 0: return Colors.Blue;
-                case 1: return Colors.Red;
-                case 2: return Colors.Purple;
-                case 3: return Colors.Yellow;
+                case 0: return Colors.DodgerBlue;
+                case 1: return Colors.Crimson;
+                case 2: return Colors.DarkOrchid;
+                case 3: return Colors.Gold;
+                case 4: return Colors.OrangeRed;
+                case 5: return Colors.Cyan;
+                case 6: return Colors.DeepPink;
+                case 7: return Colors.Teal;
                 default: return Colors.White;
             }
         }

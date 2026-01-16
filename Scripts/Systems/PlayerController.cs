@@ -153,13 +153,17 @@ public partial class PlayerController : CharacterBody3D
     {
         if (_avatarMesh == null) return;
 
-        Color c = Colors.Blue;
-        switch (PlayerIndex % 4)
+        Color c = Colors.DodgerBlue;
+        switch (PlayerIndex % 8)
         {
-            case 0: c = Colors.Blue; break;
-            case 1: c = Colors.Red; break;
-            case 2: c = Colors.Purple; break;
-            case 3: c = Colors.Yellow; break;
+            case 0: c = Colors.DodgerBlue; break;
+            case 1: c = Colors.Crimson; break;
+            case 2: c = Colors.DarkOrchid; break;
+            case 3: c = Colors.Gold; break;
+            case 4: c = Colors.OrangeRed; break;
+            case 5: c = Colors.Cyan; break;
+            case 6: c = Colors.DeepPink; break;
+            case 7: c = Colors.Teal; break; // A blue-green, non-standard "green"
         }
 
         GD.Print($"[PlayerController] UpdatePlayerColor: Index {PlayerIndex} -> {c}");
@@ -556,7 +560,14 @@ public partial class PlayerController : CharacterBody3D
         {
             if (Input.IsKeyPressed(Key.X) && _selectedObject.IsDeletable)
             {
-                _selectedObject.QueueFree();
+                if (NetworkManager.Instance != null && Multiplayer.MultiplayerPeer != null)
+                {
+                    NetworkManager.Instance.RpcId(1, nameof(NetworkManager.RequestDeleteObject), _selectedObject.Name);
+                }
+                else
+                {
+                    _selectedObject.QueueFree();
+                }
                 _selectedObject = null;
                 _archerySystem.SetPrompt(false);
             }
