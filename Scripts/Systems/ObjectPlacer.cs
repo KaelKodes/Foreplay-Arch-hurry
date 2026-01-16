@@ -113,27 +113,30 @@ public partial class ObjectPlacer : Node
             // NetworkManager.SpawnNetworkObject logic re-constructs from path.
 
             // Let's rely on constructing path from ObjectName if simple.
-            // BUT MainHUDController has the logic "res://Assets/Textures/Objects/" + Name + ".gltf"
-            // We should duplicate that logic or store the path.
-
-            // Let's assume standard asset path for now.
             string objName = _currentObject.ObjectName;
-            if (objName == "DistanceSign" || objName == "TeePin" || objName == "Pin" || objName == "CourseMap")
+
+            if (objName == "DistanceSign" || objName == "DistanceMarker")
             {
-                // Known types
-                if (objName == "DistanceSign") resourcePath = "res://Scenes/Environment/DistanceMarker.tscn";
-                else if (objName == "CourseMap") resourcePath = "res://Scenes/Environment/CourseMapSign.tscn";
-                else resourcePath = "res://Scenes/Environment/DistanceMarker.tscn"; // Fallback
+                resourcePath = "res://Scenes/Environment/DistanceMarker.tscn";
             }
-            // Dynamic Asset
-            if (!string.IsNullOrEmpty(_currentObject.ModelPath))
+            else if (objName == "CourseMap")
+            {
+                resourcePath = "res://Scenes/Environment/CourseMapSign.tscn";
+            }
+            else if (!string.IsNullOrEmpty(_currentObject.ModelPath))
             {
                 resourcePath = _currentObject.ModelPath;
             }
             else
             {
-                // Fallback for objects missing ModelPath (should not happen for new placements)
+                // Fallback for objects missing ModelPath
                 resourcePath = "res://Assets/Textures/NatureObjects/" + objName + ".gltf";
+            }
+
+            if (string.IsNullOrEmpty(resourcePath))
+            {
+                GD.PrintErr($"ObjectPlacer: Could not resolve resource path for {objName}!");
+                return;
             }
 
             netManager.RpcId(1, nameof(NetworkManager.RequestSpawnObject), resourcePath, _currentObject.GlobalPosition, _currentObject.GlobalRotation, _currentObject.Scale);

@@ -354,7 +354,13 @@ public partial class NetworkManager : Node
 	{
 		if (!Multiplayer.IsServer()) return;
 
-		GD.Print($"NetworkManager: RequestSpawnObject received for {resourcePath}");
+		GD.Print($"[NetworkManager] RequestSpawnObject: {resourcePath} at {position}");
+
+		if (string.IsNullOrEmpty(resourcePath))
+		{
+			GD.PrintErr("[NetworkManager] RequestSpawnObject: resourcePath is empty!");
+			return;
+		}
 
 		// Data to pass to SpawnFunction (must be Variant-compatible)
 		var data = new Godot.Collections.Dictionary
@@ -366,7 +372,15 @@ public partial class NetworkManager : Node
 		};
 
 		// This triggers SpawnNetworkObject on Server, adds to tree, and replicates to Clients
-		_objectSpawner.Spawn(data);
+		var node = _objectSpawner.Spawn(data);
+		if (node == null)
+		{
+			GD.PrintErr($"[NetworkManager] Spawn FAILED for {resourcePath}");
+		}
+		else
+		{
+			GD.Print($"[NetworkManager] Spawn SUCCESS: {node.Name}");
+		}
 	}
 
 	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
@@ -584,18 +598,26 @@ public partial class NetworkManager : Node
 				// PackedScene Load
 				if (!ResourceLoader.Exists(path))
 				{
-					GD.PrintErr($"NetworkManager: PackedScene NOT found at {path}");
+					GD.PrintErr($"[NetworkManager] PackedScene NOT found at {path}");
 					return null;
 				}
 				var scene = GD.Load<PackedScene>(path);
 				if (scene != null)
 				{
 					var instance = scene.Instantiate();
+					instance.Name = System.IO.Path.GetFileNameWithoutExtension(path) + "_" + Time.GetTicksMsec();
+
 					if (instance is InteractableObject io)
 					{
 						io.ObjectName = System.IO.Path.GetFileNameWithoutExtension(path);
+						io.ModelPath = path;
 					}
 					obj = instance;
+					GD.Print($"[NetworkManager] Instantiated TSCN: {obj.Name}");
+				}
+				else
+				{
+					GD.PrintErr($"[NetworkManager] Failed to load PackedScene: {path}");
 				}
 			}
 		}

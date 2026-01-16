@@ -419,6 +419,7 @@ offset_bottom = 450.0
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
 text = "Arrows: 1"
+horizontal_alignment = 1
 
 [node name="BackBtn" type="Button" parent="ArcheryHUD/StatsPanel"]
 layout_mode = 2
@@ -448,10 +449,12 @@ alignment = 1
 [node name="SpeedLabel" type="Label" parent="ArcheryHUD/StatsPanel"]
 layout_mode = 2
 text = "Speed: 0.0 m/s"
+horizontal_alignment = 1
 
 [node name="DistanceLabel" type="Label" parent="ArcheryHUD/StatsPanel"]
 layout_mode = 2
 text = "Carry: 0.0y"
+horizontal_alignment = 1
 
 [node name="TotalLabel" type="Label" parent="ArcheryHUD/StatsPanel"]
 visible = false

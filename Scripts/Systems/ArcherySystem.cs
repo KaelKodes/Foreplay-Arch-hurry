@@ -599,6 +599,10 @@ namespace Archery
             {
                 results.Add(io);
             }
+            else if (node is PlayerController pc && !pc.IsLocal)
+            {
+                results.Add(pc);
+            }
 
             foreach (Node child in node.GetChildren())
             {
@@ -622,6 +626,40 @@ namespace Archery
         private void OnArrowSettled(float distance)
         {
 			SetPrompt(true, $"Shot settled: {distance * ArcheryConstants.UNIT_RATIO:F1}y");
+        }
+
+        private float CalculateOptimalLoft(Vector3 start, Vector3 target, float velocity)
+        {
+            Vector3 diff = target - start;
+            float y = diff.Y; // Vertical difference
+            float x = new Vector2(diff.X, diff.Z).Length(); // Horizontal distance
+            float v = velocity;
+            float g = ArcheryConstants.GRAVITY;
+
+            float v2 = v * v;
+            float v4 = v2 * v2;
+            float root = v4 - g * (g * x * x + 2 * y * v2);
+
+            if (root < 0)
+            {
+                // Target is out of range. Return a default or max range angle (45 deg)
+                return 45.0f;
+            }
+
+            // Two possible angles. Let's take the lower one for standard, but allow high for versatility?
+            // Usually, the lower angle is more direct.
+            float angle1 = Mathf.Atan((v2 + Mathf.Sqrt(root)) / (g * x));
+            float angle2 = Mathf.Atan((v2 - Mathf.Sqrt(root)) / (g * x));
+
+            float deg1 = Mathf.RadToDeg(angle1);
+            float deg2 = Mathf.RadToDeg(angle2);
+
+            // Return the lower positive angle if both are valid, or the more sensible one.
+            // Constraints: -5 to 45.
+            if (deg2 >= -5.0f && deg2 <= 45.0f) return deg2;
+            if (deg1 >= -5.0f && deg1 <= 45.0f) return deg1;
+
+            return 12.0f; // Fallback
         }
 
         public void HandleInput()
@@ -744,13 +782,25 @@ namespace Archery
                     launchDir = (_camera != null) ? new Vector3(camFwd.X, 0, camFwd.Z).Normalized() : Vector3.Forward;
                 }
 
-                // Apply Loft based on Shot Mode
+                // Apply Loft
                 float loftDeg = 12.0f;
-                switch (_currentMode)
+                if (_currentTarget != null)
                 {
-                    case ArcheryShotMode.Standard: loftDeg = 12.0f; break;
-                    case ArcheryShotMode.Long: loftDeg = 25.0f; break;
-                    case ArcheryShotMode.Max: loftDeg = 45.0f; break;
+                    // SMART AUTO-LOFT: Calculate the best angle to hit the target
+                    Vector3 targetPos = _currentTarget.GlobalPosition;
+                    if (_currentTarget is InteractableObject io) targetPos += new Vector3(0, 1.0f, 0);
+
+                    loftDeg = CalculateOptimalLoft(_arrow.GlobalPosition, targetPos, velocityMag);
+					GD.Print($"[ArcherySystem] Auto-Loft Calculated: {loftDeg:F1} degrees");
+                }
+                else
+                {
+                    switch (_currentMode)
+                    {
+                        case ArcheryShotMode.Standard: loftDeg = 12.0f; break;
+                        case ArcheryShotMode.Long: loftDeg = 25.0f; break;
+                        case ArcheryShotMode.Max: loftDeg = 45.0f; break;
+                    }
                 }
 
                 float loftRad = Mathf.DegToRad(loftDeg);
