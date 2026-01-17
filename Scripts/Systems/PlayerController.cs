@@ -64,6 +64,26 @@ public partial class PlayerController : CharacterBody3D
     private AnimationPlayer _archeryAnimPlayer;
     private Node3D _meleeModel;
     private Node3D _archeryModel;
+    private bool _isSprinting = false;
+    public bool IsSprinting
+    {
+        get => _isSprinting;
+        set => _isSprinting = value;
+    }
+
+    public string SynchronizedModel
+    {
+        get => _currentModelId;
+        set
+        {
+            if (_currentModelId != value && !string.IsNullOrEmpty(value))
+            {
+                GD.Print($"[PlayerController] SyncModel changing to {value}");
+                SetCharacterModel(value);
+            }
+        }
+    }
+
     private bool _isJumping = false;
 
     public int SynchronizedTool
@@ -670,7 +690,10 @@ public partial class PlayerController : CharacterBody3D
             HandleTargetingHotkeys();
         }
 
-        // 3. State Check
+        // 3. Animations run for everyone (driven by synced Velocity/Rotation/State)
+        UpdateAnimations(delta);
+
+        // 4. State Check
         switch (CurrentState)
         {
             case PlayerState.CombatMelee:
@@ -844,8 +867,6 @@ public partial class PlayerController : CharacterBody3D
         _velocity = Velocity;
         _isGrounded = IsOnFloor();
 
-        UpdateAnimations(delta);
-
         HandleVehicleDetection();
     }
 
@@ -866,8 +887,10 @@ public partial class PlayerController : CharacterBody3D
         float normalizedSpeed = speed / MoveSpeed;
 
         // Sprint check
-        bool isSprinting = Input.IsKeyPressed(Key.Shift) && speed > 0.1f;
-        if (isSprinting)
+        bool currentlySprinting = IsLocal ? (Input.IsKeyPressed(Key.Shift) && speed > 0.1f) : IsSprinting;
+        if (IsLocal) IsSprinting = currentlySprinting;
+
+        if (currentlySprinting)
         {
             normalizedSpeed *= 2.0f;
             moveX *= 2.0f;
@@ -877,8 +900,8 @@ public partial class PlayerController : CharacterBody3D
         // 2. Set Parameters
         _animTree.Set("parameters/conditions/is_moving", speed > 0.1f);
         _animTree.Set("parameters/conditions/is_idle", speed <= 0.1f);
-        _animTree.Set("parameters/conditions/is_sprinting", isSprinting);
-        _animTree.Set("parameters/conditions/is_not_sprinting", !isSprinting);
+        _animTree.Set("parameters/conditions/is_sprinting", currentlySprinting);
+        _animTree.Set("parameters/conditions/is_not_sprinting", !currentlySprinting);
         _animTree.Set("parameters/move_speed", normalizedSpeed);
 
         // Drive the BlendSpace2Ds
