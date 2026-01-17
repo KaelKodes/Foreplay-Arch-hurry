@@ -2,6 +2,8 @@ using Godot;
 using System;
 using Archery;
 
+namespace Archery;
+
 public partial class ObjectPlacer : Node
 {
     private ArcherySystem _archerySystem;
@@ -97,22 +99,7 @@ public partial class ObjectPlacer : Node
             // But wait, what if we just placed a Tee/Pin locally logic above?
             // Ideally, Tee/Pin should also be networked.
 
-            // Reconstruct Resource Path (we need to store it in InteractableObject or pass it)
-            // For now, assuming ObjectName matches a file in Assets/Textures/Objects or is a known type
-
             string resourcePath = "";
-            // Try to deduce path. This is tricky without storing it.
-            // Option: Add 'ResourcePath' property to InteractableObject?
-            // For now, let's reverse-lookup or use a naming convention if possible, 
-            // OR assumes MainHUD passed valid path info that we stored?
-            // ObjectPlacer doesn't store path.
-
-            // QUICK FIX strategy: We don't have the original path here easily unless we stored it.
-            // However, _currentObject is an instance. 
-            // If we look at MainHUDController, it does: Name = objectId.
-            // NetworkManager.SpawnNetworkObject logic re-constructs from path.
-
-            // Let's rely on constructing path from ObjectName if simple.
             string objName = _currentObject.ObjectName;
 
             if (objName == "DistanceSign" || objName == "DistanceMarker")
@@ -122,6 +109,11 @@ public partial class ObjectPlacer : Node
             else if (objName == "CourseMap")
             {
                 resourcePath = "res://Scenes/Environment/CourseMapSign.tscn";
+            }
+            else if (objName == "Monster" || _currentObject is Monster)
+            {
+                string species = (_currentObject as Monster)?.Species ?? "Yeti";
+                resourcePath = $"res://Scenes/Entities/Monster.tscn:{species}";
             }
             else if (!string.IsNullOrEmpty(_currentObject.ModelPath))
             {
@@ -214,10 +206,11 @@ public partial class ObjectPlacer : Node
         var query = PhysicsRayQueryParameters3D.Create(from, to);
         query.CollisionMask = 3; // Layer 1 (Default/Rough) + Layer 2 (Terrain/Heightmap)
 
-        // Exclude the object's children to prevent self-intersection
+        // Exclude the object and its children to prevent self-intersection
         var exclude = new Godot.Collections.Array<Rid>();
+        if (_currentObject.HasMethod("get_rid")) exclude.Add(_currentObject.Call("get_rid").AsRid());
 
-        // Note: _currentObject is a Node3D, so we only check children for colliders
+        // Note: _currentObject is a Node3D, so we also check children for colliders
         var kids = _currentObject.FindChildren("*", "CollisionObject3D", true, false);
         foreach (var k in kids)
         {

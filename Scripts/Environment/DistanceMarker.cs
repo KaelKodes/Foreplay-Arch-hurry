@@ -1,6 +1,7 @@
 using Godot;
 using System;
-using Archery;
+
+namespace Archery;
 
 public partial class DistanceMarker : InteractableObject
 {

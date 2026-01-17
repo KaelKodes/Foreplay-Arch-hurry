@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cwbbm4naacnvo"]
+
+[ext_resource type="Script" uid="uid://btoobenblhfil" path="res://Scripts/Tools/AnimationExtractor.cs" id="1_extract"]
+
+[node name="AnimationExtractor" type="Node"]
+script = ExtResource("1_extract")

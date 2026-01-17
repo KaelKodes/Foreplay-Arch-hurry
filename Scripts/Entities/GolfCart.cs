@@ -1,6 +1,7 @@
 using Godot;
 using System;
 
+namespace Archery;
 public partial class GolfCart : CharacterBody3D
 {
 	[Export] public float MaxSpeed = 15.0f;
@@ -89,7 +90,7 @@ public partial class GolfCart : CharacterBody3D
 		}
 
 		// Move in Forward Direction (Basis Z is usually forward in Godot, but let's check orientation)
-		// In the DrivingRange.tscn, the cart seems to face +Z or -Z. 
+        // In the DrivingRange.tscn, the cart seems to face +Z or -Z.
 		// Let's assume Transform.Basis.Z is the forward/back axis.
 		velocity.X = Transform.Basis.Z.X * _currentSpeed;
 		velocity.Z = Transform.Basis.Z.Z * _currentSpeed;

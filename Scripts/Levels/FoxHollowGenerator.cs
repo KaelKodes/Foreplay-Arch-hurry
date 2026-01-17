@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using Archery;
 
 public partial class FoxHollowGenerator : Node
 {

@@ -26,13 +26,10 @@ public partial class ArcheryHUDController : Control
 	private Button _toggleWindBtn;
 	private SpinBox _windSpeedSpin;
 
+	private PlayerController _player;
+
 	public override void _Ready()
 	{
-		_archerySystem = GetNodeOrNull<ArcherySystem>(ArcherySystemPath);
-		if (_archerySystem == null) _archerySystem = GetTree().CurrentScene.FindChild("ArcherySystem", true, false) as ArcherySystem;
-		_windSystem = GetNodeOrNull<WindSystem>(WindSystemPath);
-		if (_windSystem == null) _windSystem = GetTree().CurrentScene.FindChild("WindSystem", true, false) as WindSystem;
-
 		_drawBar = GetNodeOrNull<ProgressBar>("SwingContainer/PowerBar");
 		_accuracyMarker = GetNodeOrNull<ColorRect>("SwingContainer/AccuracyMarker");
 		_lockedPowerLine = GetNodeOrNull<ColorRect>("SwingContainer/LockedPowerLine");
@@ -48,19 +45,9 @@ public partial class ArcheryHUDController : Control
 		_speedLabel = GetNodeOrNull<Label>("StatsPanel/SpeedLabel");
 		_modeLabel = GetNodeOrNull<Label>("StatsPanel/ClubLabel"); // Reusing "ClubLabel" for Mode
 
-		// Connect Signals
-		if (_archerySystem != null)
-		{
-			_archerySystem.Connect(ArcherySystem.SignalName.ArcheryValuesUpdated, new Callable(this, MethodName.OnArcheryValuesUpdated));
-			_archerySystem.Connect(ArcherySystem.SignalName.ShotResult, new Callable(this, MethodName.OnShotResult));
-			_archerySystem.Connect(ArcherySystem.SignalName.ShotModeChanged, new Callable(this, MethodName.OnShotModeChanged));
-
-			// Update initial mode display
-			OnShotModeChanged((int)_archerySystem.CurrentMode);
-
-			_archerySystem.Connect(ArcherySystem.SignalName.ArrowInitialized, new Callable(this, MethodName.OnArrowInitialized));
-
-		}
+		// Initialize WindSystem and connect its signals here, as it's not player-specific
+		_windSystem = GetNodeOrNull<WindSystem>(WindSystemPath);
+		if (_windSystem == null) _windSystem = GetTree().CurrentScene.FindChild("WindSystem", true, false) as WindSystem;
 
 		if (_windSystem != null)
 		{
@@ -96,6 +83,55 @@ public partial class ArcheryHUDController : Control
 
 		var exitBtn = GetNodeOrNull<Button>("StatsPanel/ExitGolfBtn");
 		if (exitBtn != null) exitBtn.Pressed += () => _archerySystem?.ExitCombatMode();
+	}
+
+	public void RegisterPlayer(PlayerController player)
+	{
+		_player = player;
+
+		DisconnectFromSystem();
+		_archerySystem = _player.GetNodeOrNull<ArcherySystem>("ArcherySystem");
+
+		if (_archerySystem != null)
+		{
+			_archerySystem.Connect(ArcherySystem.SignalName.ArcheryValuesUpdated, new Callable(this, MethodName.OnArcheryValuesUpdated));
+			_archerySystem.Connect(ArcherySystem.SignalName.ShotResult, new Callable(this, MethodName.OnShotResult));
+			_archerySystem.Connect(ArcherySystem.SignalName.ShotModeChanged, new Callable(this, MethodName.OnShotModeChanged));
+			_archerySystem.Connect(ArcherySystem.SignalName.ModeChanged, new Callable(this, MethodName.OnModeChanged));
+
+			// Update initial mode display
+			OnShotModeChanged((int)_archerySystem.CurrentMode);
+		}
+	}
+
+	private void DisconnectFromSystem()
+	{
+		if (_archerySystem != null)
+		{
+			_archerySystem.Disconnect(ArcherySystem.SignalName.ArcheryValuesUpdated, new Callable(this, MethodName.OnArcheryValuesUpdated));
+			_archerySystem.Disconnect(ArcherySystem.SignalName.ShotResult, new Callable(this, MethodName.OnShotResult));
+			_archerySystem.Disconnect(ArcherySystem.SignalName.ShotModeChanged, new Callable(this, MethodName.OnShotModeChanged));
+			_archerySystem.Disconnect(ArcherySystem.SignalName.ModeChanged, new Callable(this, MethodName.OnModeChanged));
+			_archerySystem = null;
+		}
+	}
+
+	public override void _ExitTree()
+	{
+		DisconnectFromSystem();
+	}
+
+	private void OnModeChanged(bool inCombatMode)
+	{
+		// Only show if specifically in Archer state to prevent overlap with Melee
+		if (_player != null)
+		{
+			Visible = inCombatMode && _player.CurrentState == PlayerState.CombatArcher;
+		}
+		else
+		{
+			Visible = inCombatMode;
+		}
 	}
 
 	private void OnToggleWindPressed()

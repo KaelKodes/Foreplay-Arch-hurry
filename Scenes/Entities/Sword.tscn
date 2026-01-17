@@ -1,0 +1,52 @@
+[gd_scene load_steps=10 format=3 uid="uid://sword_vfx"]
+
+[ext_resource type="Script" path="res://Scripts/Entities/SwordController.cs" id="1_sword"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_blade"]
+size = Vector3(0.05, 0.8, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_handle"]
+size = Vector3(0.06, 0.3, 0.06)
+
+[sub_resource type="Curve" id="Curve_trail"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), -2.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_alpha"]
+curve = SubResource("Curve_trail")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_trail"]
+gravity = Vector3(0, 0, 0)
+scale_min = 1.0
+scale_max = 1.2
+alpha_curve = SubResource("CurveTexture_alpha")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_slash"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.329412, 0.658824, 1, 0.533333)
+
+[sub_resource type="QuadMesh" id="QuadMesh_slash"]
+material = SubResource("StandardMaterial3D_slash")
+size = Vector2(0.5, 0.8)
+
+[node name="Sword" type="Node3D"]
+script = ExtResource("1_sword")
+
+[node name="Blade" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("BoxMesh_blade")
+
+[node name="Handle" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_handle")
+
+[node name="SlashEffect" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+emitting = false
+amount = 8
+lifetime = 0.2
+one_shot = true
+explosiveness = 0.8
+process_material = SubResource("ParticleProcessMaterial_trail")
+draw_pass_1 = SubResource("QuadMesh_slash")

@@ -1,6 +1,7 @@
 using Godot;
 using System;
 
+namespace Archery;
 public partial class StatsService : Node
 {
     private Stats _playerStats = new Stats();

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c0d4cnfnpl62r"]
+
+[ext_resource type="Script" uid="uid://dlaq6ys0lvddx" path="res://Scripts/Tools/InspectHierarchy.cs" id="1_inspect"]
+
+[node name="InspectHierarchy" type="Node"]
+script = ExtResource("1_inspect")

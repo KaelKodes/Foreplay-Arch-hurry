@@ -1,5 +1,8 @@
 using Godot;
 using System;
+using System.Collections.Generic;
+
+namespace Archery;
 
 public partial class NetworkHUD : Control
 {
@@ -18,10 +21,10 @@ public partial class NetworkHUD : Control
             _networkManager = GetTree().CurrentScene.GetNodeOrNull<NetworkManager>("NetworkManager");
         }
 
-        // Setup UI programmatically if not using a scene file, 
+        // Setup UI programmatically if not using a scene file,
         // or just bind if using a .tscn (Using .tscn is better, but let's assume we build it here for speed/simplicity)
 
-        // We will assume this script is attached to the Root Control of a scene constructed in Godot, 
+        // We will assume this script is attached to the Root Control of a scene constructed in Godot,
         // OR we can build the UI here. Constructing here is safer for the agent.
 
         BuildUI();

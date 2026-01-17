@@ -35,7 +35,7 @@ public partial class CameraController : Camera3D
     public override void _Input(InputEvent @event)
     {
         // Allow Orbit Rotation (Right Click) regardless of "Free Look" mode
-        // unless we strictly want to block it. 
+        // unless we strictly want to block it.
         // For "Walking Mode", we want Orbit.
 
         // Guard: Only the active camera should process mouse input
@@ -57,7 +57,7 @@ public partial class CameraController : Camera3D
     {
         if (_target == null)
         {
-            // Debug print once periodically? 
+            // Debug print once periodically?
             return;
         }
 

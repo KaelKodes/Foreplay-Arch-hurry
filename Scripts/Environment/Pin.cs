@@ -1,6 +1,8 @@
 using Godot;
 using System;
 
+namespace Archery;
+
 public partial class Pin : Node3D
 {
     [Export] public NodePath WindSystemPath;
@@ -19,7 +21,7 @@ public partial class Pin : Node3D
         else
         {
             // Search up the tree or in the main internal structure
-            // NOTE: Since Pin is inside TargetGreen which is in DrivingRange, 
+            // NOTE: Since Pin is inside TargetGreen which is in DrivingRange,
             // we might need to search relative to root or use a singleton approach later.
             // For now, let's try looking at the root level if not assigned.
             _windSystem = GetNodeOrNull<WindSystem>("/root/DrivingRange/WindSystem");

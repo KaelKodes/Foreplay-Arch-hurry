@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Archery;
 
+namespace Archery;
+
 public partial class MainHUDController : CanvasLayer
 {
 	[Export] public NodePath ArcherySystemPath;
@@ -22,15 +24,26 @@ public partial class MainHUDController : CanvasLayer
 	private Label _promptLabel;
 
 	private Control _archeryHUD;
+	private Control _meleeHUD;
 	private Control _buildHUD;
 	private Control _walkHUD;
 
-	private Control _toolsPanel;
+	// private Control _toolsPanel; // Legacy, replaced by BuildHUD 
+
 	private Control _objectGallery;
 	private HBoxContainer _categoryContainer; // Kept for legacy reference if needed, but implementation uses specific ones
 	private GridContainer _objectGrid;
-	private Button _galleryToggleBtn;
 	private Control _galleryContent;
+	private Control _resizeHandle;
+	private Button _minimizeBtn;
+	private bool _isResizing = false;
+	private Vector2 _resizeStartPos;
+	private Vector2 _resizeStartSize;
+
+	// Tools Buttons (Now managed by BuildHUDController)
+	// private Button _selectionBtn;
+	// private Button _surveyBtn;
+	// private Button _newObjectBtn;
 
 	// Category UI
 	private HBoxContainer _mainCategoryContainer;
@@ -53,6 +66,9 @@ public partial class MainHUDController : CanvasLayer
 	public void RegisterPlayer(PlayerController player)
 	{
 		_player = player;
+		_archerySystem = _player.GetNodeOrNull<ArcherySystem>("ArcherySystem");
+		(_meleeHUD as MeleeHUDController)?.RegisterPlayer(player);
+		(_archeryHUD as ArcheryHUDController)?.RegisterPlayer(player);
 		UpdateHUDForMode(_player.CurrentState);
 		GD.Print("MainHUD: Player Registered");
 	}
@@ -82,26 +98,25 @@ public partial class MainHUDController : CanvasLayer
 		_promptLabel = GetNode<Label>("PromptContainer/PromptLabel");
 
 		_archeryHUD = GetNode<Control>("ArcheryHUD");
+		_meleeHUD = GetNodeOrNull<Control>("MeleeHUD");
 		_buildHUD = GetNode<Control>("BuildHUD");
 		_walkHUD = GetNode<Control>("WalkHUD");
 
-		_toolsPanel = GetNode<Control>("ToolsPanel");
+		// _toolsPanel = GetNode<Control>("ToolsPanel"); // Gone
 		_objectGallery = GetNode<Control>("ObjectGallery");
-		_galleryContent = GetNode<Control>("ObjectGallery/VBox");
-		_objectGrid = GetNode<GridContainer>("ObjectGallery/VBox/Scroll/Grid");
+		_galleryContent = GetNode<Control>("ObjectGallery/Background/MarginContainer/VBox");
+		_objectGrid = GetNode<GridContainer>("ObjectGallery/Background/MarginContainer/VBox/Scroll/Grid");
 		_objectGrid.Columns = 3;
 
-		// Setup Minimize/Expand Button
-		_galleryToggleBtn = new Button();
-		_galleryToggleBtn.Text = "▶";
-		_galleryToggleBtn.CustomMinimumSize = new Vector2(40, 40);
-		_galleryToggleBtn.Size = new Vector2(40, 40);
-		_galleryToggleBtn.Position = _objectGallery.Position; // Match gallery position
-		_galleryToggleBtn.Pressed += () => SetGalleryExpanded(true);
-		AddChild(_galleryToggleBtn); // Add to HUD directly, not inside gallery
+		// Setup Resize Handle from scene
+		_resizeHandle = GetNode<Control>("ObjectGallery/ResizeHandle");
+		_resizeHandle.GuiInput += OnResizeHandleGuiInput;
+
+		_minimizeBtn = GetNode<Button>("ObjectGallery/MinimizeBtn");
+		_minimizeBtn.Pressed += () => SetGalleryExpanded(false);
 
 		// Setup Category Containers
-		var vbox = GetNode<VBoxContainer>("ObjectGallery/VBox");
+		var vbox = GetNode<VBoxContainer>("ObjectGallery/Background/MarginContainer/VBox");
 
 		// Main Categories (Top Row)
 		_mainCategoryContainer = new HBoxContainer();
@@ -115,10 +130,16 @@ public partial class MainHUDController : CanvasLayer
 		vbox.AddChild(_subCategoryContainer);
 		vbox.MoveChild(_subCategoryContainer, 2);
 
-		// Connect Tool Buttons
-		GetNode<Button>("ToolsPanel/VBox/SelectionBtn").Pressed += () => SetBuildTool(BuildTool.Selection);
-		GetNode<Button>("ToolsPanel/VBox/SurveyBtn").Pressed += () => SetBuildTool(BuildTool.Survey);
-		GetNode<Button>("ToolsPanel/VBox/NewObjectBtn").Pressed += () => SetBuildTool(BuildTool.NewObject);
+		// Connect Tool Buttons - Handled by BuildHUDController now
+		/*
+		_selectionBtn = GetNode<Button>("ToolsPanel/VBox/SelectionBtn");
+		_surveyBtn = GetNode<Button>("ToolsPanel/VBox/SurveyBtn");
+		_newObjectBtn = GetNode<Button>("ToolsPanel/VBox/NewObjectBtn");
+
+		_selectionBtn.Pressed += () => SetBuildTool(BuildTool.Selection);
+		_surveyBtn.Pressed += () => SetBuildTool(BuildTool.Survey);
+		_newObjectBtn.Pressed += () => SetBuildTool(BuildTool.NewObject);
+		*/
 
 		ScanAssets();
 		InitializeCategories();
@@ -163,15 +184,41 @@ public partial class MainHUDController : CanvasLayer
 		_modeLabel.Text = modeText;
 
 		// Toggle sub-HUDs
-		_archeryHUD.Visible = (state == PlayerState.CombatMode);
-		_buildHUD.Visible = (state == PlayerState.BuildMode && _currentTool == BuildTool.Survey);
+		_archeryHUD.Visible = (state == PlayerState.CombatArcher);
+		if (_meleeHUD != null) _meleeHUD.Visible = (state == PlayerState.CombatMelee);
+		_buildHUD.Visible = (state == PlayerState.BuildMode || state == PlayerState.PlacingObject);
 		_walkHUD.Visible = (state == PlayerState.WalkMode);
 
-		_toolsPanel.Visible = (state == PlayerState.BuildMode || state == PlayerState.PlacingObject);
+		// Button Logic moved to BuildHUDController
+		/*
+		if (_toolsPanel.Visible)
+		{
+			// Configure Buttons based on Tool Type (Hammer vs Shovel)
+			bool isSurvey = (_currentTool == BuildTool.Survey);
+
+			// If Survey (Shovel), show Survey button, hide others? 
+			// Or assume Hammer -> Selection/NewObject.
+			// User: "side panel with Selection and Object... survey button is hidden" (Hammer)
+
+			if (isSurvey)
+			{
+				_surveyBtn.Visible = true;
+				_selectionBtn.Visible = false;
+				_newObjectBtn.Visible = false;
+			}
+			else
+			{
+				// Hammer Mode
+				_surveyBtn.Visible = false;
+				_selectionBtn.Visible = true;
+				_newObjectBtn.Visible = true;
+			}
+		}
+		*/
+
 		if (state != PlayerState.BuildMode && state != PlayerState.PlacingObject)
 		{
 			_objectGallery.Visible = false;
-			_galleryToggleBtn.Visible = false;
 		}
 		else if (_currentTool == BuildTool.NewObject)
 		{
@@ -184,7 +231,7 @@ public partial class MainHUDController : CanvasLayer
 		if (state == PlayerState.WalkMode)
 		{
 			_modeHint.Visible = true;
-			_modeHint.Text = "V: BUILD MODE | R: COMBAT MODE";
+			_modeHint.Text = "WALK MODE";
 			_buildHint1.Visible = false;
 			_buildHint2.Visible = false;
 			_buildHint3.Visible = false;
@@ -194,7 +241,7 @@ public partial class MainHUDController : CanvasLayer
 		else if (state == PlayerState.BuildMode)
 		{
 			_modeHint.Visible = true;
-			_modeHint.Text = "V: WALK MODE";
+			_modeHint.Text = "BUILD MODE";
 
 			// Customize hints based on tool
 			if (_currentTool == BuildTool.Selection)
@@ -219,7 +266,7 @@ public partial class MainHUDController : CanvasLayer
 			}
 			else // Turn/Survey
 			{
-				_buildHint1.Visible = true; _buildHint1.Text = "Spacebar: Drop Point";
+				_buildHint1.Visible = true; _buildHint1.Text = "LMB: Drop Point";
 				_buildHint2.Visible = true; _buildHint2.Text = "X: Delete";
 				_buildHint3.Visible = true; _buildHint3.Text = "C: Reposition";
 				_buildHint4.Visible = false;
@@ -275,7 +322,6 @@ public partial class MainHUDController : CanvasLayer
 		else
 		{
 			_objectGallery.Visible = false;
-			_galleryToggleBtn.Visible = false;
 		}
 
 		GD.Print($"Build Tool Switched to: {tool}");
@@ -300,12 +346,20 @@ public partial class MainHUDController : CanvasLayer
 		}
 		else
 		{
-			switch (objectId)
+			var combatAsset = _allAssets.Find(a => a.Name == objectId);
+			if (combatAsset.SubCategory == "Combat")
 			{
-				case "DistanceSign": scenePath = "res://Scenes/Environment/DistanceMarker.tscn"; break;
-				case "TeePin": scenePath = "res://Scenes/Environment/DistanceMarker.tscn"; break; // TeePin logic might differ, assuming placeholder
-				case "Pin": scenePath = "res://Scenes/Environment/DistanceMarker.tscn"; break;
-				case "CourseMap": scenePath = "res://Scenes/Environment/CourseMapSign.tscn"; break;
+				scenePath = "res://Scenes/Entities/Monster.tscn";
+			}
+			else
+			{
+				switch (objectId)
+				{
+					case "DistanceSign": scenePath = "res://Scenes/Environment/DistanceMarker.tscn"; break;
+					case "TeePin": scenePath = "res://Scenes/Environment/DistanceMarker.tscn"; break;
+					case "Pin": scenePath = "res://Scenes/Environment/DistanceMarker.tscn"; break;
+					case "CourseMap": scenePath = "res://Scenes/Environment/CourseMapSign.tscn"; break;
+				}
 			}
 		}
 
@@ -342,18 +396,61 @@ public partial class MainHUDController : CanvasLayer
 				var obj = scene.Instantiate<InteractableObject>();
 				obj.ObjectName = objectId;
 				obj.ModelPath = scenePath;
+
+				if (obj is Monster monster)
+				{
+					string species = objectId;
+					// Map aliases
+					if (species == "Monster") species = "Yeti";
+					if (species == "Slime") species = "Glub";
+					if (species == "Shroom") species = "Mushnub_Evolved";
+					if (species == "Wizard") species = "Wizard_Blob";
+					if (species == "Blue_Blob") species = "BlueDemon";
+					if (species == "Gold_Blob") species = "MushroomKing";
+					if (species == "Warrior" || species == "Knight" || species == "Skeleton") species = "Orc"; // Fallback for removed types
+
+					monster.Species = species;
+				}
+
 				_archerySystem.ObjectPlacer.SpawnAndPlace(obj);
 			}
 		}
 
-		// Minimize gallery after selection
-		SetGalleryExpanded(false);
+		// Minimize gallery after selection - NUKED as requested
+		// SetGalleryExpanded(false);
+	}
+
+	private void OnResizeHandleGuiInput(InputEvent @event)
+	{
+		if (@event is InputEventMouseButton mb)
+		{
+			if (mb.ButtonIndex == MouseButton.Left)
+			{
+				_isResizing = mb.Pressed;
+				if (_isResizing)
+				{
+					_resizeStartPos = GetViewport().GetMousePosition();
+					_resizeStartSize = _objectGallery.Size;
+				}
+			}
+		}
+		else if (@event is InputEventMouseMotion mm && _isResizing)
+		{
+			Vector2 currentMousePos = GetViewport().GetMousePosition();
+			Vector2 diff = currentMousePos - _resizeStartPos;
+			Vector2 newSize = _resizeStartSize + diff;
+
+			// Enforce minimums
+			newSize.X = Mathf.Max(newSize.X, 400);
+			newSize.Y = Mathf.Max(newSize.Y, 300);
+
+			_objectGallery.Size = newSize;
+		}
 	}
 
 	private void SetGalleryExpanded(bool expanded)
 	{
 		_objectGallery.Visible = expanded;
-		_galleryToggleBtn.Visible = !expanded;
 	}
 
 	private void ScanAssets()
@@ -364,6 +461,51 @@ public partial class MainHUDController : CanvasLayer
 		_allAssets.Add(new ObjectAsset { Name = "Pin", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
 		_allAssets.Add(new ObjectAsset { Name = "DistanceSign", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
 		_allAssets.Add(new ObjectAsset { Name = "CourseMap", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Yeti", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Yeti_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Orc", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Orc_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Ninja", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Ninja_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Wizard_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Pigeon", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Pigeon_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Slime", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Shroom", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Alpaking", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Alpaking_Evolved", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Armabee", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Armabee_Evolved", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Birb", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Birb_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Blue_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Bunny", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Cactoro", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Cactoro_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Chicken", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Chicken_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Demon", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Demon_Flying", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Dino", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Dog_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Dragon", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Dragon_Fly", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Fish", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Fish_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Frog", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Ghost", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Goleling", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Goleling_Evolved", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Green_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "GreenSpiky_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Hywirl", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Monkroose", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Mushroom", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "MushroomKing", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Pink_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Squidle", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Tribal", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+		_allAssets.Add(new ObjectAsset { Name = "Tribal_Flying", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
 
 		string[] searchPaths = {
 			"res://Assets/Textures/NatureObjects/",

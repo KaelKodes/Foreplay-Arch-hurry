@@ -1,6 +1,7 @@
 using Godot;
 using System;
 
+namespace Archery;
 public partial class WindSystem : Node
 {
     [Signal] public delegate void WindChangedEventHandler(Vector3 direction, float speedMph);
@@ -63,7 +64,7 @@ public partial class WindSystem : Node
     {
         if (!IsWindEnabled) return Vector3.Zero;
 
-        // Convert MPH to m/s? 
+        // Convert MPH to m/s?
         // 1 mph = 0.44704 m/s.
         // Game physics is roughly real-world metric.
         float speedMs = WindSpeedMph * 0.44704f;

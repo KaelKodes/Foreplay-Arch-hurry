@@ -1,6 +1,8 @@
 using Godot;
 using System;
 
+namespace Archery;
+
 public partial class InteractableObject : Node3D
 {
     [Export] public string ObjectName = "Object";
@@ -17,6 +19,7 @@ public partial class InteractableObject : Node3D
     // Interaction API
     public virtual void OnInteract(PlayerController player) { }
     public virtual string GetInteractionPrompt() { return ""; }
+    public virtual void OnHit(float damage, Vector3 hitPosition, Vector3 hitNormal) { }
 
     public override void _Ready()
     {

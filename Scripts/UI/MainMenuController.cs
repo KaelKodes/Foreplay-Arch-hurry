@@ -1,6 +1,8 @@
 using Godot;
 using System;
 
+namespace Archery;
+
 public partial class MainMenuController : Control
 {
     private MenuPhysicsHelper _physicsHelper;

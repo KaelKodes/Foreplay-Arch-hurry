@@ -1,6 +1,7 @@
 using Godot;
 using System;
-using Archery;
+
+namespace Archery;
 
 public partial class AimAssist : Node3D
 {
@@ -47,6 +48,11 @@ public partial class AimAssist : Node3D
         if (ArcherySystemPath != null && !ArcherySystemPath.IsEmpty)
             _archerySystem = GetNodeOrNull<ArcherySystem>(ArcherySystemPath);
 
+        // Per-Player Support: Check sibling
+        if (_archerySystem == null)
+            _archerySystem = GetNodeOrNull<ArcherySystem>("../ArcherySystem");
+
+        // Fallback: Global/Root search
         if (_archerySystem == null)
         {
             _archerySystem = GetNodeOrNull<ArcherySystem>("/root/TerrainTest/ArcherySystem");
@@ -111,7 +117,7 @@ public partial class AimAssist : Node3D
                 if (_archerySystem.CurrentTarget is InteractableObject io) targetPos += new Vector3(0, 1.0f, 0); // Sign offset
 
                 Vector3 dir = (targetPos - GlobalPosition).Normalized();
-                // AimAssist forward is -Z. 
+                // AimAssist forward is -Z.
                 // We want -Z to point at 'dir'.
                 // Atan2(-dir.X, -dir.Y)
                 float angle = Mathf.Atan2(-dir.X, -dir.Z);

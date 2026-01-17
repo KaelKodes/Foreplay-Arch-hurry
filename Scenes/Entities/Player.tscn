@@ -1,8 +1,10 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=13 format=3]
 
-[ext_resource type="Script" path="res://Scripts/Systems/PlayerController.cs" id="1_script"]
-[ext_resource type="Script" path="res://Scripts/Systems/AimAssist.cs" id="2_aim"]
-[ext_resource type="Script" path="res://Scripts/Systems/CameraController.cs" id="3_camera"]
+[ext_resource type="Script" uid="uid://c78rj73wym8kb" path="res://Scripts/Systems/PlayerController.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://dray5mi350m3q" path="res://Scripts/Systems/AimAssist.cs" id="2_aim"]
+[ext_resource type="Script" uid="uid://nxdsvm1xh80" path="res://Scripts/Systems/CameraController.cs" id="3_camera"]
+[ext_resource type="Script" path="res://Scripts/Systems/ArcherySystem.cs" id="4_archery"]
+[ext_resource type="Script" path="res://Scripts/Systems/MeleeSystem.cs" id="5_melee"]
 
 [sub_resource type="StandardMaterial3D" id="Mat_AimLine"]
 transparency = 1
@@ -48,13 +50,16 @@ properties/2/replication_mode = 2
 properties/3/path = NodePath(".:PlayerIndex")
 properties/3/spawn = true
 properties/3/replication_mode = 1
+properties/4/path = NodePath(".:SynchronizedTool")
+properties/4/spawn = true
+properties/4/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D"]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0.1, 0)
 collision_mask = 3
 script = ExtResource("1_script")
 CameraPath = NodePath("Camera3D")
-ArcherySystemPath = NodePath("")
+ArcherySystemPath = NodePath("ArcherySystem")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
@@ -77,9 +82,15 @@ mesh = SubResource("CapsuleMesh_Avatar")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.939693, 0.34202, 0, -0.34202, 0.939693, 0, 2.5, 4.5)
-current = false
+current = true
 script = ExtResource("3_camera")
 TargetPath = NodePath("..")
+
+[node name="ArcherySystem" type="Node" parent="."]
+script = ExtResource("4_archery")
+
+[node name="MeleeSystem" type="Node" parent="."]
+script = ExtResource("5_melee")
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
 replication_config = SubResource("SceneReplicationConfig_Player")

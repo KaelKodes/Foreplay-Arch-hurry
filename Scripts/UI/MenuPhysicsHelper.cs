@@ -2,6 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
+namespace Archery;
+
 public partial class MenuPhysicsHelper : Node
 {
     [Export] public PackedScene BallScene;

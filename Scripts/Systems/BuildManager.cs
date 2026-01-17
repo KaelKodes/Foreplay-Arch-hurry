@@ -2,6 +2,8 @@ using Godot;
 using System.Collections.Generic;
 using Archery;
 
+namespace Archery;
+
 public partial class BuildManager : Node3D
 {
     private List<Vector3> _points = new List<Vector3>();
@@ -115,13 +117,11 @@ public partial class BuildManager : Node3D
             _lineMesh.SurfaceAddVertex(_points[i + 1] + new Vector3(0, 0.2f, 0));
         }
 
-        // If we want a preview line to the player
         if (!IsPickingTerrain && Player != null && Player.CurrentState == PlayerState.BuildMode && _replacingIndex == -1)
         {
             _lineMesh.SurfaceAddVertex(_points[_points.Count - 1] + new Vector3(0, 0.2f, 0));
             _lineMesh.SurfaceAddVertex(Player.GlobalPosition + new Vector3(0, 0.2f, 0));
 
-            // Also draw potential closing line from player to first point
             if (_points.Count >= 2)
             {
                 _lineMesh.SurfaceAddVertex(Player.GlobalPosition + new Vector3(0, 0.2f, 0));
@@ -130,7 +130,6 @@ public partial class BuildManager : Node3D
         }
         else if (_points.Count >= 3)
         {
-            // Close the loop if not drawing to player
             _lineMesh.SurfaceAddVertex(_points[_points.Count - 1] + new Vector3(0, 0.2f, 0));
             _lineMesh.SurfaceAddVertex(_points[0] + new Vector3(0, 0.2f, 0));
         }
@@ -152,6 +151,96 @@ public partial class BuildManager : Node3D
         SetPreviewTerrain(_lastSelectedType);
     }
 
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (Player == null || Player.CurrentState != PlayerState.BuildMode) return;
+        if (_inputCooldown > 0) return;
+
+        bool isSurvey = (_hud != null && _hud.CurrentTool == MainHUDController.BuildTool.Survey);
+
+        // 1. Replacement Logic
+        if (_replacingIndex != -1)
+        {
+            if (@event.IsActionPressed("ui_accept") || (@event is InputEventKey k && k.Pressed && k.Keycode == Key.Space))
+            {
+                _replacingIndex = -1;
+                _inputCooldown = 0.3f;
+                GetViewport().SetInputAsHandled();
+            }
+            return;
+        }
+
+        // 2. Terrain Interaction (E, R, Delete)
+        if (_closestTerrain != null)
+        {
+            if (@event is InputEventKey ek && ek.Pressed)
+            {
+                if (ek.Keycode == Key.E)
+                {
+                    EditTerrain(_closestTerrain);
+                    _inputCooldown = 0.5f;
+                    GetViewport().SetInputAsHandled();
+                }
+                else if (ek.Keycode == Key.R)
+                {
+                    CopyTerrain(_closestTerrain);
+                    _inputCooldown = 0.5f;
+                    GetViewport().SetInputAsHandled();
+                }
+                else if (ek.Keycode == Key.Delete)
+                {
+                    _closestTerrain.QueueFree();
+                    _inputCooldown = 0.5f;
+                    GetViewport().SetInputAsHandled();
+                }
+            }
+            if (GetViewport().IsInputHandled()) return;
+        }
+
+        // 3. Marker Interaction (X, C) or Add Point (LMB, Space)
+        if (isSurvey)
+        {
+            if (@event is InputEventKey ek && ek.Pressed && ek.Keycode == Key.T)
+            {
+                ClearSurvey();
+                _inputCooldown = 0.3f;
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+
+            if (_closestMarkerIndex != -1 && (Player == null || Player.SelectedObject == null))
+            {
+                if (@event is InputEventKey mk && mk.Pressed)
+                {
+                    if (mk.Keycode == Key.X)
+                    {
+                        RemovePoint(_closestMarkerIndex);
+                        _inputCooldown = 0.3f;
+                        GetViewport().SetInputAsHandled();
+                    }
+                    else if (mk.Keycode == Key.C)
+                    {
+                        _replacingIndex = _closestMarkerIndex;
+                        _inputCooldown = 0.3f;
+                        GetViewport().SetInputAsHandled();
+                    }
+                }
+            }
+            else
+            {
+                bool trigger = false;
+                if (@event is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left) trigger = true;
+
+                if (trigger)
+                {
+                    AddPoint(Player.GlobalPosition);
+                    _inputCooldown = 0.5f;
+                    GetViewport().SetInputAsHandled();
+                }
+            }
+        }
+    }
+
     public override void _Process(double delta)
     {
         if (_inputCooldown > 0) _inputCooldown -= (float)delta;
@@ -159,18 +248,12 @@ public partial class BuildManager : Node3D
 
         Vector3 playerPos = Player.GlobalPosition;
 
-        // Handle Replacement logic
+        // Handle Replacement logic (Visual update)
         if (_replacingIndex != -1)
         {
             _points[_replacingIndex] = playerPos;
             _markers[_replacingIndex].GlobalPosition = playerPos + new Vector3(0, 0.1f, 0);
             UpdateLines();
-
-            if (Input.IsActionJustPressed("ui_accept") || (Input.IsKeyPressed(Key.Space) && _inputCooldown <= 0))
-            {
-                _replacingIndex = -1;
-                _inputCooldown = 0.3f;
-            }
             return;
         }
 
@@ -215,7 +298,7 @@ public partial class BuildManager : Node3D
             }
         }
 
-        // Update Prompt based on context (Center Prompt for temporary state/editing)
+        // Update Prompt based on context
         if (_replacingIndex != -1)
         {
             _archerySystem.SetPrompt(true, "REPLACING POINT: SPACEBAR TO SET");
@@ -224,64 +307,13 @@ public partial class BuildManager : Node3D
         {
             _archerySystem.SetPrompt(true, "E: EDIT TERRAIN | R: COPY | DEL: REMOVE");
         }
+        else if (_hud != null && _hud.CurrentTool == MainHUDController.BuildTool.Survey)
+        {
+            _archerySystem.SetPrompt(true, "LMB: DROP POINT | T: CLEAR");
+        }
         else
         {
             _archerySystem.SetPrompt(false);
-        }
-
-        // Handle Inputs
-        if (_closestTerrain != null)
-        {
-            if (Input.IsKeyPressed(Key.E) && _inputCooldown <= 0)
-            {
-                EditTerrain(_closestTerrain);
-                _inputCooldown = 0.5f;
-            }
-            else if (Input.IsKeyPressed(Key.R) && _inputCooldown <= 0)
-            {
-                CopyTerrain(_closestTerrain);
-                _inputCooldown = 0.5f;
-            }
-            else if (Input.IsKeyPressed(Key.Delete) && _inputCooldown <= 0)
-            {
-                _closestTerrain.QueueFree();
-                _inputCooldown = 0.5f;
-            }
-        }
-
-        // Tool-specific behavior
-        if (_hud != null && _hud.CurrentTool != MainHUDController.BuildTool.Survey)
-        {
-            // If not in survey tool, don't allow terrain point management
-            return;
-        }
-
-        if (_closestMarkerIndex != -1 && (Player == null || Player.SelectedObject == null))
-        {
-            if (Input.IsKeyPressed(Key.X) && _inputCooldown <= 0) // Delete
-            {
-                RemovePoint(_closestMarkerIndex);
-                _inputCooldown = 0.3f;
-            }
-            else if (Input.IsKeyPressed(Key.C) && _inputCooldown <= 0) // Replace / Move
-            {
-                _replacingIndex = _closestMarkerIndex;
-                _inputCooldown = 0.3f;
-            }
-        }
-        else
-        {
-            if (Input.IsActionJustPressed("ui_accept") || (Input.IsKeyPressed(Key.Space) && _inputCooldown <= 0))
-            {
-                AddPoint(playerPos);
-                _inputCooldown = 0.3f;
-            }
-        }
-
-        if (Input.IsKeyPressed(Key.T) && _inputCooldown <= 0)
-        {
-            ClearSurvey();
-            _inputCooldown = 0.3f;
         }
 
         if (_points.Count > 0)

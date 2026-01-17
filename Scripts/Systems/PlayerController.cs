@@ -1,11 +1,13 @@
 using Godot;
 using System;
-using Archery;
+
+namespace Archery;
 
 public enum PlayerState
 {
     WalkMode,       // Default Exploration
-    CombatMode,     // Archery / Combat
+    CombatMelee,    // Melee Combat
+    CombatArcher,   // Archery
     BuildMode,      // Town Building / Placement
     DriveMode,      // In a vehicle
     SpectateMode,   // Free-cam
@@ -20,6 +22,7 @@ public partial class PlayerController : CharacterBody3D
     [Export] public float Gravity = 9.8f;
     [Export] public NodePath CameraPath { get; set; } // Now a property for external access
     [Export] public NodePath ArcherySystemPath;
+    [Export] public NodePath MeleeSystemPath;
 
     // Physics State
     private Vector3 _velocity = Vector3.Zero;
@@ -29,7 +32,7 @@ public partial class PlayerController : CharacterBody3D
     [Export] public int PlayerIndex { get; set; } = 0;
     private int _lastPlayerIndex = -1;
 
-    // IsLocal is now derived from Authority. 
+    // IsLocal is now derived from Authority.
     // If not in a multiplayer session, we default to true (Authority is 1, UniqueId is 1).
     public bool IsLocal => IsMultiplayerAuthority();
 
@@ -41,7 +44,6 @@ public partial class PlayerController : CharacterBody3D
         {
             GD.Print($"[PlayerController] State changing from {_currentState} to {value}");
             _currentState = value;
-            if (_facingArrow != null) _facingArrow.Visible = (_currentState == PlayerState.WalkMode);
         }
     }
 
@@ -54,6 +56,23 @@ public partial class PlayerController : CharacterBody3D
     public InteractableObject SelectedObject => _selectedObject;
     private InteractableObject _lastHoveredObject;
     private MainHUDController _hud;
+    private MeleeSystem _meleeSystem;
+
+    public int SynchronizedTool
+    {
+        get => (int)_currentTool;
+        set
+        {
+            var newTool = (ToolType)value;
+            if (_currentTool != newTool)
+            {
+                ApplyToolChange(newTool);
+            }
+        }
+    }
+
+    private ToolType _currentTool = ToolType.None;
+    private SwordController _sword;
     private float _inputCooldown = 0.0f;
 
     public override void _EnterTree()
@@ -70,34 +89,37 @@ public partial class PlayerController : CharacterBody3D
 
         // SetupReplication(); // Moved to Scene
 
-        if (CameraPath != null && !CameraPath.IsEmpty) _camera = GetNodeOrNull<CameraController>(CameraPath);
+        GD.Print($"[PlayerController] _Ready starting for {Name}. Authority: {GetMultiplayerAuthority()}, IsLocal: {IsLocal}");
 
-        // Dynamic lookup for ArcherySystem if path is missing (common in MP spawn)
-        if (ArcherySystemPath != null && !ArcherySystemPath.IsEmpty)
-        {
+        _camera = GetNodeOrNull<CameraController>(CameraPath);
+        GD.Print($"[PlayerController] Camera resolve: {(_camera != null ? "SUCCESS" : "FAILED")} (Path: {CameraPath})");
+
+        // Find systems as children
+        _archerySystem = GetNodeOrNull<ArcherySystem>("ArcherySystem");
+        _meleeSystem = GetNodeOrNull<MeleeSystem>("MeleeSystem");
+
+        if (_archerySystem == null && !ArcherySystemPath.IsEmpty)
             _archerySystem = GetNodeOrNull<ArcherySystem>(ArcherySystemPath);
-        }
 
-        if (_archerySystem == null)
-        {
-            _archerySystem = GetTree().CurrentScene.FindChild("ArcherySystem", true, false) as ArcherySystem;
-        }
+        if (_meleeSystem == null && !MeleeSystemPath.IsEmpty)
+            _meleeSystem = GetNodeOrNull<MeleeSystem>(MeleeSystemPath);
+
+        GD.Print($"[PlayerController] Systems: Archery={(_archerySystem != null)}, Melee={(_meleeSystem != null)}");
 
         // Attempt to find the visual avatar
         _avatarMesh = GetNodeOrNull<MeshInstance3D>("AvatarMesh");
 
         // Color based on Index
-        // REMOVED: Don't override PlayerIndex locally based on Authority! 
-        // network spawn sets the correct sequential index.
         UpdatePlayerColor();
 
         // Create Facing Arrow (Visual Feedback)
-        _facingArrow = new MeshInstance3D();
-        var prism = new PrismMesh();
-        prism.Size = new Vector3(0.5f, 0.5f, 0.1f); // Flat arrow
-        _facingArrow.Mesh = prism;
-        _facingArrow.Position = new Vector3(0, 0.1f, 0.8f); // At feet (just above ground)
-        _facingArrow.RotationDegrees = new Vector3(-90, 180, 0); // Pointing Forward
+        MeshInstance3D prism = new MeshInstance3D();
+        _facingArrow = prism;
+        var prismMesh = new PrismMesh();
+        prismMesh.Size = new Vector3(0.5f, 0.5f, 0.1f);
+        _facingArrow.Mesh = prismMesh;
+        _facingArrow.Position = new Vector3(0, 0.1f, 0.8f);
+        _facingArrow.RotationDegrees = new Vector3(-90, 180, 0);
 
         var mat = new StandardMaterial3D();
         mat.AlbedoColor = Colors.Orange;
@@ -106,23 +128,42 @@ public partial class PlayerController : CharacterBody3D
         AddChild(_facingArrow);
 
         _hud = GetTree().CurrentScene.FindChild("HUD", true, false) as MainHUDController;
+        GD.Print($"[PlayerController] HUD resolve: {(_hud != null ? "SUCCESS" : "FAILED")}");
+
+        if (_meleeSystem != null) _meleeSystem.RegisterPlayer(this);
+        if (_archerySystem != null) _archerySystem.RegisterPlayer(this);
+
         if (IsLocal)
         {
+            GD.Print("[PlayerController] Initializing Local Player...");
             if (_hud != null) _hud.RegisterPlayer(this);
-            if (_archerySystem != null) _archerySystem.RegisterPlayer(this);
 
             // Camera Target
             if (_camera != null)
             {
+                GD.Print("[PlayerController] Activating Camera... Current: " + _camera.Current);
                 _camera.SetTarget(this, true); // Snap initially
-                _camera.MakeCurrent(); // Ensure IT IS THE ACTIVE CAMERA
+                _camera.MakeCurrent();
+                GD.Print("[PlayerController] Camera set to Current: " + _camera.Current);
+            }
+            else
+            {
+                GD.PrintErr("[PlayerController] CRITICAL: Camera is NULL on local player!");
+            }
+
+            // Subscribe to ToolManager for mode switching
+            if (ToolManager.Instance != null)
+            {
+                ToolManager.Instance.ToolChanged += OnToolChanged;
             }
         }
         else
         {
+            GD.Print($"[PlayerController] Initializing Remote Player: {Name}");
             // Remote Player: Destroy Camera to prevent view hijacking
             if (_camera != null)
             {
+                GD.Print("[PlayerController] Removing Remote Camera.");
                 _camera.QueueFree();
                 _camera = null;
             }
@@ -135,8 +176,74 @@ public partial class PlayerController : CharacterBody3D
             }
         }
 
-        // Force initial orientation facing down-range (+Z)
-        RotationDegrees = new Vector3(0, 180, 0);
+        // Find MeleeSystem for future melee support
+        // _meleeSystem = GetTree().CurrentScene.FindChild("MeleeSystem", true, false) as MeleeSystem; // Removed, handled above
+
+        // Visual Sword Setup
+        SetupVisualSword();
+    }
+
+    private void OnToolChanged(int toolInt)
+    {
+        if (!IsLocal) return;
+
+        // Sync to remote players via property
+        SynchronizedTool = toolInt;
+    }
+
+    private void ApplyToolChange(ToolType newTool)
+    {
+        _currentTool = newTool;
+        GD.Print($"[PlayerController] ApplyToolChange: {newTool}. ArcherySystem: {_archerySystem != null}, HUD: {_hud != null}, State: {CurrentState}");
+
+        // Reset old modes
+        _archerySystem?.ExitCombatMode();
+        _meleeSystem?.ExitMeleeMode();
+
+        // Entered new mode
+        switch (_currentTool)
+        {
+            case ToolType.Bow:
+                _archerySystem?.EnterCombatMode();
+                break;
+            case ToolType.Sword:
+                _meleeSystem?.EnterMeleeMode();
+                break;
+            case ToolType.Hammer:
+                _archerySystem?.EnterBuildMode();
+                _hud?.SetBuildTool(MainHUDController.BuildTool.Selection);
+                break;
+            case ToolType.Shovel:
+                _archerySystem?.EnterBuildMode();
+                _hud?.SetBuildTool(MainHUDController.BuildTool.Survey);
+                break;
+            case ToolType.None:
+                CurrentState = PlayerState.WalkMode;
+                break;
+        }
+
+        // Visual Sword Toggle
+        if (_sword != null)
+        {
+            _sword.Visible = (_currentTool == ToolType.Sword);
+        }
+    }
+
+    private void SetupVisualSword()
+    {
+        var swordScene = GD.Load<PackedScene>("res://Scenes/Entities/Sword.tscn");
+        if (swordScene != null)
+        {
+            _sword = swordScene.Instantiate<SwordController>();
+            _sword.Position = new Vector3(-0.45f, 1.1f, 0.1f);
+            _sword.Visible = false;
+            AddChild(_sword);
+
+            if (_meleeSystem != null)
+            {
+                _sword.ConnectToMeleeSystem(_meleeSystem);
+            }
+        }
     }
 
     // Sync Property for looking up/down
@@ -151,8 +258,6 @@ public partial class PlayerController : CharacterBody3D
 
     private void UpdatePlayerColor()
     {
-        if (_avatarMesh == null) return;
-
         Color c = Colors.DodgerBlue;
         switch (PlayerIndex % 8)
         {
@@ -163,7 +268,7 @@ public partial class PlayerController : CharacterBody3D
             case 4: c = Colors.OrangeRed; break;
             case 5: c = Colors.Cyan; break;
             case 6: c = Colors.DeepPink; break;
-            case 7: c = Colors.Teal; break; // A blue-green, non-standard "green"
+            case 7: c = Colors.Teal; break;
         }
 
         GD.Print($"[PlayerController] UpdatePlayerColor: Index {PlayerIndex} -> {c}");
@@ -171,6 +276,12 @@ public partial class PlayerController : CharacterBody3D
         var mat = new StandardMaterial3D();
         mat.AlbedoColor = c;
         if (_avatarMesh != null) _avatarMesh.MaterialOverride = mat;
+
+        // Sync Sword Color
+        if (_sword != null)
+        {
+            _sword.SetColor(c);
+        }
     }
 
     public override void _PhysicsProcess(double delta)
@@ -203,7 +314,7 @@ public partial class PlayerController : CharacterBody3D
         if (_inputCooldown > 0) _inputCooldown -= (float)delta;
 
         // 2. Movement & Targeting (Common)
-        if (CurrentState == PlayerState.WalkMode || CurrentState == PlayerState.CombatMode)
+        if (CurrentState == PlayerState.WalkMode || CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher)
         {
             HandleBodyMovement(delta);
             HandleTargetingHotkeys();
@@ -212,7 +323,8 @@ public partial class PlayerController : CharacterBody3D
         // 3. State Check
         switch (CurrentState)
         {
-            case PlayerState.CombatMode:
+            case PlayerState.CombatMelee:
+            case PlayerState.CombatArcher:
                 HandleCombatInput(delta);
                 break;
             case PlayerState.WalkMode:
@@ -265,16 +377,16 @@ public partial class PlayerController : CharacterBody3D
     {
         if (_archerySystem == null) return;
 
-        // Toggle Combat
-        if (Input.IsKeyPressed(Key.R) && _inputCooldown <= 0)
-        {
-            _inputCooldown = 0.5f;
-            if (CurrentState == PlayerState.CombatMode) _archerySystem.ExitCombatMode();
-            else if (CurrentState == PlayerState.WalkMode) _archerySystem.EnterCombatMode();
-        }
+        // Toggle Combat - LEGACY: Now handled by ToolManager
+        // if (Input.IsKeyPressed(Key.R) && _inputCooldown <= 0)
+        // {
+        //     _inputCooldown = 0.5f;
+        //     if (CurrentState == PlayerState.CombatMode) _archerySystem.ExitCombatMode();
+        //     else if (CurrentState == PlayerState.WalkMode) _archerySystem.EnterCombatMode();
+        // }
 
         // Mode Cycle
-        if (Input.IsKeyPressed(Key.Q) && _inputCooldown <= 0 && CurrentState == PlayerState.CombatMode)
+        if (Input.IsKeyPressed(Key.Q) && _inputCooldown <= 0 && (CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher))
         {
             _inputCooldown = 0.2f;
             _archerySystem.CycleShotMode();
@@ -355,7 +467,7 @@ public partial class PlayerController : CharacterBody3D
             _velocity.Z = moveDir.Z * MoveSpeed * speedMult;
 
             // Only auto-rotate body if NOT in combat mode (where we face target/camera)
-            if (CurrentState == PlayerState.WalkMode)
+            if (CurrentState == PlayerState.WalkMode || CurrentState == PlayerState.BuildMode)
             {
                 float targetAngle = Mathf.Atan2(moveDir.X, moveDir.Z);
                 float currentAngle = Rotation.Y;
@@ -684,19 +796,20 @@ public partial class PlayerController : CharacterBody3D
     {
         if (!IsLocal) return;
 
-        if (@event is InputEventKey k && k.Pressed && !k.Echo && k.Keycode == Key.V)
-        {
-            if (CurrentState == PlayerState.WalkMode)
-            {
-                _archerySystem.EnterBuildMode();
-            }
-            else if (CurrentState == PlayerState.BuildMode)
-            {
-                if (_selectedObject != null) _selectedObject.SetSelected(false);
-                _selectedObject = null;
-                _archerySystem.ExitBuildMode();
-            }
-        }
+        // LEGACY: Build mode toggle via V - Now handled by ToolManager
+        // if (@event is InputEventKey k && k.Pressed && !k.Echo && k.Keycode == Key.V)
+        // {
+        //     if (CurrentState == PlayerState.WalkMode)
+        //     {
+        //         _archerySystem.EnterBuildMode();
+        //     }
+        //     else if (CurrentState == PlayerState.BuildMode)
+        //     {
+        //         if (_selectedObject != null) _selectedObject.SetSelected(false);
+        //         _selectedObject = null;
+        //         _archerySystem.ExitBuildMode();
+        //     }
+        // }
 
         if (@event is InputEventKey homeKey && homeKey.Pressed && !homeKey.Echo && homeKey.Keycode == Key.Home)
         {

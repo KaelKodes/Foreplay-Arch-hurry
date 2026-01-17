@@ -1,6 +1,7 @@
 using Godot;
 using System;
-using Archery;
+
+namespace Archery;
 
 public partial class TeeBox : InteractableObject
 {
@@ -77,7 +78,7 @@ public partial class TeeBox : InteractableObject
         if (_camera == null) return;
 
         // Raycast from camera center to terrain
-        // Layer 1 (Terrain) 
+        // Layer 1 (Terrain)
         var space = GetWorld3D().DirectSpaceState;
         var from = _camera.GlobalPosition;
         var to = from + -_camera.GlobalTransform.Basis.Z * 50.0f; // 50m reach

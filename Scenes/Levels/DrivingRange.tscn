@@ -44,6 +44,7 @@
 [ext_resource type="PackedScene" uid="uid://c6ldr3pxy0sjt" path="res://Assets/Textures/Objects/Grass_Common_Tall.gltf" id="42_8tv24"]
 
 [ext_resource type="Script" path="res://Scripts/Systems/NetworkManager.cs" id="50_netmanager"]
+[ext_resource type="Script" path="res://Scripts/Systems/LevelInitializer.cs" id="52_init"]
 [ext_resource type="PackedScene" path="res://Scenes/Entities/Player.tscn" id="51_player_scn"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
@@ -142,8 +143,10 @@ spawn_path = NodePath("..")
 
 
 [node name="HUD" parent="." instance=ExtResource("3_hud_scene")]
-ArcherySystemPath = NodePath("../ArcherySystem")
 PlayerPath = NodePath("")
+
+[node name="LevelInitializer" type="Node" parent="."]
+script = ExtResource("52_init")
 
 [node name="Marker100" parent="." instance=ExtResource("6_marker")]
 transform = Transform3D(-0.9995655, 0, -0.029474303, 0, 1, 0, 0.029474303, 0, -0.9995655, 0, 0, 91.44)

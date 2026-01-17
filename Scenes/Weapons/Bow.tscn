@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=3 uid="uid://bow_placeholder"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_bow"]
+top_radius = 0.02
+bottom_radius = 0.02
+height = 1.2
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bow"]
+albedo_color = Color(0.545, 0.271, 0.075, 1)
+
+[node name="Bow" type="Node3D"]
+
+[node name="BowBody" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.6, 0)
+mesh = SubResource("CylinderMesh_bow")
+surface_material_override/0 = SubResource("StandardMaterial3D_bow")
+
+[node name="BowString" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.15, 0.6, 0)
+mesh = SubResource("CylinderMesh_bow")
+surface_material_override/0 = SubResource("StandardMaterial3D_bow")

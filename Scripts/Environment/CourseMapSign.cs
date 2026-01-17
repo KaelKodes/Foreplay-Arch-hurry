@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using Archery;
 
 public partial class CourseMapSign : InteractableObject
 {
@@ -35,7 +36,7 @@ public partial class CourseMapSign : InteractableObject
             // We set GlobalPosition, but since Camera is in a SubViewport,
             // we need to make sure the SubViewport doesn't reset it or use local transforms weirdly.
             // Actually, for a pure "Map" camera, it doesn't need to be a child of the sign physically in 3D space,
-            // but for scene organization it is. 
+            // but for scene organization it is.
             // We must ensure the Camera's Transform is set to World Space coordinates.
             _camera.TopLevel = true; // Detach from parent transform so we can place it globally
             _camera.GlobalPosition = center;

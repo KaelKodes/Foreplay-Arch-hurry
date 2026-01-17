@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 DatabaseManager="*res://Scripts/Database/DatabaseManager.cs"
 NetworkManager="*res://Scripts/Systems/NetworkManager.cs"
+ToolManager="*res://Scripts/Systems/ToolManager.cs"
 
 [dotnet]
 

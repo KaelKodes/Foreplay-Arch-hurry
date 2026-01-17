@@ -1,5 +1,8 @@
 using Godot;
 using System.Collections.Generic;
+using System;
+
+namespace Archery;
 
 public partial class MarkerManager : Node
 {

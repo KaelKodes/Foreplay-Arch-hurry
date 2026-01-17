@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using Foreplay.Data;
+using Archery;
 
 public partial class CoursePersistenceManager
 {
@@ -47,7 +48,7 @@ public partial class CoursePersistenceManager
             data.Terrain.Heights = new float[count];
             data.Terrain.Types = new int[count];
 
-            // We need access to terrain data arrays. 
+            // We need access to terrain data arrays.
             // Assuming HeightmapTerrain has public access or we added Get methods.
             // Using Get methods I will add momentarily:
             var hData = terrain.GetHeightData();
@@ -121,7 +122,7 @@ public partial class CoursePersistenceManager
                 objData.ScenePath = node.SceneFilePath; // Crucial for Packed Scene saving
                 if (string.IsNullOrEmpty(objData.ScenePath))
                 {
-                    // Fallback for runtime created objects? 
+                    // Fallback for runtime created objects?
                     // For now, logging warning if it's supposed to be saved.
                     // GD.PrintErr($"Save: Object {node.Name} has no ScenePath!");
                 }

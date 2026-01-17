@@ -9,6 +9,8 @@
 [ext_resource type="Script" uid="uid://c78rj73wym8kb" path="res://Scripts/Systems/PlayerController.cs" id="9_player"]
 [ext_resource type="Script" uid="uid://dray5mi350m3q" path="res://Scripts/Systems/AimAssist.cs" id="10_aim"]
 [ext_resource type="Script" uid="uid://cqv2uyvt2dx6d" path="res://Scripts/Systems/HeightmapTerrain.cs" id="11_terrain"]
+[ext_resource type="Script" path="res://Scripts/Systems/MeleeSystem.cs" id="12_melee"]
+[ext_resource type="Script" path="res://Scripts/Systems/LevelInitializer.cs" id="13_init"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.384314, 0.454902, 0.54902, 1)
@@ -168,11 +170,6 @@ material = SubResource("StandardMaterial3D_tee")
 [node name="WindSystem" type="Node" parent="."]
 script = ExtResource("7_wind")
 
-[node name="ArcherySystem" type="Node" parent="."]
-script = ExtResource("1_swing")
-ArrowPath = NodePath("../Arrow")
-CameraPath = NodePath("")
-WindSystemPath = NodePath("../WindSystem")
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://Scenes/Entities/Player.tscn")
@@ -187,5 +184,7 @@ spawn_path = NodePath("../Projectiles")
 
 
 [node name="HUD" parent="." instance=ExtResource("3_hud_scene")]
-ArcherySystemPath = NodePath("../ArcherySystem")
 PlayerPath = NodePath("")
+
+[node name="LevelInitializer" type="Node" parent="."]
+script = ExtResource("13_init")
