@@ -128,16 +128,6 @@ public partial class ToolManager : Node
 
         GD.Print($"[ToolManager] Tool changed to: {CurrentTool}");
         EmitSignal(SignalName.ToolChanged, (int)CurrentTool);
-
-        // Sync to other players
-        if (Multiplayer.HasMultiplayerPeer() && !Multiplayer.IsServer())
-        {
-            RpcId(1, nameof(ServerSyncTool), (int)CurrentTool);
-        }
-        else if (Multiplayer.IsServer())
-        {
-            Rpc(nameof(ClientSyncTool), Multiplayer.GetUniqueId(), (int)CurrentTool);
-        }
     }
 
     /// <summary>
@@ -162,26 +152,6 @@ public partial class ToolManager : Node
         if (slotIndex < 0 || slotIndex >= HotbarSlotCount) return;
         HotbarSlots[slotIndex] = item ?? new ToolItem();
         EmitSignal(SignalName.HotbarUpdated);
-    }
-
-    // --- Network Sync ---
-
-    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void ServerSyncTool(int toolType)
-    {
-        if (!Multiplayer.IsServer()) return;
-        long senderId = Multiplayer.GetRemoteSenderId();
-        // Broadcast to all clients
-        Rpc(nameof(ClientSyncTool), senderId, toolType);
-    }
-
-    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void ClientSyncTool(long playerId, int toolType)
-    {
-        // This is received by all clients to update visual representation
-        // The actual weapon visibility is handled by WeaponHolder listening to this
-        GD.Print($"[ToolManager] Player {playerId} switched to tool {(ToolType)toolType}");
-        EmitSignal(SignalName.ToolChanged, toolType);
     }
 
     public override void _Input(InputEvent @event)

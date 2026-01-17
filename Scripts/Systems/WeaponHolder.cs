@@ -63,6 +63,14 @@ public partial class WeaponHolder : Node3D
 
     private void OnToolChanged(int toolType)
     {
+        // Only respond to tool changes if this WeaponHolder belongs to the local player
+        // This prevents the multiplayer crosstalk bug where all players change weapons together
+        var parentPlayer = GetParentOrNull<PlayerController>();
+        if (parentPlayer != null && !parentPlayer.IsLocal)
+        {
+            return; // Remote player - ignore global ToolManager signal, use SynchronizedTool instead
+        }
+
         UpdateWeaponVisibility((ToolType)toolType);
     }
 

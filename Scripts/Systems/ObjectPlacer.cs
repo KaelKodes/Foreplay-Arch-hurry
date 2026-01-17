@@ -117,11 +117,14 @@ public partial class ObjectPlacer : Node
             }
             else if (!string.IsNullOrEmpty(_currentObject.ModelPath))
             {
+                // TRUST THE MODEL PATH set by MainHUDController
                 resourcePath = _currentObject.ModelPath;
             }
             else
             {
-                // Fallback for objects missing ModelPath
+                // Fallback for objects missing ModelPath (Legacy support, but risky)
+                // Warn if we are relying on this
+                GD.PrintErr($"[ObjectPlacer] WARNING: Object {objName} has no ModelPath. Attempting fallback...");
                 resourcePath = "res://Assets/Textures/NatureObjects/" + objName + ".gltf";
             }
 

@@ -1,6 +1,8 @@
 using Godot;
 using System;
 
+namespace Archery;
+
 public partial class CameraController : Camera3D
 {
     [Export] public NodePath TargetPath;
@@ -161,7 +163,4 @@ public partial class CameraController : Camera3D
     {
         _canFreeLook = enabled;
     }
-
-    public void Initialize(Vector3 pos, Vector3 rotDegrees) { } // Stub
-    public void ToggleMode(int mode) { } // Stub
 }

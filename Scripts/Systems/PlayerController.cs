@@ -35,7 +35,18 @@ public partial class PlayerController : CharacterBody3D
 
     // IsLocal is now derived from Authority.
     // If not in a multiplayer session, we default to true (Authority is 1, UniqueId is 1).
-    public bool IsLocal => IsMultiplayerAuthority();
+    public bool IsLocal
+    {
+        get
+        {
+            if (Multiplayer == null || Multiplayer.MultiplayerPeer == null ||
+                Multiplayer.MultiplayerPeer.GetConnectionStatus() == MultiplayerPeer.ConnectionStatus.Disconnected)
+            {
+                return true;
+            }
+            return IsMultiplayerAuthority();
+        }
+    }
 
     private PlayerState _currentState = PlayerState.WalkMode;
     public PlayerState CurrentState
@@ -73,13 +84,13 @@ public partial class PlayerController : CharacterBody3D
 
     public string SynchronizedModel
     {
-        get => _currentModelId;
+        get => _modelManager?.CurrentModelId ?? _currentModelId;
         set
         {
-            if (_currentModelId != value && !string.IsNullOrEmpty(value))
+            if (_modelManager != null && _modelManager.CurrentModelId != value && !string.IsNullOrEmpty(value))
             {
                 GD.Print($"[PlayerController] SyncModel changing to {value}");
-                SetCharacterModel(value);
+                _modelManager.SetCharacterModel(value);
             }
         }
     }
@@ -107,14 +118,22 @@ public partial class PlayerController : CharacterBody3D
 
     // Character Model Selection
     private string _currentModelId = "erika";
-    public string CurrentModelId => _currentModelId;
-    private Mesh _cachedBowMesh; // Cached bow mesh from ErikaBow for non-Erika characters
+    public string CurrentModelId => _modelManager?.CurrentModelId ?? _currentModelId;
+    private CharacterModelManager _modelManager;
+    private Mesh _cachedBowMesh; // Legacy - now managed by CharacterModelManager
     private int _remoteArcheryStage = 0;
+    private int _remoteMeleeStage = 0;
 
     public int SynchronizedArcheryStage
     {
         get => IsLocal ? (_archerySystem != null ? (int)_archerySystem.CurrentStage : 0) : _remoteArcheryStage;
         set => _remoteArcheryStage = value;
+    }
+
+    public int SynchronizedMeleeStage
+    {
+        get => IsLocal ? (_meleeSystem != null ? (int)_meleeSystem.CurrentState : 0) : _remoteMeleeStage;
+        set => _remoteMeleeStage = value;
     }
 
 
@@ -161,8 +180,10 @@ public partial class PlayerController : CharacterBody3D
         _meleeAnimPlayer = GetNodeOrNull<AnimationPlayer>("Erika/AnimationPlayer");
         _archeryAnimPlayer = GetNodeOrNull<AnimationPlayer>("ErikaBow/AnimationPlayer");
 
-        // Cache the bow mesh from ErikaBow before any mesh swaps
-        CacheBowMesh();
+        // Initialize CharacterModelManager
+        _modelManager = new CharacterModelManager();
+        AddChild(_modelManager);
+        _modelManager.Initialize(this, _meleeModel, _archeryModel, _animTree, _meleeAnimPlayer, _archeryAnimPlayer);
 
         // Default to Melee
         _animPlayer = _meleeAnimPlayer;
@@ -302,278 +323,30 @@ public partial class PlayerController : CharacterBody3D
 
     private void SetModelMode(bool archery)
     {
-        if (_meleeModel != null) _meleeModel.Visible = !archery;
-        if (_archeryModel != null) _archeryModel.Visible = archery;
+        // Delegate visual switching to CharacterModelManager
+        _modelManager?.SetModelMode(archery);
 
-        // Switch AnimationTree Target
-        if (archery && _archeryAnimPlayer != null)
-        {
-            _animTree.SetAnimationPlayer(_archeryAnimPlayer.GetPath());
-            _animPlayer = _archeryAnimPlayer;
-
-            // Setup standalone bow for non-Erika characters
-            if (_currentModelId != "erika")
-            {
-                SetupStandaloneBow(_archeryModel);
-            }
-        }
-        else if (!archery && _meleeAnimPlayer != null)
-        {
-            _animTree.SetAnimationPlayer(_meleeAnimPlayer.GetPath());
-            _animPlayer = _meleeAnimPlayer;
-
-            // Remove standalone bow if present
-            RemoveStandaloneBow(_archeryModel);
-        }
+        // Keep local reference to current animation player
+        _animPlayer = archery ? _archeryAnimPlayer : _meleeAnimPlayer;
     }
 
     /// <summary>
-    /// Cycles to the next available character model.
+    /// Cycles to the next available character model (delegates to CharacterModelManager).
     /// </summary>
     private void CycleCharacterModel()
     {
-        var registry = CharacterRegistry.Instance;
-        if (registry == null)
+        _modelManager?.CycleCharacterModel();
+        // Sync to other players
+        if (_modelManager != null)
         {
-            GD.PrintErr("[PlayerController] CharacterRegistry not found!");
-            return;
-        }
-
-        var nextModel = registry.GetNextModel(_currentModelId);
-        if (nextModel != null && nextModel.Id != _currentModelId)
-        {
-            SetCharacterModel(nextModel.Id);
-
-            // Sync to other players
-            Rpc(nameof(NetSetCharacterModel), nextModel.Id);
-
-            GD.Print($"[PlayerController] Switched to model: {nextModel.DisplayName}");
-        }
-    }
-
-    /// <summary>
-    /// Sets the character model by ID.
-    /// </summary>
-    public void SetCharacterModel(string modelId)
-    {
-        var registry = CharacterRegistry.Instance;
-        if (registry == null) return;
-
-        var model = registry.GetModel(modelId);
-        if (model == null)
-        {
-            GD.PrintErr($"[PlayerController] Model not found: {modelId}");
-            return;
-        }
-
-        _currentModelId = modelId;
-
-        // Determine which scene path to use based on current mode
-        bool isArcheryMode = (_currentTool == ToolType.Bow);
-        string scenePath = isArcheryMode ? model.ArcheryScenePath : model.MeleeScenePath;
-
-        // Swap the mesh on the appropriate model node
-        SwapModelMesh(_meleeModel, model.MeleeScenePath);
-        SwapModelMesh(_archeryModel, model.ArcheryScenePath);
-
-        GD.Print($"[PlayerController] Model set to: {model.DisplayName}");
-    }
-
-    /// <summary>
-    /// Swaps the mesh on a model node by loading the new FBX and copying mesh instances.
-    /// </summary>
-    private void SwapModelMesh(Node3D targetModel, string fbxPath)
-    {
-        if (targetModel == null) return;
-
-        // Load the new model FBX
-        if (!ResourceLoader.Exists(fbxPath))
-        {
-            GD.PrintErr($"[PlayerController] Model FBX not found: {fbxPath}");
-            return;
-        }
-
-        var fbxScene = GD.Load<PackedScene>(fbxPath);
-        if (fbxScene == null)
-        {
-            GD.PrintErr($"[PlayerController] Could not load FBX: {fbxPath}");
-            return;
-        }
-
-        // Instance temporarily to extract meshes
-        var newModelInstance = fbxScene.Instantiate<Node3D>();
-
-        // Find the skeleton in both old and new models
-        var targetSkeleton = targetModel.GetNodeOrNull<Skeleton3D>("Skeleton3D");
-        var newSkeleton = newModelInstance.GetNodeOrNull<Skeleton3D>("Skeleton3D");
-
-        if (targetSkeleton == null || newSkeleton == null)
-        {
-            GD.PrintErr("[PlayerController] Could not find skeletons for mesh swap");
-            newModelInstance.QueueFree();
-            return;
-        }
-
-        // Remove old mesh instances from target skeleton (but keep BoneAttachments)
-        foreach (var child in targetSkeleton.GetChildren())
-        {
-            if (child is MeshInstance3D oldMesh)
-            {
-                oldMesh.QueueFree();
-            }
-        }
-
-        // Copy mesh instances from new skeleton to target skeleton
-        foreach (var child in newSkeleton.GetChildren())
-        {
-            if (child is MeshInstance3D newMesh)
-            {
-                // Clear ownership and reparent the mesh to our target skeleton
-                newMesh.Owner = null;
-                newSkeleton.RemoveChild(newMesh);
-                targetSkeleton.AddChild(newMesh);
-
-                // Fix see-through issues by disabling backface culling (Double-Sided)
-                FixMeshCulling(newMesh);
-            }
-        }
-
-        // Clean up the temporary instance
-        newModelInstance.QueueFree();
-        GD.Print($"[PlayerController] Swapped mesh from: {fbxPath}");
-    }
-
-    /// <summary>
-    /// Disables backface culling on all materials of a mesh to prevent "see-through" issues.
-    /// </summary>
-    private void FixMeshCulling(MeshInstance3D mesh)
-    {
-        if (mesh == null) return;
-
-        // Iterate through all mesh surfaces
-        int surfaceCount = mesh.GetSurfaceOverrideMaterialCount();
-        if (surfaceCount == 0 && mesh.Mesh != null)
-        {
-            surfaceCount = mesh.Mesh.GetSurfaceCount();
-        }
-
-        for (int i = 0; i < surfaceCount; i++)
-        {
-            // Get current material (fallback to mesh resource material if no override)
-            var mat = mesh.GetSurfaceOverrideMaterial(i) as BaseMaterial3D;
-            if (mat == null && mesh.Mesh != null)
-            {
-                mat = mesh.Mesh.SurfaceGetMaterial(i) as BaseMaterial3D;
-            }
-
-            if (mat != null)
-            {
-                // Create a unique duplicate so we don't affect other models using this resource
-                var uniqueMat = (BaseMaterial3D)mat.Duplicate();
-                uniqueMat.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
-                mesh.SetSurfaceOverrideMaterial(i, uniqueMat);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Caches the bow mesh from ErikaBow skeleton at startup before any mesh swaps.
-    /// </summary>
-    private void CacheBowMesh()
-    {
-        if (_archeryModel == null) return;
-
-        var erikaSkeleton = _archeryModel.GetNodeOrNull<Skeleton3D>("Skeleton3D");
-        if (erikaSkeleton == null) return;
-
-        foreach (var child in erikaSkeleton.GetChildren())
-        {
-            if (child is MeshInstance3D mesh)
-            {
-                string meshName = mesh.Name.ToString();
-                if (meshName.Contains("Bow") && !meshName.Contains("Arrow"))
-                {
-                    _cachedBowMesh = mesh.Mesh;
-                    GD.Print($"[PlayerController] Cached bow mesh: {meshName} ({_cachedBowMesh})");
-                    return;
-                }
-            }
-        }
-
-        GD.PrintErr("[PlayerController] Could not find bow mesh to cache!");
-    }
-
-    /// <summary>
-    /// Sets up a standalone bow for non-Erika characters by loading Bow.tscn.
-    /// </summary>
-    private void SetupStandaloneBow(Node3D targetModel)
-    {
-        if (targetModel == null) return;
-        if (_currentModelId == "erika") return; // Erika already has bow baked in
-
-        var skeleton = targetModel.GetNodeOrNull<Skeleton3D>("Skeleton3D");
-        if (skeleton == null) return;
-
-        // Check if bow already attached
-        if (skeleton.HasNode("StandaloneBowAttachment")) return;
-
-        // Load the standalone Bow scene
-        var bowScenePath = "res://Scenes/Weapons/Bow.tscn";
-        if (!ResourceLoader.Exists(bowScenePath))
-        {
-            GD.PrintErr($"[PlayerController] Bow scene not found: {bowScenePath}");
-            return;
-        }
-
-        var bowScene = GD.Load<PackedScene>(bowScenePath);
-        if (bowScene == null)
-        {
-            GD.PrintErr("[PlayerController] Could not load Bow scene");
-            return;
-        }
-
-        // Create a BoneAttachment for the left hand
-        var boneAttachment = new BoneAttachment3D();
-        boneAttachment.Name = "StandaloneBowAttachment";
-        boneAttachment.BoneName = "mixamorig_LeftHand";
-        skeleton.AddChild(boneAttachment);
-
-        // Instantiate the bow scene
-        var bowInstance = bowScene.Instantiate<Node3D>();
-        boneAttachment.AddChild(bowInstance);
-
-        // The bow mesh vertices are baked at world-space coords around (0.75, 1.39, -0.06)
-        // Offset to bring mesh to origin relative to the hand bone
-        bowInstance.Position = new Vector3(-0.75f, -1.39f, 0.06f);
-
-        // Rotation handled in Bow.tscn scene file for easier visual adjustment
-        bowInstance.RotationDegrees = Vector3.Zero;
-
-        GD.Print($"[PlayerController] Attached standalone Bow.tscn to character");
-    }
-
-    /// <summary>
-    /// Removes the standalone bow if switching back to Erika.
-    /// </summary>
-    private void RemoveStandaloneBow(Node3D targetModel)
-    {
-        if (targetModel == null) return;
-
-        var skeleton = targetModel.GetNodeOrNull<Skeleton3D>("Skeleton3D");
-        if (skeleton == null) return;
-
-        var bowAttachment = skeleton.GetNodeOrNull("StandaloneBowAttachment");
-        if (bowAttachment != null)
-        {
-            bowAttachment.QueueFree();
-            GD.Print("[PlayerController] Removed standalone bow");
+            Rpc(nameof(NetSetCharacterModel), _modelManager.CurrentModelId);
         }
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
     private void NetSetCharacterModel(string modelId)
     {
-        SetCharacterModel(modelId);
+        _modelManager?.SetCharacterModel(modelId);
         GD.Print($"[PlayerController] Received model change from network: {modelId}");
     }
 
@@ -637,19 +410,7 @@ public partial class PlayerController : CharacterBody3D
 
     private void UpdatePlayerColor()
     {
-        Color c = Colors.DodgerBlue;
-        switch (PlayerIndex % 8)
-        {
-            case 0: c = Colors.DodgerBlue; break;
-            case 1: c = Colors.Crimson; break;
-            case 2: c = Colors.DarkOrchid; break;
-            case 3: c = Colors.Gold; break;
-            case 4: c = Colors.OrangeRed; break;
-            case 5: c = Colors.Cyan; break;
-            case 6: c = Colors.DeepPink; break;
-            case 7: c = Colors.Teal; break;
-        }
-
+        Color c = TargetingHelper.GetPlayerColor(PlayerIndex);
         GD.Print($"[PlayerController] UpdatePlayerColor: Index {PlayerIndex} -> {c}");
 
         var mat = new StandardMaterial3D();
@@ -874,102 +635,8 @@ public partial class PlayerController : CharacterBody3D
 
     private void UpdateAnimations(double delta)
     {
-        if (_animTree == null) return;
-
-        // 1. Calculate Horizontal Movement
-        // We want velocity relative to the player's facing direction for strafing
-        Vector3 localVel = GlobalTransform.Basis.Inverse() * Velocity;
-
-        // Use MoveSpeed for normalization. 
-        // Note: Mixamo usually considers -Z as forward. 
-        float moveX = localVel.X / MoveSpeed;
-        float moveY = -localVel.Z / MoveSpeed;
-
-        float speed = new Vector2(Velocity.X, Velocity.Z).Length();
-        float normalizedSpeed = speed / MoveSpeed;
-
-        // Sprint check
-        bool currentlySprinting = IsLocal ? (Input.IsKeyPressed(Key.Shift) && speed > 0.1f) : IsSprinting;
-        if (IsLocal) IsSprinting = currentlySprinting;
-
-        if (currentlySprinting)
-        {
-            normalizedSpeed *= 2.0f;
-            moveX *= 2.0f;
-            moveY *= 2.0f;
-        }
-
-        // 2. Set Parameters
-        _animTree.Set("parameters/conditions/is_moving", speed > 0.1f);
-        _animTree.Set("parameters/conditions/is_idle", speed <= 0.1f);
-        _animTree.Set("parameters/conditions/is_sprinting", currentlySprinting);
-        _animTree.Set("parameters/conditions/is_not_sprinting", !currentlySprinting);
-        _animTree.Set("parameters/move_speed", normalizedSpeed);
-
-        // Drive the BlendSpace2Ds
-        var blendPos = new Vector2(moveX, moveY);
-        _animTree.Set("parameters/Run/blend_position", blendPos);
-        _animTree.Set("parameters/Sprint/blend_position", blendPos);
-        _animTree.Set("parameters/MeleeRun/blend_position", blendPos);
-        _animTree.Set("parameters/MeleeSprint/blend_position", blendPos);
-
-        // 3. Melee Attack Logic
-        bool isSwinging = false;
-        if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
-        {
-            var sState = _meleeSystem.CurrentState;
-            if (sState == MeleeSystem.SwingState.Drawing || sState == MeleeSystem.SwingState.Finishing)
-            {
-                isSwinging = true;
-                _animTree.Set("parameters/MeleeAttack/WindupSpeed/scale", 0.0f);
-
-                // Map 0-100 to 0.0s-0.35s
-                float seekTime = (_meleeSystem.VisualBarValue / 100f) * 0.35f;
-                // seek_request expects a time in seconds.
-                _animTree.Set("parameters/MeleeAttack/seek_request", seekTime);
-                _animTree.Set("parameters/MeleeAttack/AttackType/transition_request", "Normal"); // Force Normal during windup
-            }
-            else if (sState == MeleeSystem.SwingState.Executing)
-            {
-                isSwinging = true;
-                _animTree.Set("parameters/MeleeAttack/WindupSpeed/scale", 1.0f);
-
-                // Determine attack type based on power
-                string attackType = "Normal";
-                float power = _meleeSystem.LockedPower;
-
-                if (power > 95f) attackType = "Power"; // Power (Overpower)
-                else if (power > 90f) attackType = "Perfect"; // Perfect
-
-                _animTree.Set("parameters/MeleeAttack/AttackType/transition_request", attackType);
-            }
-        }
-
-        _animTree.Set("parameters/conditions/is_swinging", isSwinging);
-        _animTree.Set("parameters/conditions/is_not_swinging", !isSwinging);
-
-        // 3. States & Conditions
-        bool isMelee = CurrentState == PlayerState.CombatMelee;
-        _animTree.Set("parameters/conditions/is_on_floor", IsOnFloor() && !_isJumping);
-        _animTree.Set("parameters/conditions/is_jumping", _isJumping || (!IsOnFloor() && _velocity.Y > 0));
-        _animTree.Set("parameters/conditions/is_archery", CurrentState == PlayerState.CombatArcher);
-        _animTree.Set("parameters/conditions/is_melee", isMelee);
-        _animTree.Set("parameters/conditions/is_not_melee", !isMelee);
-        _animTree.Set("parameters/conditions/is_not_archery", CurrentState != PlayerState.CombatArcher);
-
-        if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
-        {
-            // Drive Archery Aim Blend (Movement)
-            _animTree.Set("parameters/ArcheryAim/blend_position", blendPos);
-
-            // Pulse 'is_firing' when entering Executing state OR when transitioning from Aiming to ShotComplete (if Executing was skipped)
-            var currentStage = (DrawStage)SynchronizedArcheryStage;
-            bool justFired = (currentStage == Archery.DrawStage.Executing && _lastArcheryStage != Archery.DrawStage.Executing) ||
-                             (currentStage == Archery.DrawStage.ShotComplete && _lastArcheryStage == Archery.DrawStage.Aiming);
-            _animTree.Set("parameters/conditions/is_firing", justFired);
-
-            _lastArcheryStage = currentStage;
-        }
+        // Use Velocity property (synced) instead of _velocity field (local only) for correct remote player animations
+        PlayerAnimations.UpdateAnimations(_animTree, this, _meleeSystem, _archerySystem, MoveSpeed, _isJumping, Velocity, ref _lastArcheryStage);
     }
 
     private void HandleProximityPrompts(double delta)
@@ -1074,24 +741,9 @@ public partial class PlayerController : CharacterBody3D
 
     private void HandleVehicleDetection()
     {
-        var carts = GetTree().GetNodesInGroup("carts");
-        GolfCart nearestCart = null;
-        float minDist = 3.0f;
+        GolfCart nearestCart = PlayerInteraction.FindNearestCart(GetTree(), GlobalPosition, 3.0f);
 
-        foreach (Node node in carts)
-        {
-            if (node is GolfCart cart)
-            {
-                float d = GlobalPosition.DistanceTo(cart.GlobalPosition);
-                if (d < minDist)
-                {
-                    minDist = d;
-                    nearestCart = cart;
-                }
-            }
-        }
-
-        if (nearestCart != null && !nearestCart.IsBeingDriven)
+        if (nearestCart != null)
         {
             if (_archerySystem != null) _archerySystem.SetPrompt(true, "PRESS E TO DRIVE");
             if (Input.IsKeyPressed(Key.E))

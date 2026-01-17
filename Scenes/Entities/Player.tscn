@@ -369,6 +369,12 @@ properties/7/replication_mode = 2
 properties/8/path = NodePath(".:SynchronizedArcheryStage")
 properties/8/spawn = true
 properties/8/replication_mode = 2
+properties/9/path = NodePath(".:CurrentState")
+properties/9/spawn = true
+properties/9/replication_mode = 2
+properties/10/path = NodePath(".:SynchronizedMeleeStage")
+properties/10/spawn = true
+properties/10/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D"]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0.1, 0)

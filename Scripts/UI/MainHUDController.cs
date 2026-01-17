@@ -28,7 +28,7 @@ public partial class MainHUDController : CanvasLayer
 	private Control _buildHUD;
 	private Control _walkHUD;
 
-	// private Control _toolsPanel; // Legacy, replaced by BuildHUD 
+	// private Control _toolsPanel; // Removed: replaced by BuildHUD
 
 	private Control _objectGallery;
 	private HBoxContainer _categoryContainer; // Kept for legacy reference if needed, but implementation uses specific ones
@@ -54,14 +54,7 @@ public partial class MainHUDController : CanvasLayer
 	public enum BuildTool { Selection, Survey, NewObject }
 	private BuildTool _currentTool = BuildTool.Selection;
 	public BuildTool CurrentTool => _currentTool;
-	private struct ObjectAsset
-	{
-		public string Name;
-		public string Path;
-		public string MainCategory;
-		public string SubCategory;
-	}
-	private List<ObjectAsset> _allAssets = new List<ObjectAsset>();
+	private List<ObjectGalleryData.ObjectAsset> _allAssets = new List<ObjectGalleryData.ObjectAsset>();
 
 	public void RegisterPlayer(PlayerController player)
 	{
@@ -131,16 +124,7 @@ public partial class MainHUDController : CanvasLayer
 		vbox.AddChild(_subCategoryContainer);
 		vbox.MoveChild(_subCategoryContainer, 2);
 
-		// Connect Tool Buttons - Handled by BuildHUDController now
-		/*
-		_selectionBtn = GetNode<Button>("ToolsPanel/VBox/SelectionBtn");
-		_surveyBtn = GetNode<Button>("ToolsPanel/VBox/SurveyBtn");
-		_newObjectBtn = GetNode<Button>("ToolsPanel/VBox/NewObjectBtn");
-
-		_selectionBtn.Pressed += () => SetBuildTool(BuildTool.Selection);
-		_surveyBtn.Pressed += () => SetBuildTool(BuildTool.Survey);
-		_newObjectBtn.Pressed += () => SetBuildTool(BuildTool.NewObject);
-		*/
+		// Tool button connections moved to BuildHUDController
 
 		ScanAssets();
 		InitializeCategories();
@@ -190,32 +174,7 @@ public partial class MainHUDController : CanvasLayer
 		_buildHUD.Visible = (state == PlayerState.BuildMode || state == PlayerState.PlacingObject);
 		_walkHUD.Visible = (state == PlayerState.WalkMode);
 
-		// Button Logic moved to BuildHUDController
-		/*
-		if (_toolsPanel.Visible)
-		{
-			// Configure Buttons based on Tool Type (Hammer vs Shovel)
-			bool isSurvey = (_currentTool == BuildTool.Survey);
-
-			// If Survey (Shovel), show Survey button, hide others? 
-			// Or assume Hammer -> Selection/NewObject.
-			// User: "side panel with Selection and Object... survey button is hidden" (Hammer)
-
-			if (isSurvey)
-			{
-				_surveyBtn.Visible = true;
-				_selectionBtn.Visible = false;
-				_newObjectBtn.Visible = false;
-			}
-			else
-			{
-				// Hammer Mode
-				_surveyBtn.Visible = false;
-				_selectionBtn.Visible = true;
-				_newObjectBtn.Visible = true;
-			}
-		}
-		*/
+		// Button visibility logic moved to BuildHUDController
 
 		if (state != PlayerState.BuildMode && state != PlayerState.PlacingObject)
 		{
@@ -400,17 +359,7 @@ public partial class MainHUDController : CanvasLayer
 
 				if (obj is Monster monster)
 				{
-					string species = objectId;
-					// Map aliases
-					if (species == "Monster") species = "Yeti";
-					if (species == "Slime") species = "Glub";
-					if (species == "Shroom") species = "Mushnub_Evolved";
-					if (species == "Wizard") species = "Wizard_Blob";
-					if (species == "Blue_Blob") species = "BlueDemon";
-					if (species == "Gold_Blob") species = "MushroomKing";
-					if (species == "Warrior" || species == "Knight" || species == "Skeleton") species = "Orc"; // Fallback for removed types
-
-					monster.Species = species;
+					monster.Species = ObjectGalleryData.ResolveMonsterSpecies(objectId);
 				}
 
 				_archerySystem.ObjectPlacer.SpawnAndPlace(obj);
@@ -456,128 +405,12 @@ public partial class MainHUDController : CanvasLayer
 
 	private void ScanAssets()
 	{
-		_allAssets.Clear();
-		// Hardcoded Utility items
-		_allAssets.Add(new ObjectAsset { Name = "TeePin", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Pin", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "DistanceSign", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "CourseMap", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Yeti", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Yeti_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Orc", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Orc_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Ninja", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Ninja_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Wizard_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Pigeon", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Pigeon_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Slime", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Shroom", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Alpaking", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Alpaking_Evolved", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Armabee", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Armabee_Evolved", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Birb", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Birb_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Blue_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Bunny", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Cactoro", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Cactoro_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Chicken", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Chicken_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Demon", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Demon_Flying", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Dino", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Dog_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Dragon", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Dragon_Fly", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Fish", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Fish_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Frog", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Ghost", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Goleling", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Goleling_Evolved", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Green_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "GreenSpiky_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Hywirl", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Monkroose", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Mushroom", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "MushroomKing", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Pink_Blob", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Squidle", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Tribal", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-		_allAssets.Add(new ObjectAsset { Name = "Tribal_Flying", MainCategory = "Utility", SubCategory = "Combat", Path = "" });
-
-		string[] searchPaths = {
-			"res://Assets/Textures/NatureObjects/",
-			"res://Assets/Textures/ManObjects/",
-            "res://Assets/Textures/BuildingObjects/"
-		};
-
-		foreach (string path in searchPaths)
-		{
-			using var dir = DirAccess.Open(path);
-			if (dir != null)
-			{
-				dir.ListDirBegin();
-				string fileName = dir.GetNext();
-				while (fileName != "")
-				{
-					if (fileName.EndsWith(".gltf") || fileName.EndsWith(".gltf.remap") || fileName.EndsWith(".gltf.import"))
-					{
-						string logicalName = fileName.Replace(".remap", "").Replace(".import", "");
-						string cleanName = logicalName.Replace(".gltf", "");
-
-						if (!_allAssets.Exists(a => a.Name == cleanName))
-						{
-							var (main, sub) = GetAssetCategories(cleanName);
-							_allAssets.Add(new ObjectAsset
-							{
-								Name = cleanName,
-								Path = path + logicalName,
-								MainCategory = main,
-								SubCategory = sub
-							});
-						}
-					}
-					fileName = dir.GetNext();
-				}
-			}
-		}
-		GD.Print($"MainHUD: Scanned {_allAssets.Count} assets.");
+		_allAssets = ObjectGalleryData.ScanAssets();
 	}
 
 	private (string Main, string Sub) GetAssetCategories(string name)
 	{
-		name = name.ToLower();
-
-		// --- NATURE ---
-		if (name.Contains("tree") || name.Contains("pine") || name.Contains("trunk") || name.Contains("log")) return ("Nature", "Trees");
-		if (name.Contains("rock") || name.Contains("pebble") || name.Contains("rubble")) return ("Nature", "Rocks");
-		if (name.Contains("flower") || name.Contains("bush") || name.Contains("grass") || name.Contains("fern") || name.Contains("clover") || name.Contains("plant") || name.Contains("vine") || name.Contains("leaf")) return ("Nature", "Greenery");
-		if (name.Contains("mushroom")) return ("Nature", "Mushrooms");
-
-		// --- STRUCTURES ---
-		if (name.Contains("wall") || name.Contains("barrier")) return ("Structures", "Walls");
-		if (name.Contains("roof") || name.Contains("overhang")) return ("Structures", "Roofs");
-		if (name.Contains("floor") || name.Contains("foundation") || name.Contains("ceiling")) return ("Structures", "Floors");
-		if (name.Contains("stair")) return ("Structures", "Stairs");
-		if (name.Contains("door") || name.Contains("window") || name.Contains("shutter")) return ("Structures", "Doors/Windows");
-		if (name.Contains("column") || name.Contains("pillar") || name.Contains("balcony") || name.Contains("support")) return ("Structures", "Columns");
-
-		// --- FURNITURE ---
-		if (name.Contains("chair") || name.Contains("stool") || name.Contains("bench")) return ("Furniture", "Seating");
-		if (name.Contains("table") || name.Contains("shelf") || name.Contains("shelves")) return ("Furniture", "Surfaces");
-		if (name.Contains("bed")) return ("Furniture", "Sleeping");
-		if (name.Contains("box") || name.Contains("crate") || name.Contains("barrel") || name.Contains("keg") || name.Contains("chest")) return ("Furniture", "Storage");
-
-		// --- DECOR ---
-		if (name.Contains("torch") || name.Contains("candle") || name.Contains("lantern")) return ("Decor", "Lighting");
-		if (name.Contains("banner") || name.Contains("flag") || name.Contains("shield") || name.Contains("sword") || name.Contains("weapon") || name.Contains("keyring")) return ("Decor", "Military");
-		if (name.Contains("bottle") || name.Contains("plate") || name.Contains("cup") || name.Contains("coin") || name.Contains("key") || name.Contains("book") || name.Contains("food")) return ("Decor", "Items");
-		if (name.Contains("prop") || name.Contains("cart") || name.Contains("wagon")) return ("Decor", "Misc");
-
-		return ("Misc", "General");
+		return ObjectGalleryData.GetAssetCategories(name);
 	}
 
 	private void InitializeCategories()
@@ -591,7 +424,7 @@ public partial class MainHUDController : CanvasLayer
 		// Clear existing
 		foreach (Node child in _mainCategoryContainer.GetChildren()) child.QueueFree();
 
-		string[] categories = { "Nature", "Structures", "Furniture", "Decor", "Utility", "Misc" };
+		string[] categories = ObjectGalleryData.MainCategories;
 		foreach (var cat in categories)
 		{
 			var btn = new Button { Text = cat };
