@@ -60,6 +60,7 @@ public partial class PlayerController : CharacterBody3D
     private MeleeSystem _meleeSystem;
     private AnimationTree _animTree;
     private AnimationPlayer _animPlayer;
+    private bool _isJumping = false;
 
     public int SynchronizedTool
     {
@@ -261,17 +262,48 @@ public partial class PlayerController : CharacterBody3D
     private void SetupVisualSword()
     {
         var swordScene = GD.Load<PackedScene>("res://Scenes/Entities/Sword.tscn");
-        if (swordScene != null)
-        {
-            _sword = swordScene.Instantiate<SwordController>();
-            _sword.Position = new Vector3(-0.45f, 1.1f, 0.1f);
-            _sword.Visible = false;
-            AddChild(_sword);
+        if (swordScene == null) return;
 
-            if (_meleeSystem != null)
+        _sword = swordScene.Instantiate<SwordController>();
+        _sword.Visible = false;
+
+        // Find Erika's skeleton and attach sword to hand bone
+        var erikaNode = GetNodeOrNull<Node3D>("Erika");
+        if (erikaNode != null)
+        {
+            var skeleton = erikaNode.GetNodeOrNull<Skeleton3D>("Skeleton3D");
+            if (skeleton != null)
             {
-                _sword.ConnectToMeleeSystem(_meleeSystem);
+                // Create a BoneAttachment3D for the right hand
+                var boneAttachment = new BoneAttachment3D();
+                boneAttachment.Name = "RightHandAttachment";
+                boneAttachment.BoneName = "mixamorig_RightHand";
+                skeleton.AddChild(boneAttachment);
+
+                // Attach sword to the bone attachment
+                boneAttachment.AddChild(_sword);
+
+                GD.Print("[PlayerController] Sword attached to Erika's right hand bone!");
             }
+            else
+            {
+                // Fallback: attach directly to player
+                AddChild(_sword);
+                _sword.Position = new Vector3(-0.45f, 1.1f, 0.1f);
+                GD.PrintErr("[PlayerController] Could not find Erika's skeleton, using fallback position");
+            }
+        }
+        else
+        {
+            // Fallback: attach directly to player
+            AddChild(_sword);
+            _sword.Position = new Vector3(-0.45f, 1.1f, 0.1f);
+            GD.PrintErr("[PlayerController] Could not find Erika node, using fallback position");
+        }
+
+        if (_meleeSystem != null)
+        {
+            _sword.ConnectToMeleeSystem(_meleeSystem);
         }
     }
 
@@ -465,7 +497,14 @@ public partial class PlayerController : CharacterBody3D
             if (canJump)
             {
                 _velocity.Y = JumpForce;
+                _isJumping = true;
             }
+        }
+
+        // Reset jump flag when landed
+        if (IsOnFloor() && _velocity.Y <= 0)
+        {
+            _isJumping = false;
         }
 
         // Movement
@@ -537,8 +576,9 @@ public partial class PlayerController : CharacterBody3D
         float speed = new Vector2(Velocity.X, Velocity.Z).Length();
         float normalizedSpeed = speed / MoveSpeed;
 
-        // Sprint multiplier
-        if (Input.IsKeyPressed(Key.Shift) && speed > 0.1f)
+        // Sprint check
+        bool isSprinting = Input.IsKeyPressed(Key.Shift) && speed > 0.1f;
+        if (isSprinting)
         {
             normalizedSpeed *= 2.0f;
             moveX *= 2.0f;
@@ -548,16 +588,59 @@ public partial class PlayerController : CharacterBody3D
         // 2. Set Parameters
         _animTree.Set("parameters/conditions/is_moving", speed > 0.1f);
         _animTree.Set("parameters/conditions/is_idle", speed <= 0.1f);
+        _animTree.Set("parameters/conditions/is_sprinting", isSprinting);
+        _animTree.Set("parameters/conditions/is_not_sprinting", !isSprinting);
         _animTree.Set("parameters/move_speed", normalizedSpeed);
 
-        // Drive the BlendSpace2D "Run"
-        _animTree.Set("parameters/Run/blend_position", new Vector2(moveX, moveY));
+        // Drive the BlendSpace2Ds
+        var blendPos = new Vector2(moveX, moveY);
+        _animTree.Set("parameters/Run/blend_position", blendPos);
+        _animTree.Set("parameters/Sprint/blend_position", blendPos);
+        _animTree.Set("parameters/MeleeRun/blend_position", blendPos);
+        _animTree.Set("parameters/MeleeSprint/blend_position", blendPos);
+
+        // 3. Melee Attack Logic
+        bool isSwinging = false;
+        if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
+        {
+            var sState = _meleeSystem.CurrentState;
+            if (sState == MeleeSystem.SwingState.Drawing || sState == MeleeSystem.SwingState.Finishing)
+            {
+                isSwinging = true;
+                _animTree.Set("parameters/MeleeAttack/WindupSpeed/scale", 0.0f);
+
+                // Map 0-100 to 0.0s-0.35s
+                float seekTime = (_meleeSystem.VisualBarValue / 100f) * 0.35f;
+                // seek_request expects a time in seconds.
+                _animTree.Set("parameters/MeleeAttack/seek_request", seekTime);
+                _animTree.Set("parameters/MeleeAttack/AttackType/transition_request", "Normal"); // Force Normal during windup
+            }
+            else if (sState == MeleeSystem.SwingState.Executing)
+            {
+                isSwinging = true;
+                _animTree.Set("parameters/MeleeAttack/WindupSpeed/scale", 1.0f);
+
+                // Determine attack type based on power
+                string attackType = "Normal";
+                float power = _meleeSystem.LockedPower;
+
+                if (power > 95f) attackType = "Power"; // Power (Overpower)
+                else if (power > 90f) attackType = "Perfect"; // Perfect
+
+                _animTree.Set("parameters/MeleeAttack/AttackType/transition_request", attackType);
+            }
+        }
+
+        _animTree.Set("parameters/conditions/is_swinging", isSwinging);
+        _animTree.Set("parameters/conditions/is_not_swinging", !isSwinging);
 
         // 3. States & Conditions
-        _animTree.Set("parameters/conditions/is_on_floor", IsOnFloor());
-        _animTree.Set("parameters/conditions/is_jumping", !IsOnFloor() && _velocity.Y > 0);
+        bool isMelee = CurrentState == PlayerState.CombatMelee;
+        _animTree.Set("parameters/conditions/is_on_floor", IsOnFloor() && !_isJumping);
+        _animTree.Set("parameters/conditions/is_jumping", _isJumping || (!IsOnFloor() && _velocity.Y > 0));
         _animTree.Set("parameters/conditions/is_archery", CurrentState == PlayerState.CombatArcher);
-        _animTree.Set("parameters/conditions/is_melee", CurrentState == PlayerState.CombatMelee);
+        _animTree.Set("parameters/conditions/is_melee", isMelee);
+        _animTree.Set("parameters/conditions/is_not_melee", !isMelee);
     }
 
     private void HandleProximityPrompts(double delta)

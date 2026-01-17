@@ -12,17 +12,14 @@ public partial class SwordController : Node3D
     private MeshInstance3D _blade;
     private MeshInstance3D _handle;
 
-    // Right-Handed & +Z Facing Setup (Player faces +Z)
-    // Right = -X
-    // Forward = +Z
-    private Vector3 _idleRotation = new Vector3(-20, 0, 0);
-    private Vector3 _windupRotation = new Vector3(-110, 50, 20);
-    private Vector3 _strikeRotation = new Vector3(60, -90, -40);
+    // Calibrated offsets for Erika's RightHand bone
+    private Vector3 _idleRotation = new Vector3(-108.33f, -30.83f, -16.67f);
+    private Vector3 _windupRotation = new Vector3(-120, 30, 0);
+    private Vector3 _strikeRotation = new Vector3(-10, -45, 0);
 
-    // Positions for +Z Facing
-    private Vector3 _idlePos = new Vector3(-0.45f, 1.1f, 0.4f);   // Right (-X), Front (+Z)
-    private Vector3 _windupPos = new Vector3(-0.6f, 1.7f, -0.2f); // Right (-X), Back (-Z) (Shoulder)
-    private Vector3 _strikePos = new Vector3(0.6f, 0.6f, 0.8f);   // Left (+X), Front (+Z) (Swing Across)
+    private Vector3 _idlePos = new Vector3(0.050f, 0.050f, 0.017f);
+    private Vector3 _windupPos = new Vector3(0.05f, 0.2f, -0.1f);
+    private Vector3 _strikePos = new Vector3(0.05f, 0.3f, 0.2f);
 
     private float _lerpSpeed = 18.0f;
     private Vector3 _targetRotation;
@@ -109,10 +106,13 @@ public partial class SwordController : Node3D
 
     public void ConnectToMeleeSystem(MeleeSystem system)
     {
+        // Procedural animations disabled in favor of FBX animations
+        /*
         system.SwingStarted += OnSwingStarted;
         system.SwingPeak += OnSwingPeak;
         system.SwingComplete += OnSwingComplete;
         system.SwingValuesUpdated += OnSwingValuesUpdated;
+        */
     }
 
     public override void _Process(double delta)

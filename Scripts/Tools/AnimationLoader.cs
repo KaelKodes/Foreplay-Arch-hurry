@@ -20,6 +20,24 @@ public partial class AnimationLoader : Node
         { "standing run back", "res://Assets/Erika/standing run back.fbx" },
         { "standing run left", "res://Assets/Erika/standing run left.fbx" },
         { "standing run right", "res://Assets/Erika/standing run right.fbx" },
+        { "standing jump", "res://Assets/Erika/sword and shield jump (2).fbx" },
+        { "running jump", "res://Assets/Erika/sword and shield jump.fbx" },
+        
+        // Melee (Sword & Shield) animations
+        { "melee idle", "res://Assets/Erika/sword and shield idle (4).fbx" },
+        { "melee walk forward", "res://Assets/Erika/sword and shield walk.fbx" },
+        { "melee walk back", "res://Assets/Erika/sword and shield walk (2).fbx" },
+        { "melee walk right", "res://Assets/Erika/sword and shield strafe.fbx" },
+        { "melee walk left", "res://Assets/Erika/sword and shield strafe (2).fbx" },
+        { "melee run forward", "res://Assets/Erika/sword and shield run.fbx" },
+        { "melee run back", "res://Assets/Erika/sword and shield run (2).fbx" },
+        { "melee run right", "res://Assets/Erika/sword and shield strafe (3).fbx" },
+        { "melee run left", "res://Assets/Erika/sword and shield strafe (4).fbx" },
+
+        // Melee Attack animations
+        { "melee attack", "res://Assets/Erika/sword and shield slash.fbx" },
+        { "melee perfect attack", "res://Assets/Erika/sword and shield slash (2).fbx" },
+        { "melee power attack", "res://Assets/Erika/sword and shield slash (4).fbx" }
     };
 
     public override void _Ready()
@@ -97,7 +115,16 @@ public partial class AnimationLoader : Node
             var newAnim = srcAnim.Duplicate() as Animation;
 
             // Set to loop
-            newAnim.LoopMode = Animation.LoopModeEnum.Linear;
+            // Set loop mode
+            if (animName.Contains("attack", System.StringComparison.OrdinalIgnoreCase) ||
+                animName.Contains("jump", System.StringComparison.OrdinalIgnoreCase))
+            {
+                newAnim.LoopMode = Animation.LoopModeEnum.None;
+            }
+            else
+            {
+                newAnim.LoopMode = Animation.LoopModeEnum.Linear;
+            }
 
             // Remove root motion (strip position tracks for Hips/root bone)
             RemoveRootMotion(newAnim);

@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://d2gs8xu75xew3"]
+[gd_scene load_steps=34 format=3 uid="uid://d2gs8xu75xew3"]
 
 [ext_resource type="Script" uid="uid://c78rj73wym8kb" path="res://Scripts/Systems/PlayerController.cs" id="1_script"]
 [ext_resource type="Script" uid="uid://dray5mi350m3q" path="res://Scripts/Systems/AimAssist.cs" id="2_aim"]
@@ -51,6 +51,51 @@ animation = &"standing walk left"
 [sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_WalkRight"]
 animation = &"standing walk right"
 
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_RunFwd"]
+animation = &"standing run forward"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_RunBack"]
+animation = &"standing run back"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_RunLeft"]
+animation = &"standing run left"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_RunRight"]
+animation = &"standing run right"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_Jump"]
+animation = &"standing jump"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_RunningJump"]
+animation = &"running jump"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_MeleeIdle"]
+animation = &"melee idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_MeleeWalkFwd"]
+animation = &"melee walk forward"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_MeleeWalkBack"]
+animation = &"melee walk back"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_MeleeWalkLeft"]
+animation = &"melee walk left"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_MeleeWalkRight"]
+animation = &"melee walk right"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_MeleeRunFwd"]
+animation = &"melee run forward"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_MeleeRunBack"]
+animation = &"melee run back"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_MeleeRunLeft"]
+animation = &"melee run left"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_MeleeRunRight"]
+animation = &"melee run right"
+
 [sub_resource type="AnimationNodeBlendSpace2D" id="BlendSpace2D_Run"]
 blend_point_0/node = SubResource("AnimNodeAnim_WalkFwd")
 blend_point_0/pos = Vector2(0, -1)
@@ -65,6 +110,44 @@ blend_point_4/pos = Vector2(0, 0)
 x_label = "move_x"
 y_label = "move_y"
 
+[sub_resource type="AnimationNodeBlendSpace2D" id="BlendSpace2D_Sprint"]
+blend_point_0/node = SubResource("AnimNodeAnim_RunFwd")
+blend_point_0/pos = Vector2(0, -1)
+blend_point_1/node = SubResource("AnimNodeAnim_RunBack")
+blend_point_1/pos = Vector2(0, 1)
+blend_point_2/node = SubResource("AnimNodeAnim_RunLeft")
+blend_point_2/pos = Vector2(1, 0)
+blend_point_3/node = SubResource("AnimNodeAnim_RunRight")
+blend_point_3/pos = Vector2(-1, 0)
+x_label = "move_x"
+y_label = "move_y"
+
+[sub_resource type="AnimationNodeBlendSpace2D" id="BlendSpace2D_MeleeRun"]
+blend_point_0/node = SubResource("AnimNodeAnim_MeleeWalkFwd")
+blend_point_0/pos = Vector2(0, -1)
+blend_point_1/node = SubResource("AnimNodeAnim_MeleeWalkBack")
+blend_point_1/pos = Vector2(0, 1)
+blend_point_2/node = SubResource("AnimNodeAnim_MeleeWalkLeft")
+blend_point_2/pos = Vector2(1, 0)
+blend_point_3/node = SubResource("AnimNodeAnim_MeleeWalkRight")
+blend_point_3/pos = Vector2(-1, 0)
+blend_point_4/node = SubResource("AnimNodeAnim_MeleeIdle")
+blend_point_4/pos = Vector2(0, 0)
+x_label = "move_x"
+y_label = "move_y"
+
+[sub_resource type="AnimationNodeBlendSpace2D" id="BlendSpace2D_MeleeSprint"]
+blend_point_0/node = SubResource("AnimNodeAnim_MeleeRunFwd")
+blend_point_0/pos = Vector2(0, -1)
+blend_point_1/node = SubResource("AnimNodeAnim_MeleeRunBack")
+blend_point_1/pos = Vector2(0, 1)
+blend_point_2/node = SubResource("AnimNodeAnim_MeleeRunLeft")
+blend_point_2/pos = Vector2(1, 0)
+blend_point_3/node = SubResource("AnimNodeAnim_MeleeRunRight")
+blend_point_3/pos = Vector2(-1, 0)
+x_label = "move_x"
+y_label = "move_y"
+
 [sub_resource type="AnimationNodeStateMachineTransition" id="Trans_IdleToRun"]
 advance_mode = 2
 advance_condition = &"is_moving"
@@ -73,13 +156,122 @@ advance_condition = &"is_moving"
 advance_mode = 2
 advance_condition = &"is_idle"
 
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_RunToSprint"]
+advance_mode = 2
+advance_condition = &"is_sprinting"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_SprintToRun"]
+advance_mode = 2
+advance_condition = &"is_not_sprinting"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_ToJump"]
+advance_mode = 2
+advance_condition = &"is_jumping"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_JumpToIdle"]
+advance_mode = 2
+advance_condition = &"is_on_floor"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_ToMelee"]
+advance_mode = 2
+advance_condition = &"is_melee"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_FromMelee"]
+advance_mode = 2
+advance_condition = &"is_not_melee"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_MeleeIdleToRun"]
+advance_mode = 2
+advance_condition = &"is_moving"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_MeleeRunToIdle"]
+advance_mode = 2
+advance_condition = &"is_idle"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_MeleeRunToSprint"]
+advance_mode = 2
+advance_condition = &"is_sprinting"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_MeleeSprintToRun"]
+advance_mode = 2
+advance_condition = &"is_not_sprinting"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_MeleeAttackNormal"]
+animation = &"melee attack"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_MeleeAttackPerfect"]
+animation = &"melee perfect attack"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_MeleeAttackPower"]
+animation = &"melee power attack"
+
+[sub_resource type="AnimationNodeTransition" id="AnimationNodeTransition_AttackType"]
+input_count = 3
+input_0/name = "Normal"
+input_0/auto_advance = false
+input_0/reset = true
+input_1/name = "Perfect"
+input_1/auto_advance = false
+input_1/reset = true
+input_2/name = "Power"
+input_2/auto_advance = false
+input_2/reset = true
+
+[sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_WindupSpeed"]
+
+[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_MeleeAttack"]
+graph_offset = Vector2(-281, 126)
+nodes/Normal/node = SubResource("AnimationNodeAnimation_MeleeAttackNormal")
+nodes/Normal/position = Vector2(-580, 40)
+nodes/Perfect/node = SubResource("AnimationNodeAnimation_MeleeAttackPerfect")
+nodes/Perfect/position = Vector2(-580, 160)
+nodes/Power/node = SubResource("AnimationNodeAnimation_MeleeAttackPower")
+nodes/Power/position = Vector2(-580, 280)
+nodes/AttackType/node = SubResource("AnimationNodeTransition_AttackType")
+nodes/AttackType/position = Vector2(-340, 140)
+nodes/WindupSpeed/node = SubResource("AnimationNodeTimeScale_WindupSpeed")
+nodes/WindupSpeed/position = Vector2(-140, 140)
+nodes/output/position = Vector2(40, 140)
+node_connections = [&"output", 0, &"WindupSpeed", &"AttackType", 0, &"Normal", &"AttackType", 1, &"Perfect", &"AttackType", 2, &"Power", &"WindupSpeed", 0, &"AttackType"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_IdleToAttack"]
+advance_mode = 2
+advance_condition = &"is_swinging"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_RunToAttack"]
+advance_mode = 2
+advance_condition = &"is_swinging"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_SprintToAttack"]
+advance_mode = 2
+advance_condition = &"is_swinging"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_AttackToIdle"]
+switch_mode = 2
+advance_mode = 2
+advance_condition = &"is_not_swinging"
+
 [sub_resource type="AnimationNodeStateMachine" id="StateMachine_Root"]
 states/Idle/node = SubResource("AnimNodeAnim_Idle")
 states/Idle/position = Vector2(250, 100)
 states/Run/node = SubResource("BlendSpace2D_Run")
 states/Run/position = Vector2(450, 100)
+states/Sprint/node = SubResource("BlendSpace2D_Sprint")
+states/Sprint/position = Vector2(650, 100)
+states/Jump/node = SubResource("AnimNodeAnim_Jump")
+states/Jump/position = Vector2(250, 250)
+states/RunningJump/node = SubResource("AnimNodeAnim_RunningJump")
+states/RunningJump/position = Vector2(550, 250)
+states/MeleeIdle/node = SubResource("AnimNodeAnim_MeleeIdle")
+states/MeleeIdle/position = Vector2(250, 400)
+states/MeleeRun/node = SubResource("BlendSpace2D_MeleeRun")
+states/MeleeRun/position = Vector2(450, 400)
+states/MeleeSprint/node = SubResource("BlendSpace2D_MeleeSprint")
+states/MeleeSprint/position = Vector2(650, 400)
+states/MeleeAttack/node = SubResource("AnimationNodeBlendTree_MeleeAttack")
+states/MeleeAttack/position = Vector2(450, 550)
 states/Start/position = Vector2(100, 100)
-transitions = ["Start", "Idle", SubResource("Trans_IdleToRun"), "Idle", "Run", SubResource("Trans_IdleToRun"), "Run", "Idle", SubResource("Trans_RunToIdle")]
+transitions = ["Start", "Idle", SubResource("Trans_IdleToRun"), "Idle", "Run", SubResource("Trans_IdleToRun"), "Run", "Idle", SubResource("Trans_RunToIdle"), "Run", "Sprint", SubResource("Trans_RunToSprint"), "Sprint", "Run", SubResource("Trans_SprintToRun"), "Idle", "Jump", SubResource("Trans_ToJump"), "Run", "RunningJump", SubResource("Trans_ToJump"), "Sprint", "RunningJump", SubResource("Trans_ToJump"), "Jump", "Idle", SubResource("Trans_JumpToIdle"), "RunningJump", "Idle", SubResource("Trans_JumpToIdle"), "Idle", "MeleeIdle", SubResource("Trans_ToMelee"), "Run", "MeleeRun", SubResource("Trans_ToMelee"), "Sprint", "MeleeSprint", SubResource("Trans_ToMelee"), "MeleeIdle", "Idle", SubResource("Trans_FromMelee"), "MeleeRun", "Run", SubResource("Trans_FromMelee"), "MeleeSprint", "Sprint", SubResource("Trans_FromMelee"), "MeleeIdle", "MeleeRun", SubResource("Trans_MeleeIdleToRun"), "MeleeRun", "MeleeIdle", SubResource("Trans_MeleeRunToIdle"), "MeleeRun", "MeleeSprint", SubResource("Trans_MeleeRunToSprint"), "MeleeSprint", "MeleeRun", SubResource("Trans_MeleeSprintToRun"), "MeleeIdle", "Jump", SubResource("Trans_ToJump"), "MeleeRun", "RunningJump", SubResource("Trans_ToJump"), "MeleeSprint", "RunningJump", SubResource("Trans_ToJump"), "MeleeIdle", "MeleeAttack", SubResource("Trans_IdleToAttack"), "MeleeRun", "MeleeAttack", SubResource("Trans_RunToAttack"), "MeleeSprint", "MeleeAttack", SubResource("Trans_SprintToAttack"), "MeleeAttack", "MeleeIdle", SubResource("Trans_AttackToIdle")]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_Player"]
 properties/0/path = NodePath(".:global_position")
@@ -183,7 +375,16 @@ tree_root = SubResource("StateMachine_Root")
 anim_player = NodePath("../Erika/AnimationPlayer")
 parameters/conditions/is_idle = true
 parameters/conditions/is_moving = false
+parameters/conditions/is_sprinting = false
+parameters/conditions/is_not_sprinting = true
+parameters/conditions/is_jumping = false
+parameters/conditions/is_on_floor = true
+parameters/conditions/is_melee = false
+parameters/conditions/is_not_melee = true
 parameters/Run/blend_position = Vector2(0, 0)
+parameters/Sprint/blend_position = Vector2(0, 0)
+parameters/MeleeRun/blend_position = Vector2(0, 0)
+parameters/MeleeSprint/blend_position = Vector2(0, 0)
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.939693, 0.34202, 0, -0.34202, 0.939693, 0, 2.5, 4.5)

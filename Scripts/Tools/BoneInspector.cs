@@ -26,9 +26,18 @@ public partial class BoneInspector : Node
         }
 
         GD.Print($"[BoneInspector] Inspecting {skel.Name} ({skel.GetBoneCount()} bones):");
-        for (int i = 0; i < Math.Min(skel.GetBoneCount(), 10); i++)
+        for (int i = 0; i < skel.GetBoneCount(); i++)
         {
-            GD.Print($"  [{i}] {skel.GetBoneName(i)}");
+            string boneName = skel.GetBoneName(i);
+            // Highlight hand bones
+            if (boneName.Contains("Hand") || boneName.Contains("hand"))
+            {
+                GD.Print($"  *** [{i}] {boneName} ***");
+            }
+            else
+            {
+                GD.Print($"  [{i}] {boneName}");
+            }
         }
     }
 }
