@@ -48,7 +48,18 @@ public partial class AnimationLoader : Node
         { "archery walk forward", "res://Assets/ErikaBow/standing aim walk forward.fbx" },
         { "archery walk back", "res://Assets/ErikaBow/standing aim walk back.fbx" },
         { "archery walk left", "res://Assets/ErikaBow/standing aim walk left.fbx" },
-        { "archery walk right", "res://Assets/ErikaBow/standing aim walk right.fbx" }
+        { "archery walk right", "res://Assets/ErikaBow/standing aim walk right.fbx" },
+
+        // Archery Non-Aiming Movement (New)
+        { "archery idle normal", "res://Assets/ErikaBow/standing idle 01.fbx" },
+        { "archery walk forward normal", "res://Assets/ErikaBow/standing walk forward.fbx" },
+        { "archery walk back normal", "res://Assets/ErikaBow/standing walk back.fbx" },
+        { "archery walk left normal", "res://Assets/ErikaBow/standing walk left.fbx" },
+        { "archery walk right normal", "res://Assets/ErikaBow/standing walk right.fbx" },
+        { "archery turn left", "res://Assets/ErikaBow/standing turn 90 left.fbx" },
+        { "archery turn right", "res://Assets/ErikaBow/standing turn 90 right.fbx" },
+        { "archery unequip", "res://Assets/ErikaBow/standing disarm bow.fbx" },
+        { "archery equip", "res://Assets/ErikaBow/standing equip bow.fbx" }
     };
 
     public override void _Ready()
@@ -87,7 +98,7 @@ public partial class AnimationLoader : Node
             if (!LoadMelee && animName.Contains("melee", System.StringComparison.OrdinalIgnoreCase)) continue;
             if (!LoadArchery && animName.Contains("archery", System.StringComparison.OrdinalIgnoreCase)) continue;
 
-            // Skip if already exists
+            // If already exists, don't overwrite - preserve user's manual settings
             if (library.HasAnimation(animName))
             {
                 continue;
@@ -129,19 +140,8 @@ public partial class AnimationLoader : Node
             var srcAnim = fbxAnimPlayer.GetAnimation(animList[0]);
             var newAnim = srcAnim.Duplicate() as Animation;
 
-            // Set to loop
             // Set loop mode
-            if (animName.Contains("attack", System.StringComparison.OrdinalIgnoreCase) ||
-                animName.Contains("jump", System.StringComparison.OrdinalIgnoreCase) ||
-                animName.Contains("recoil", System.StringComparison.OrdinalIgnoreCase) ||
-                animName.Contains("draw", System.StringComparison.OrdinalIgnoreCase))
-            {
-                newAnim.LoopMode = Animation.LoopModeEnum.None;
-            }
-            else
-            {
-                newAnim.LoopMode = Animation.LoopModeEnum.Linear;
-            }
+            ApplyLoopMode(animName, newAnim);
 
             // Remove root motion (strip position tracks for Hips/root bone)
             RemoveRootMotion(newAnim);
@@ -158,6 +158,27 @@ public partial class AnimationLoader : Node
         }
 
         GD.Print($"[AnimationLoader] Complete! Loaded {loaded} animations.");
+    }
+
+    private void ApplyLoopMode(string animName, Animation anim)
+    {
+        if (animName.Contains("attack", System.StringComparison.OrdinalIgnoreCase) ||
+            (animName.Contains("jump", System.StringComparison.OrdinalIgnoreCase) && !animName.Contains("running jump")) ||
+            animName.Contains("recoil", System.StringComparison.OrdinalIgnoreCase) ||
+            animName.Contains("draw", System.StringComparison.OrdinalIgnoreCase) ||
+            animName.Contains("equip", System.StringComparison.OrdinalIgnoreCase) ||
+            animName.Contains("turn", System.StringComparison.OrdinalIgnoreCase))
+        {
+            anim.LoopMode = Animation.LoopModeEnum.None;
+        }
+        else if (animName == "archery idle normal" || animName == "archery aim idle")
+        {
+            anim.LoopMode = Animation.LoopModeEnum.Pingpong;
+        }
+        else
+        {
+            anim.LoopMode = Animation.LoopModeEnum.Linear;
+        }
     }
 
     /// <summary>

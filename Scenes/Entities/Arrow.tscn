@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://b5k8q8q8q8q8"]
+[gd_scene load_steps=16 format=3 uid="uid://b5k8q8q8q8q8"]
 
 [ext_resource type="Script" uid="uid://cv8vwqu1jo62a" path="res://Scripts/Entities/ArrowController.cs" id="1_ball_script"]
 
@@ -23,7 +23,6 @@ bottom_radius = 0.008
 height = 0.65
 
 [sub_resource type="StandardMaterial3D" id="Mat_Tip"]
-albedo_color = Color(1, 1, 1, 1)
 emission_enabled = true
 emission = Color(1, 1, 1, 1)
 emission_energy_multiplier = 5.0
@@ -57,16 +56,16 @@ gravity = Vector3(0, 0, 0)
 color = Color(1, 0, 0, 1)
 color_ramp = SubResource("GradientTexture1D_Trail")
 
+[sub_resource type="Curve" id="Curve_Trail"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), -2.8, 0.0, 0, 0]
+point_count = 2
+
 [sub_resource type="StandardMaterial3D" id="Mat_Trail"]
 transparency = 1
 cull_mode = 2
 shading_mode = 0
 vertex_color_use_as_albedo = true
 albedo_color = Color(1, 1, 1, 0.5)
-
-[sub_resource type="Curve" id="Curve_Trail"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), -2.8, 0.0, 0, 0]
-point_count = 2
 
 [sub_resource type="RibbonTrailMesh" id="Mesh_Trail"]
 material = SubResource("Mat_Trail")
@@ -80,16 +79,16 @@ curve = SubResource("Curve_Trail")
 collision_mask = 2
 mass = 0.045
 physics_material_override = SubResource("PhysicsMaterial_1")
+freeze = true
 continuous_cd = true
 contact_monitor = true
 max_contacts_reported = 4
 linear_damp_mode = 1
 angular_damp_mode = 1
-freeze = true
 script = ExtResource("1_ball_script")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0)
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0.018732093, 0)
 shape = SubResource("ArrowShape")
 
 [node name="Shaft" type="MeshInstance3D" parent="."]
@@ -97,11 +96,11 @@ transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0.0
 mesh = SubResource("Mesh_Shaft")
 
 [node name="Tip" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, -0.34)
+transform = Transform3D(1, 0, 0, 0, -0.007940469, 1.5596535, 0, -0.9955039, -0.012440313, 0, 0.01681514, -0.34)
 mesh = SubResource("Mesh_Tip")
 
 [node name="Fletching" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0.3)
+transform = Transform3D(1, 0, 0, 0, 0.9999862, -0.005288344, 0, 0.005288344, 0.9999862, 0, 0.019223657, 0.3076649)
 mesh = SubResource("Mesh_Fletching")
 
 [node name="Fletching2" type="MeshInstance3D" parent="Fletching"]
@@ -117,9 +116,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.3)
 emitting = false
 amount = 32
 lifetime = 0.5
-one_shot = false
-explosiveness = 0.0
 fixed_fps = 60
-local_coords = false
 process_material = SubResource("PPM_Trail")
 draw_pass_1 = SubResource("Mesh_Trail")

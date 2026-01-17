@@ -51,7 +51,7 @@ public partial class PlayerController : CharacterBody3D
     private CameraController _camera;
     private MeshInstance3D _avatarMesh;
     private ArcherySystem _archerySystem;
-    private MeshInstance3D _facingArrow;
+
     private GolfCart _currentCart;
     private InteractableObject _selectedObject;
     public InteractableObject SelectedObject => _selectedObject;
@@ -81,8 +81,14 @@ public partial class PlayerController : CharacterBody3D
 
     private ToolType _currentTool = ToolType.None;
     private SwordController _sword;
+    private BowController _standaloneBow; // Universal bow for non-Erika characters
     private float _inputCooldown = 0.0f;
     private Archery.DrawStage _lastArcheryStage = Archery.DrawStage.Idle;
+
+    // Character Model Selection
+    private string _currentModelId = "erika";
+    public string CurrentModelId => _currentModelId;
+    private Mesh _cachedBowMesh; // Cached bow mesh from ErikaBow for non-Erika characters
 
     public override void _EnterTree()
     {
@@ -126,6 +132,9 @@ public partial class PlayerController : CharacterBody3D
         _meleeAnimPlayer = GetNodeOrNull<AnimationPlayer>("Erika/AnimationPlayer");
         _archeryAnimPlayer = GetNodeOrNull<AnimationPlayer>("ErikaBow/AnimationPlayer");
 
+        // Cache the bow mesh from ErikaBow before any mesh swaps
+        CacheBowMesh();
+
         // Default to Melee
         _animPlayer = _meleeAnimPlayer;
 
@@ -153,20 +162,7 @@ public partial class PlayerController : CharacterBody3D
         // Color based on Index
         UpdatePlayerColor();
 
-        // Create Facing Arrow (Visual Feedback)
-        MeshInstance3D prism = new MeshInstance3D();
-        _facingArrow = prism;
-        var prismMesh = new PrismMesh();
-        prismMesh.Size = new Vector3(0.5f, 0.5f, 0.1f);
-        _facingArrow.Mesh = prismMesh;
-        _facingArrow.Position = new Vector3(0, 0.1f, 0.8f);
-        _facingArrow.RotationDegrees = new Vector3(-90, 180, 0);
 
-        var mat = new StandardMaterial3D();
-        mat.AlbedoColor = Colors.Orange;
-        _facingArrow.MaterialOverride = mat;
-
-        AddChild(_facingArrow);
 
         _hud = GetTree().CurrentScene.FindChild("HUD", true, false) as MainHUDController;
         GD.Print($"[PlayerController] HUD resolve: {(_hud != null ? "SUCCESS" : "FAILED")}");
@@ -285,12 +281,271 @@ public partial class PlayerController : CharacterBody3D
         {
             _animTree.SetAnimationPlayer(_archeryAnimPlayer.GetPath());
             _animPlayer = _archeryAnimPlayer;
+
+            // Setup standalone bow for non-Erika characters
+            if (_currentModelId != "erika")
+            {
+                SetupStandaloneBow(_archeryModel);
+            }
         }
         else if (!archery && _meleeAnimPlayer != null)
         {
             _animTree.SetAnimationPlayer(_meleeAnimPlayer.GetPath());
             _animPlayer = _meleeAnimPlayer;
+
+            // Remove standalone bow if present
+            RemoveStandaloneBow(_archeryModel);
         }
+    }
+
+    /// <summary>
+    /// Cycles to the next available character model.
+    /// </summary>
+    private void CycleCharacterModel()
+    {
+        var registry = CharacterRegistry.Instance;
+        if (registry == null)
+        {
+            GD.PrintErr("[PlayerController] CharacterRegistry not found!");
+            return;
+        }
+
+        var nextModel = registry.GetNextModel(_currentModelId);
+        if (nextModel != null && nextModel.Id != _currentModelId)
+        {
+            SetCharacterModel(nextModel.Id);
+
+            // Sync to other players
+            Rpc(nameof(NetSetCharacterModel), nextModel.Id);
+
+            GD.Print($"[PlayerController] Switched to model: {nextModel.DisplayName}");
+        }
+    }
+
+    /// <summary>
+    /// Sets the character model by ID.
+    /// </summary>
+    public void SetCharacterModel(string modelId)
+    {
+        var registry = CharacterRegistry.Instance;
+        if (registry == null) return;
+
+        var model = registry.GetModel(modelId);
+        if (model == null)
+        {
+            GD.PrintErr($"[PlayerController] Model not found: {modelId}");
+            return;
+        }
+
+        _currentModelId = modelId;
+
+        // Determine which scene path to use based on current mode
+        bool isArcheryMode = (_currentTool == ToolType.Bow);
+        string scenePath = isArcheryMode ? model.ArcheryScenePath : model.MeleeScenePath;
+
+        // Swap the mesh on the appropriate model node
+        SwapModelMesh(_meleeModel, model.MeleeScenePath);
+        SwapModelMesh(_archeryModel, model.ArcheryScenePath);
+
+        GD.Print($"[PlayerController] Model set to: {model.DisplayName}");
+    }
+
+    /// <summary>
+    /// Swaps the mesh on a model node by loading the new FBX and copying mesh instances.
+    /// </summary>
+    private void SwapModelMesh(Node3D targetModel, string fbxPath)
+    {
+        if (targetModel == null) return;
+
+        // Load the new model FBX
+        if (!ResourceLoader.Exists(fbxPath))
+        {
+            GD.PrintErr($"[PlayerController] Model FBX not found: {fbxPath}");
+            return;
+        }
+
+        var fbxScene = GD.Load<PackedScene>(fbxPath);
+        if (fbxScene == null)
+        {
+            GD.PrintErr($"[PlayerController] Could not load FBX: {fbxPath}");
+            return;
+        }
+
+        // Instance temporarily to extract meshes
+        var newModelInstance = fbxScene.Instantiate<Node3D>();
+
+        // Find the skeleton in both old and new models
+        var targetSkeleton = targetModel.GetNodeOrNull<Skeleton3D>("Skeleton3D");
+        var newSkeleton = newModelInstance.GetNodeOrNull<Skeleton3D>("Skeleton3D");
+
+        if (targetSkeleton == null || newSkeleton == null)
+        {
+            GD.PrintErr("[PlayerController] Could not find skeletons for mesh swap");
+            newModelInstance.QueueFree();
+            return;
+        }
+
+        // Remove old mesh instances from target skeleton (but keep BoneAttachments)
+        foreach (var child in targetSkeleton.GetChildren())
+        {
+            if (child is MeshInstance3D oldMesh)
+            {
+                oldMesh.QueueFree();
+            }
+        }
+
+        // Copy mesh instances from new skeleton to target skeleton
+        foreach (var child in newSkeleton.GetChildren())
+        {
+            if (child is MeshInstance3D newMesh)
+            {
+                // Clear ownership and reparent the mesh to our target skeleton
+                newMesh.Owner = null;
+                newSkeleton.RemoveChild(newMesh);
+                targetSkeleton.AddChild(newMesh);
+
+                // Fix see-through issues by disabling backface culling (Double-Sided)
+                FixMeshCulling(newMesh);
+            }
+        }
+
+        // Clean up the temporary instance
+        newModelInstance.QueueFree();
+        GD.Print($"[PlayerController] Swapped mesh from: {fbxPath}");
+    }
+
+    /// <summary>
+    /// Disables backface culling on all materials of a mesh to prevent "see-through" issues.
+    /// </summary>
+    private void FixMeshCulling(MeshInstance3D mesh)
+    {
+        if (mesh == null) return;
+
+        // Iterate through all mesh surfaces
+        int surfaceCount = mesh.GetSurfaceOverrideMaterialCount();
+        if (surfaceCount == 0 && mesh.Mesh != null)
+        {
+            surfaceCount = mesh.Mesh.GetSurfaceCount();
+        }
+
+        for (int i = 0; i < surfaceCount; i++)
+        {
+            // Get current material (fallback to mesh resource material if no override)
+            var mat = mesh.GetSurfaceOverrideMaterial(i) as BaseMaterial3D;
+            if (mat == null && mesh.Mesh != null)
+            {
+                mat = mesh.Mesh.SurfaceGetMaterial(i) as BaseMaterial3D;
+            }
+
+            if (mat != null)
+            {
+                // Create a unique duplicate so we don't affect other models using this resource
+                var uniqueMat = (BaseMaterial3D)mat.Duplicate();
+                uniqueMat.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
+                mesh.SetSurfaceOverrideMaterial(i, uniqueMat);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Caches the bow mesh from ErikaBow skeleton at startup before any mesh swaps.
+    /// </summary>
+    private void CacheBowMesh()
+    {
+        if (_archeryModel == null) return;
+
+        var erikaSkeleton = _archeryModel.GetNodeOrNull<Skeleton3D>("Skeleton3D");
+        if (erikaSkeleton == null) return;
+
+        foreach (var child in erikaSkeleton.GetChildren())
+        {
+            if (child is MeshInstance3D mesh)
+            {
+                string meshName = mesh.Name.ToString();
+                if (meshName.Contains("Bow") && !meshName.Contains("Arrow"))
+                {
+                    _cachedBowMesh = mesh.Mesh;
+                    GD.Print($"[PlayerController] Cached bow mesh: {meshName} ({_cachedBowMesh})");
+                    return;
+                }
+            }
+        }
+
+        GD.PrintErr("[PlayerController] Could not find bow mesh to cache!");
+    }
+
+    /// <summary>
+    /// Sets up a standalone bow for non-Erika characters by loading Bow.tscn.
+    /// </summary>
+    private void SetupStandaloneBow(Node3D targetModel)
+    {
+        if (targetModel == null) return;
+        if (_currentModelId == "erika") return; // Erika already has bow baked in
+
+        var skeleton = targetModel.GetNodeOrNull<Skeleton3D>("Skeleton3D");
+        if (skeleton == null) return;
+
+        // Check if bow already attached
+        if (skeleton.HasNode("StandaloneBowAttachment")) return;
+
+        // Load the standalone Bow scene
+        var bowScenePath = "res://Scenes/Weapons/Bow.tscn";
+        if (!ResourceLoader.Exists(bowScenePath))
+        {
+            GD.PrintErr($"[PlayerController] Bow scene not found: {bowScenePath}");
+            return;
+        }
+
+        var bowScene = GD.Load<PackedScene>(bowScenePath);
+        if (bowScene == null)
+        {
+            GD.PrintErr("[PlayerController] Could not load Bow scene");
+            return;
+        }
+
+        // Create a BoneAttachment for the left hand
+        var boneAttachment = new BoneAttachment3D();
+        boneAttachment.Name = "StandaloneBowAttachment";
+        boneAttachment.BoneName = "mixamorig_LeftHand";
+        skeleton.AddChild(boneAttachment);
+
+        // Instantiate the bow scene
+        var bowInstance = bowScene.Instantiate<Node3D>();
+        boneAttachment.AddChild(bowInstance);
+
+        // The bow mesh vertices are baked at world-space coords around (0.75, 1.39, -0.06)
+        // Offset to bring mesh to origin relative to the hand bone
+        bowInstance.Position = new Vector3(-0.75f, -1.39f, 0.06f);
+
+        // Rotation handled in Bow.tscn scene file for easier visual adjustment
+        bowInstance.RotationDegrees = Vector3.Zero;
+
+        GD.Print($"[PlayerController] Attached standalone Bow.tscn to character");
+    }
+
+    /// <summary>
+    /// Removes the standalone bow if switching back to Erika.
+    /// </summary>
+    private void RemoveStandaloneBow(Node3D targetModel)
+    {
+        if (targetModel == null) return;
+
+        var skeleton = targetModel.GetNodeOrNull<Skeleton3D>("Skeleton3D");
+        if (skeleton == null) return;
+
+        var bowAttachment = skeleton.GetNodeOrNull("StandaloneBowAttachment");
+        if (bowAttachment != null)
+        {
+            bowAttachment.QueueFree();
+            GD.Print("[PlayerController] Removed standalone bow");
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void NetSetCharacterModel(string modelId)
+    {
+        SetCharacterModel(modelId);
+        GD.Print($"[PlayerController] Received model change from network: {modelId}");
     }
 
     private void SetupVisualSword()
@@ -1022,6 +1277,12 @@ public partial class PlayerController : CharacterBody3D
                 TeleportTo(teePos + offset, teePos + Vector3.Forward * 10.0f);
                 GD.Print("PlayerController: Home teleport to Tee.");
             }
+        }
+
+        // M key: Cycle character model
+        if (@event is InputEventKey modelKey && modelKey.Pressed && !modelKey.Echo && modelKey.Keycode == Key.M)
+        {
+            CycleCharacterModel();
         }
         // Selection logic in Build Mode
         if (CurrentState == PlayerState.BuildMode)
