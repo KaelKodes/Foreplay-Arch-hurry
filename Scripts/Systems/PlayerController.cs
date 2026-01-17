@@ -109,6 +109,15 @@ public partial class PlayerController : CharacterBody3D
     private string _currentModelId = "erika";
     public string CurrentModelId => _currentModelId;
     private Mesh _cachedBowMesh; // Cached bow mesh from ErikaBow for non-Erika characters
+    private int _remoteArcheryStage = 0;
+
+    public int SynchronizedArcheryStage
+    {
+        get => IsLocal ? (_archerySystem != null ? (int)_archerySystem.CurrentStage : 0) : _remoteArcheryStage;
+        set => _remoteArcheryStage = value;
+    }
+
+
 
     public override void _EnterTree()
     {
@@ -953,9 +962,10 @@ public partial class PlayerController : CharacterBody3D
             // Drive Archery Aim Blend (Movement)
             _animTree.Set("parameters/ArcheryAim/blend_position", blendPos);
 
-            // Pulse 'is_firing' only on the frame we enter Executing state
-            var currentStage = _archerySystem.CurrentStage;
-            bool justFired = (currentStage == Archery.DrawStage.Executing && _lastArcheryStage != Archery.DrawStage.Executing);
+            // Pulse 'is_firing' when entering Executing state OR when transitioning from Aiming to ShotComplete (if Executing was skipped)
+            var currentStage = (DrawStage)SynchronizedArcheryStage;
+            bool justFired = (currentStage == Archery.DrawStage.Executing && _lastArcheryStage != Archery.DrawStage.Executing) ||
+                             (currentStage == Archery.DrawStage.ShotComplete && _lastArcheryStage == Archery.DrawStage.Aiming);
             _animTree.Set("parameters/conditions/is_firing", justFired);
 
             _lastArcheryStage = currentStage;
