@@ -358,6 +358,7 @@ public partial class Monster : InteractableObject
 
         // Explicit Prototypes
         if (s.Contains("yeti")) return MonsterBodyType.Biped;
+        if (s.Contains("zombie") || s.Contains("parasite")) return MonsterBodyType.Biped;
         if (s.Contains("chicken_blob") || s.Contains("chickenblob")) return MonsterBodyType.Blob;
         if (s.Contains("pigeon")) return MonsterBodyType.Flying;
         if (s.Contains("dragon")) return MonsterBodyType.FlyingArms;

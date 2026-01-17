@@ -23,6 +23,7 @@ public partial class PlayerController : CharacterBody3D
     [Export] public NodePath CameraPath { get; set; } // Now a property for external access
     [Export] public NodePath ArcherySystemPath;
     [Export] public NodePath MeleeSystemPath;
+    [Export] public NodePath AnimationTreePath;
 
     // Physics State
     private Vector3 _velocity = Vector3.Zero;
@@ -57,6 +58,8 @@ public partial class PlayerController : CharacterBody3D
     private InteractableObject _lastHoveredObject;
     private MainHUDController _hud;
     private MeleeSystem _meleeSystem;
+    private AnimationTree _animTree;
+    private AnimationPlayer _animPlayer;
 
     public int SynchronizedTool
     {
@@ -108,6 +111,32 @@ public partial class PlayerController : CharacterBody3D
 
         // Attempt to find the visual avatar
         _avatarMesh = GetNodeOrNull<MeshInstance3D>("AvatarMesh");
+        _animTree = GetNodeOrNull<AnimationTree>(AnimationTreePath);
+        if (_animTree == null) _animTree = GetNodeOrNull<AnimationTree>("AnimationTree");
+
+        _animPlayer = GetNodeOrNull<AnimationPlayer>("Erika/AnimationPlayer");
+        if (_animPlayer == null) _animPlayer = GetNodeOrNull<AnimationPlayer>("AnimationPlayer");
+
+        GD.Print($"[PlayerController] Anim Resolve: Player={(_animPlayer != null)}, Tree={(_animTree != null)}");
+
+        if (_animPlayer != null)
+        {
+            if (_animTree != null && _animTree.TreeRoot != null)
+            {
+                _animTree.Active = true;
+                GD.Print("[PlayerController] AnimationTree Activated.");
+            }
+            else
+            {
+                if (_animTree != null) _animTree.Active = false;
+                var anims = _animPlayer.GetAnimationList();
+                if (anims.Length > 0)
+                {
+                    _animPlayer.Play(anims[0]);
+                    GD.Print($"[PlayerController] Autoplaying first animation: {anims[0]}");
+                }
+            }
+        }
 
         // Color based on Index
         UpdatePlayerColor();
@@ -487,7 +516,48 @@ public partial class PlayerController : CharacterBody3D
         _velocity = Velocity;
         _isGrounded = IsOnFloor();
 
+        UpdateAnimations(delta);
+
         HandleVehicleDetection();
+    }
+
+    private void UpdateAnimations(double delta)
+    {
+        if (_animTree == null) return;
+
+        // 1. Calculate Horizontal Movement
+        // We want velocity relative to the player's facing direction for strafing
+        Vector3 localVel = GlobalTransform.Basis.Inverse() * Velocity;
+
+        // Use MoveSpeed for normalization. 
+        // Note: Mixamo usually considers -Z as forward. 
+        float moveX = localVel.X / MoveSpeed;
+        float moveY = -localVel.Z / MoveSpeed;
+
+        float speed = new Vector2(Velocity.X, Velocity.Z).Length();
+        float normalizedSpeed = speed / MoveSpeed;
+
+        // Sprint multiplier
+        if (Input.IsKeyPressed(Key.Shift) && speed > 0.1f)
+        {
+            normalizedSpeed *= 2.0f;
+            moveX *= 2.0f;
+            moveY *= 2.0f;
+        }
+
+        // 2. Set Parameters
+        _animTree.Set("parameters/conditions/is_moving", speed > 0.1f);
+        _animTree.Set("parameters/conditions/is_idle", speed <= 0.1f);
+        _animTree.Set("parameters/move_speed", normalizedSpeed);
+
+        // Drive the BlendSpace2D "Run"
+        _animTree.Set("parameters/Run/blend_position", new Vector2(moveX, moveY));
+
+        // 3. States & Conditions
+        _animTree.Set("parameters/conditions/is_on_floor", IsOnFloor());
+        _animTree.Set("parameters/conditions/is_jumping", !IsOnFloor() && _velocity.Y > 0);
+        _animTree.Set("parameters/conditions/is_archery", CurrentState == PlayerState.CombatArcher);
+        _animTree.Set("parameters/conditions/is_melee", CurrentState == PlayerState.CombatMelee);
     }
 
     private void HandleProximityPrompts(double delta)

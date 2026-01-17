@@ -1,10 +1,17 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=23 format=3 uid="uid://d2gs8xu75xew3"]
 
 [ext_resource type="Script" uid="uid://c78rj73wym8kb" path="res://Scripts/Systems/PlayerController.cs" id="1_script"]
 [ext_resource type="Script" uid="uid://dray5mi350m3q" path="res://Scripts/Systems/AimAssist.cs" id="2_aim"]
 [ext_resource type="Script" uid="uid://nxdsvm1xh80" path="res://Scripts/Systems/CameraController.cs" id="3_camera"]
-[ext_resource type="Script" path="res://Scripts/Systems/ArcherySystem.cs" id="4_archery"]
-[ext_resource type="Script" path="res://Scripts/Systems/MeleeSystem.cs" id="5_melee"]
+[ext_resource type="Script" uid="uid://dlp1onvaj5e78" path="res://Scripts/Systems/ArcherySystem.cs" id="4_archery"]
+[ext_resource type="Script" uid="uid://ha2xnikjs1el" path="res://Scripts/Systems/MeleeSystem.cs" id="5_melee"]
+[ext_resource type="PackedScene" uid="uid://bsd4cc2uvsgfj" path="res://Assets/Erika/Erika Archer.fbx" id="6_erika"]
+[ext_resource type="Script" uid="uid://dkw22bhot3ia8" path="res://Scripts/Tools/DebugAnimations.cs" id="7_td8ue"]
+[ext_resource type="Script" path="res://Scripts/Tools/AnimationLoader.cs" id="8_loader"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_Body"]
+radius = 0.25
+height = 1.8
 
 [sub_resource type="StandardMaterial3D" id="Mat_AimLine"]
 transparency = 1
@@ -29,13 +36,50 @@ top_radius = 2.0
 bottom_radius = 2.0
 height = 0.05
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_Body"]
-radius = 0.25
-height = 1.8
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_Idle"]
+animation = &"standing idle 01"
 
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_Avatar"]
-radius = 0.25
-height = 1.8
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_WalkFwd"]
+animation = &"standing walk forward"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_WalkBack"]
+animation = &"standing walk back"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_WalkLeft"]
+animation = &"standing walk left"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_WalkRight"]
+animation = &"standing walk right"
+
+[sub_resource type="AnimationNodeBlendSpace2D" id="BlendSpace2D_Run"]
+blend_point_0/node = SubResource("AnimNodeAnim_WalkFwd")
+blend_point_0/pos = Vector2(0, -1)
+blend_point_1/node = SubResource("AnimNodeAnim_WalkBack")
+blend_point_1/pos = Vector2(0, 1)
+blend_point_2/node = SubResource("AnimNodeAnim_WalkLeft")
+blend_point_2/pos = Vector2(1, 0)
+blend_point_3/node = SubResource("AnimNodeAnim_WalkRight")
+blend_point_3/pos = Vector2(-1, 0)
+blend_point_4/node = SubResource("AnimNodeAnim_Idle")
+blend_point_4/pos = Vector2(0, 0)
+x_label = "move_x"
+y_label = "move_y"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_IdleToRun"]
+advance_mode = 2
+advance_condition = &"is_moving"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Trans_RunToIdle"]
+advance_mode = 2
+advance_condition = &"is_idle"
+
+[sub_resource type="AnimationNodeStateMachine" id="StateMachine_Root"]
+states/Idle/node = SubResource("AnimNodeAnim_Idle")
+states/Idle/position = Vector2(250, 100)
+states/Run/node = SubResource("BlendSpace2D_Run")
+states/Run/position = Vector2(450, 100)
+states/Start/position = Vector2(100, 100)
+transitions = ["Start", "Idle", SubResource("Trans_IdleToRun"), "Idle", "Run", SubResource("Trans_IdleToRun"), "Run", "Idle", SubResource("Trans_RunToIdle")]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_Player"]
 properties/0/path = NodePath(".:global_position")
@@ -76,9 +120,70 @@ mesh = SubResource("CylinderMesh_AimLine")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 274.32)
 mesh = SubResource("CylinderMesh_Marker")
 
-[node name="AvatarMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-mesh = SubResource("CapsuleMesh_Avatar")
+[node name="Erika" parent="." instance=ExtResource("6_erika")]
+
+[node name="Skeleton3D" parent="Erika" index="0"]
+bones/1/rotation = Quaternion(-0.042321462, 0, 0, 0.999104)
+bones/2/rotation = Quaternion(-0.031071369, 0, 0, 0.9995172)
+bones/3/rotation = Quaternion(-0.0019277586, 0, 0, 0.99999815)
+bones/4/rotation = Quaternion(0.066349074, 0, 0, 0.9977965)
+bones/9/rotation = Quaternion(0.49152955, 0.57978475, -0.5168668, 0.39382374)
+bones/10/rotation = Quaternion(-0.022815323, -0.0111521585, 0.10350349, 0.99430484)
+bones/11/rotation = Quaternion(-0.004305823, -0.00033105342, 0.0050150217, 0.9999781)
+bones/12/rotation = Quaternion(-1.4230154e-19, 0, -4.3368087e-19, 1)
+bones/13/rotation = Quaternion(0.23910844, 0.046148483, 0.22880815, 0.9425202)
+bones/14/rotation = Quaternion(-1.3877788e-17, -6.938894e-18, 0, 1)
+bones/15/rotation = Quaternion(-1.542654e-07, 7.534633e-09, 0.023003766, 0.99973536)
+bones/17/rotation = Quaternion(-0.00010644894, -0.0036532811, -0.00037792078, 0.99999326)
+bones/18/rotation = Quaternion(3.9684767e-07, -3.3152783e-09, 1.8217364e-09, 1)
+bones/19/rotation = Quaternion(2.649506e-07, -1.0261589e-09, -2.6596676e-09, 1)
+bones/21/rotation = Quaternion(0.003550212, -0.0040605515, -0.004475861, 0.99997544)
+bones/22/rotation = Quaternion(2.7343745e-07, 9.674225e-11, 4.440499e-10, 1)
+bones/23/rotation = Quaternion(-4.782018e-09, 6.9985236e-07, 2.376235e-14, 1)
+bones/25/rotation = Quaternion(-0.001202423, -0.0038630778, -0.0024431958, 0.9999888)
+bones/26/rotation = Quaternion(1.0997052e-07, -6.6039507e-10, 1.4732502e-09, 1)
+bones/27/rotation = Quaternion(2.7136835e-09, 6.9987215e-07, 3.7021742e-13, 1)
+bones/29/rotation = Quaternion(-0.0004959799, -0.003696717, -0.0042821104, 0.99998385)
+bones/30/rotation = Quaternion(8.748911e-09, 1.4997056e-07, -8.5796137e-16, 1)
+bones/31/rotation = Quaternion(3.2296748e-07, 1.9993193e-07, -4.518884e-11, 1)
+bones/33/rotation = Quaternion(-0.4894762, 0.57470274, -0.5201198, -0.39950624)
+bones/34/rotation = Quaternion(-0.024569884, 0.00044802664, -0.10316082, 0.9943611)
+bones/36/rotation = Quaternion(6.7762636e-21, -2.1684043e-19, 4.3368087e-19, 1)
+bones/37/rotation = Quaternion(0.26174626, 0.087377466, -0.18958795, 0.94229007)
+bones/38/rotation = Quaternion(0.00012899931, 0.00271724, -0.013239065, 0.9999087)
+bones/39/rotation = Quaternion(-2.7915878e-06, 5.160569e-05, -0.070852004, 0.9974869)
+bones/41/rotation = Quaternion(-0.0011113433, 0.0032497046, -0.0007898172, 0.9999938)
+bones/42/rotation = Quaternion(1.4503071e-06, -5.7024226e-06, 0.00029690735, 0.99999994)
+bones/43/rotation = Quaternion(-1.2926109e-06, 1.1479307e-06, -0.0004748511, 0.9999999)
+bones/45/rotation = Quaternion(-0.00051183236, 0.0036576944, -0.0012013501, 0.99999243)
+bones/46/rotation = Quaternion(-1.5716968e-06, -4.12599e-05, 0.0008827835, 0.9999996)
+bones/47/rotation = Quaternion(-5.6806914e-07, 4.9551027e-06, -0.0014926799, 0.99999887)
+bones/49/rotation = Quaternion(-0.00019392496, 0.0023881968, 0.00105494, 0.9999966)
+bones/50/rotation = Quaternion(-2.7203107e-06, -3.0488927e-06, 0.0004950636, 0.9999999)
+bones/51/rotation = Quaternion(1.4933577e-06, 5.7577035e-06, -0.00034653253, 0.99999994)
+bones/53/rotation = Quaternion(-0.001571049, 0.0036227577, 0.00063965993, 0.999992)
+bones/54/rotation = Quaternion(2.1618903e-06, -5.973542e-07, 1.260313e-05, 1)
+bones/55/rotation = Quaternion(-1.8425992e-06, -1.3504143e-05, -0.00063216354, 0.9999998)
+bones/57/rotation = Quaternion(-5.2877314e-19, 0.008635521, 0.9999627, -6.123005e-17)
+bones/58/rotation = Quaternion(-0.047179006, 7.71231e-34, -6.169848e-33, 0.99888647)
+bones/59/rotation = Quaternion(0.4620769, -0.0014891832, 0.002352313, 0.88683546)
+bones/60/rotation = Quaternion(0.3366147, 0.0007922147, -0.005210899, 0.94162774)
+bones/62/rotation = Quaternion(-5.1100757e-19, 0.008345387, 0.9999652, -6.12302e-17)
+bones/63/rotation = Quaternion(-0.046033338, -9.639868e-35, 0, 0.99893993)
+bones/64/rotation = Quaternion(0.46052688, 0.0014406985, -0.0021365476, 0.887642)
+bones/65/rotation = Quaternion(0.3383885, -0.0018445592, 0.0069111297, 0.9409793)
+
+[node name="AnimationPlayer" parent="Erika" index="1"]
+autoplay = "standing idle 01"
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+active = true
+root_node = NodePath("../Erika")
+tree_root = SubResource("StateMachine_Root")
+anim_player = NodePath("../Erika/AnimationPlayer")
+parameters/conditions/is_idle = true
+parameters/conditions/is_moving = false
+parameters/Run/blend_position = Vector2(0, 0)
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.939693, 0.34202, 0, -0.34202, 0.939693, 0, 2.5, 4.5)
@@ -94,3 +199,12 @@ script = ExtResource("5_melee")
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
 replication_config = SubResource("SceneReplicationConfig_Player")
+
+[node name="DebugNode" type="Node" parent="."]
+script = ExtResource("7_td8ue")
+
+[node name="AnimationLoader" type="Node" parent="."]
+script = ExtResource("8_loader")
+AnimationPlayerPath = NodePath("../Erika/AnimationPlayer")
+
+[editable path="Erika"]
