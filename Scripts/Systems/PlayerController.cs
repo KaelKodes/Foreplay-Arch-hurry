@@ -656,23 +656,19 @@ public partial class PlayerController : CharacterBody3D
 
     public override void _PhysicsProcess(double delta)
     {
-        // 1. Authority Check
-        if (!IsLocal)
-        {
-            // Apply Remote State (Visuals) - e.g. rotating head/spine if we had one
-            if (_lastPlayerIndex != PlayerIndex)
-            {
-                _lastPlayerIndex = PlayerIndex;
-                UpdatePlayerColor();
-            }
-            return;
-        }
-
-        // Local Player Check as well (in case authority helps, but mainly for sync)
+        // 1. Common Updates (Runs for EVERYONE)
         if (_lastPlayerIndex != PlayerIndex)
         {
             _lastPlayerIndex = PlayerIndex;
             UpdatePlayerColor();
+        }
+
+        UpdateAnimations(delta);
+
+        // 2. Authority Check
+        if (!IsLocal)
+        {
+            return;
         }
 
         // Update Sync Properties (State -> Property)
@@ -683,17 +679,14 @@ public partial class PlayerController : CharacterBody3D
 
         if (_inputCooldown > 0) _inputCooldown -= (float)delta;
 
-        // 2. Movement & Targeting (Common)
+        // 3. Movement & Targeting (Authority Only)
         if (CurrentState == PlayerState.WalkMode || CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher)
         {
             HandleBodyMovement(delta);
             HandleTargetingHotkeys();
         }
 
-        // 3. Animations run for everyone (driven by synced Velocity/Rotation/State)
-        UpdateAnimations(delta);
-
-        // 4. State Check
+        // 4. State Check (Authority Only)
         switch (CurrentState)
         {
             case PlayerState.CombatMelee:
