@@ -69,6 +69,7 @@ public partial class MainHUDController : CanvasLayer
 		_archerySystem = _player.GetNodeOrNull<ArcherySystem>("ArcherySystem");
 		(_meleeHUD as MeleeHUDController)?.RegisterPlayer(player);
 		(_archeryHUD as ArcheryHUDController)?.RegisterPlayer(player);
+		(_buildHUD as BuildHUDController)?.RegisterPlayer(player);
 		UpdateHUDForMode(_player.CurrentState);
 		GD.Print("MainHUD: Player Registered");
 	}

@@ -4,8 +4,6 @@ using Archery;
 
 public partial class BuildHUDController : Control
 {
-	[Export] public NodePath ArcherySystemPath;
-
 	private ArcherySystem _archerySystem;
 	private MainHUDController _mainHUD;
 
@@ -22,24 +20,21 @@ public partial class BuildHUDController : Control
 	private HBoxContainer _smoothingPanel;
 	private SpinBox _smoothingSlider;
 
-	// Lazy getter for ArcherySystem (player is spawned after HUD)
-	private ArcherySystem GetArcherySystem()
+	public void RegisterPlayer(PlayerController player)
 	{
-		if (_archerySystem == null)
-		{
-			_archerySystem = GetNodeOrNull<ArcherySystem>(ArcherySystemPath);
-			if (_archerySystem == null)
-				_archerySystem = GetTree().CurrentScene.FindChild("ArcherySystem", true, false) as ArcherySystem;
+		_archerySystem = player.GetNodeOrNull<ArcherySystem>("ArcherySystem");
 
-			// Connect signal if we just found it
-			if (_archerySystem?.BuildManager != null && !_signalConnected)
-			{
-				_archerySystem.BuildManager.Connect(BuildManager.SignalName.SurveyUpdated, new Callable(this, MethodName.UpdateSurveyButton));
-				_signalConnected = true;
-			}
+		// Connect signal if we found it
+		if (_archerySystem?.BuildManager != null && !_signalConnected)
+		{
+			_archerySystem.BuildManager.Connect(BuildManager.SignalName.SurveyUpdated, new Callable(this, MethodName.UpdateSurveyButton));
+			_signalConnected = true;
 		}
-		return _archerySystem;
+
+		ResetUI();
 	}
+
+	private ArcherySystem GetArcherySystem() => _archerySystem;
 	private bool _signalConnected = false;
 
 	public override void _Ready()
