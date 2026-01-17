@@ -8,6 +8,8 @@ using System.Collections.Generic;
 public partial class AnimationLoader : Node
 {
     [Export] public NodePath AnimationPlayerPath = new NodePath("../Erika/AnimationPlayer");
+    [Export] public bool LoadMelee = true;
+    [Export] public bool LoadArchery = true;
 
     private static readonly Dictionary<string, string> AnimationSources = new()
     {
@@ -37,7 +39,16 @@ public partial class AnimationLoader : Node
         // Melee Attack animations
         { "melee attack", "res://Assets/Erika/sword and shield slash.fbx" },
         { "melee perfect attack", "res://Assets/Erika/sword and shield slash (2).fbx" },
-        { "melee power attack", "res://Assets/Erika/sword and shield slash (4).fbx" }
+        { "melee power attack", "res://Assets/Erika/sword and shield slash (4).fbx" },
+
+        // Archery Animations
+        { "archery draw", "res://Assets/ErikaBow/standing draw arrow.fbx" },
+        { "archery aim idle", "res://Assets/ErikaBow/standing aim overdraw.fbx" },
+        { "archery recoil", "res://Assets/ErikaBow/standing aim recoil.fbx" },
+        { "archery walk forward", "res://Assets/ErikaBow/standing aim walk forward.fbx" },
+        { "archery walk back", "res://Assets/ErikaBow/standing aim walk back.fbx" },
+        { "archery walk left", "res://Assets/ErikaBow/standing aim walk left.fbx" },
+        { "archery walk right", "res://Assets/ErikaBow/standing aim walk right.fbx" }
     };
 
     public override void _Ready()
@@ -71,6 +82,10 @@ public partial class AnimationLoader : Node
         {
             string animName = kvp.Key;
             string fbxPath = kvp.Value;
+
+            // Filter based on flags
+            if (!LoadMelee && animName.Contains("melee", System.StringComparison.OrdinalIgnoreCase)) continue;
+            if (!LoadArchery && animName.Contains("archery", System.StringComparison.OrdinalIgnoreCase)) continue;
 
             // Skip if already exists
             if (library.HasAnimation(animName))
@@ -117,7 +132,9 @@ public partial class AnimationLoader : Node
             // Set to loop
             // Set loop mode
             if (animName.Contains("attack", System.StringComparison.OrdinalIgnoreCase) ||
-                animName.Contains("jump", System.StringComparison.OrdinalIgnoreCase))
+                animName.Contains("jump", System.StringComparison.OrdinalIgnoreCase) ||
+                animName.Contains("recoil", System.StringComparison.OrdinalIgnoreCase) ||
+                animName.Contains("draw", System.StringComparison.OrdinalIgnoreCase))
             {
                 newAnim.LoopMode = Animation.LoopModeEnum.None;
             }

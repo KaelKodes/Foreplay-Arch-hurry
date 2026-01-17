@@ -32,10 +32,19 @@ public partial class ArcherySystem : Node
 	[Export] public NodePath CameraPath;
 	[Export] public NodePath WindSystemPath;
 
+	// Calibrated Offsets
+	private readonly Vector3 _calibratedPos = new Vector3(0.061f, 0.385f, 0.033f);
+	private readonly Vector3 _calibratedRot = new Vector3(99.375f, -7.080f, 27.708f);
+
+	// Debug / Calibration
+	public Vector3 DebugArrowOffsetPosition = Vector3.Zero;
+	public Vector3 DebugArrowOffsetRotation = Vector3.Zero;
+
 	private ArrowController _arrow;
 	private CameraController _camera;
 	private WindSystem _windSystem;
 	private StatsService _statsService;
+	private BoneAttachment3D _handAttachment; // New attachment point
 
 	[Export] public bool CanDashWhileShooting { get; set; } = false;
 	[Export] public bool CanJumpWhileShooting { get; set; } = false;
@@ -420,13 +429,42 @@ public partial class ArcherySystem : Node
     {
         if (_arrow == null || _currentPlayer == null || _arrow.HasBeenShot) return;
 
-        // Position and Rotate it
-        Vector3 spawnPos = _currentPlayer.GlobalPosition + (_currentPlayer.GlobalBasis * (ChestOffset + new Vector3(0, 0, 0.5f)));
+        Transform3D t;
 
-        Transform3D t = _currentPlayer.GlobalTransform;
-        t.Origin = spawnPos;
-        // Rotate 180 (Arrow orientation)
-        t.Basis = t.Basis.Rotated(Vector3.Up, Mathf.Pi);
+        if (_handAttachment != null)
+        {
+            // Use Hand Attachment as base
+            t = _handAttachment.GlobalTransform;
+
+            // Base orientation correction for the bone (bones often point Y-up or weirdly)
+            // We'll start with identity relative to bone and let calibration handle the rest, 
+            // but usually we need at least some adjustment. 
+            // Let's assume (0,0,0) for now and let the user calibrate.
+        }
+        else
+        {
+            // Fallback: Position relative to chest
+            Vector3 spawnPos = _currentPlayer.GlobalPosition + (_currentPlayer.GlobalBasis * (ChestOffset + new Vector3(0, 0, 0.5f)));
+
+            t = _currentPlayer.GlobalTransform;
+            t.Origin = spawnPos;
+            // Rotate 180 (Arrow orientation)
+            t.Basis = t.Basis.Rotated(Vector3.Up, Mathf.Pi);
+        }
+
+        // Apply Calibrated Offsets + Runtime Debug Offsets
+        Vector3 finalPos = _calibratedPos + DebugArrowOffsetPosition;
+        t.Origin += t.Basis * finalPos;
+
+        // Apply Calibrated Rotation + Runtime Debug Rotation
+        Vector3 finalRot = _calibratedRot + DebugArrowOffsetRotation;
+
+        if (finalRot != Vector3.Zero)
+        {
+            t.Basis = t.Basis.Rotated(t.Basis.X, Mathf.DegToRad(finalRot.X)); // Pitch
+            t.Basis = t.Basis.Rotated(t.Basis.Y, Mathf.DegToRad(finalRot.Y)); // Yaw
+            t.Basis = t.Basis.Rotated(t.Basis.Z, Mathf.DegToRad(finalRot.Z)); // Roll
+        }
 
         _arrow.GlobalTransform = t;
         // Note: No network sync here - arrow position syncs at Launch time via RPC
@@ -495,6 +533,39 @@ public partial class ArcherySystem : Node
             else
             {
 				GD.PrintErr("ArcherySystem: Registered Local Player but could NOT find Camera!");
+            }
+
+            // Find ErikaBow and setup BoneAttachment
+			var erikaBow = player.GetNodeOrNull<Node3D>("ErikaBow");
+            if (erikaBow != null)
+            {
+				var skeleton = erikaBow.GetNodeOrNull<Skeleton3D>("Skeleton3D");
+                if (skeleton != null)
+                {
+                    // Check if already exists (prevent duplicate on re-register)
+					_handAttachment = skeleton.GetNodeOrNull<BoneAttachment3D>("RightHandArrowAttachment");
+
+                    if (_handAttachment == null)
+                    {
+                        _handAttachment = new BoneAttachment3D();
+						_handAttachment.Name = "RightHandArrowAttachment";
+						_handAttachment.BoneName = "mixamorig_RightHand";
+                        skeleton.AddChild(_handAttachment);
+						GD.Print("ArcherySystem: Created RightHandArrowAttachment on ErikaBow skeleton.");
+                    }
+                    else
+                    {
+						GD.Print("ArcherySystem: Found existing RightHandArrowAttachment.");
+                    }
+                }
+                else
+                {
+					GD.PrintErr("ArcherySystem: ErikaBow found but NO Skeleton3D!");
+                }
+            }
+            else
+            {
+				GD.PrintErr("ArcherySystem: Could not find ErikaBow for hand attachment!");
             }
         }
     }

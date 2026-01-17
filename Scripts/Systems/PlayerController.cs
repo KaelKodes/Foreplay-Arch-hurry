@@ -59,7 +59,11 @@ public partial class PlayerController : CharacterBody3D
     private MainHUDController _hud;
     private MeleeSystem _meleeSystem;
     private AnimationTree _animTree;
-    private AnimationPlayer _animPlayer;
+    private AnimationPlayer _animPlayer; // Current
+    private AnimationPlayer _meleeAnimPlayer;
+    private AnimationPlayer _archeryAnimPlayer;
+    private Node3D _meleeModel;
+    private Node3D _archeryModel;
     private bool _isJumping = false;
 
     public int SynchronizedTool
@@ -78,6 +82,7 @@ public partial class PlayerController : CharacterBody3D
     private ToolType _currentTool = ToolType.None;
     private SwordController _sword;
     private float _inputCooldown = 0.0f;
+    private Archery.DrawStage _lastArcheryStage = Archery.DrawStage.Idle;
 
     public override void _EnterTree()
     {
@@ -115,8 +120,14 @@ public partial class PlayerController : CharacterBody3D
         _animTree = GetNodeOrNull<AnimationTree>(AnimationTreePath);
         if (_animTree == null) _animTree = GetNodeOrNull<AnimationTree>("AnimationTree");
 
-        _animPlayer = GetNodeOrNull<AnimationPlayer>("Erika/AnimationPlayer");
-        if (_animPlayer == null) _animPlayer = GetNodeOrNull<AnimationPlayer>("AnimationPlayer");
+        _meleeModel = GetNodeOrNull<Node3D>("Erika");
+        _archeryModel = GetNodeOrNull<Node3D>("ErikaBow");
+
+        _meleeAnimPlayer = GetNodeOrNull<AnimationPlayer>("Erika/AnimationPlayer");
+        _archeryAnimPlayer = GetNodeOrNull<AnimationPlayer>("ErikaBow/AnimationPlayer");
+
+        // Default to Melee
+        _animPlayer = _meleeAnimPlayer;
 
         GD.Print($"[PlayerController] Anim Resolve: Player={(_animPlayer != null)}, Tree={(_animTree != null)}");
 
@@ -235,20 +246,25 @@ public partial class PlayerController : CharacterBody3D
         {
             case ToolType.Bow:
                 _archerySystem?.EnterCombatMode();
+                SetModelMode(true);
                 break;
             case ToolType.Sword:
                 _meleeSystem?.EnterMeleeMode();
+                SetModelMode(false);
                 break;
             case ToolType.Hammer:
                 _archerySystem?.EnterBuildMode();
                 _hud?.SetBuildTool(MainHUDController.BuildTool.Selection);
+                SetModelMode(false);
                 break;
             case ToolType.Shovel:
                 _archerySystem?.EnterBuildMode();
                 _hud?.SetBuildTool(MainHUDController.BuildTool.Survey);
+                SetModelMode(false);
                 break;
             case ToolType.None:
                 CurrentState = PlayerState.WalkMode;
+                SetModelMode(false);
                 break;
         }
 
@@ -256,6 +272,24 @@ public partial class PlayerController : CharacterBody3D
         if (_sword != null)
         {
             _sword.Visible = (_currentTool == ToolType.Sword);
+        }
+    }
+
+    private void SetModelMode(bool archery)
+    {
+        if (_meleeModel != null) _meleeModel.Visible = !archery;
+        if (_archeryModel != null) _archeryModel.Visible = archery;
+
+        // Switch AnimationTree Target
+        if (archery && _archeryAnimPlayer != null)
+        {
+            _animTree.SetAnimationPlayer(_archeryAnimPlayer.GetPath());
+            _animPlayer = _archeryAnimPlayer;
+        }
+        else if (!archery && _meleeAnimPlayer != null)
+        {
+            _animTree.SetAnimationPlayer(_meleeAnimPlayer.GetPath());
+            _animPlayer = _meleeAnimPlayer;
         }
     }
 
@@ -641,6 +675,20 @@ public partial class PlayerController : CharacterBody3D
         _animTree.Set("parameters/conditions/is_archery", CurrentState == PlayerState.CombatArcher);
         _animTree.Set("parameters/conditions/is_melee", isMelee);
         _animTree.Set("parameters/conditions/is_not_melee", !isMelee);
+        _animTree.Set("parameters/conditions/is_not_archery", CurrentState != PlayerState.CombatArcher);
+
+        if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
+        {
+            // Drive Archery Aim Blend (Movement)
+            _animTree.Set("parameters/ArcheryAim/blend_position", blendPos);
+
+            // Pulse 'is_firing' only on the frame we enter Executing state
+            var currentStage = _archerySystem.CurrentStage;
+            bool justFired = (currentStage == Archery.DrawStage.Executing && _lastArcheryStage != Archery.DrawStage.Executing);
+            _animTree.Set("parameters/conditions/is_firing", justFired);
+
+            _lastArcheryStage = currentStage;
+        }
     }
 
     private void HandleProximityPrompts(double delta)
