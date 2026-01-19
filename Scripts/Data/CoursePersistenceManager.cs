@@ -80,17 +80,25 @@ public partial class CoursePersistenceManager
 
             if (node is InteractableObject obj)
             {
-                // Check if it's a wrapper with a GLTF model
-                if (string.IsNullOrEmpty(obj.SceneFilePath))
+                // Prioritize the direct ModelPath if it exists (covers MOBA assets and runtime wrappers)
+                if (!string.IsNullOrEmpty(obj.ModelPath))
+                {
+                    objData = new LevelObjectData();
+                    objData.ObjectName = obj.ObjectName;
+                    objData.ModelPath = obj.ModelPath;
+                }
+                // Fallback for older wrapper style or nested models
+                else if (string.IsNullOrEmpty(obj.SceneFilePath))
                 {
                     foreach (var child in obj.GetChildren())
                     {
-                        if (!string.IsNullOrEmpty(child.SceneFilePath) &&
-                           (child.SceneFilePath.EndsWith(".gltf") || child.SceneFilePath.EndsWith(".glb")))
+                        string childPath = child.SceneFilePath;
+                        if (!string.IsNullOrEmpty(childPath) &&
+                           (childPath.EndsWith(".gltf") || childPath.EndsWith(".glb") || childPath.EndsWith(".fbx")))
                         {
                             objData = new LevelObjectData();
                             objData.ObjectName = obj.ObjectName;
-                            objData.ModelPath = child.SceneFilePath;
+                            objData.ModelPath = childPath;
                             break;
                         }
                     }
@@ -252,22 +260,17 @@ public partial class CoursePersistenceManager
                     Node3D node = null;
 
                     // Helper similar to HUD logic to wrap GLTF or use Scene
-                    if (!string.IsNullOrEmpty(objData.ModelPath) || spawnPath.EndsWith(".gltf") || spawnPath.EndsWith(".glb"))
+                    if (!string.IsNullOrEmpty(objData.ModelPath) || spawnPath.EndsWith(".gltf") || spawnPath.EndsWith(".glb") || spawnPath.EndsWith(".fbx"))
                     {
                         var model = scene.Instantiate();
                         var container = new InteractableObject(); // Base wrapper
                         container.ObjectName = objData.ObjectName;
+                        container.ModelPath = spawnPath;
                         container.AddChild(model);
 
-                        // Add collider helper if needed (borrowed from HUD logic)
-                        // Verify if model already has collision? Likely not for GLTF.
-                        var staticBody = new StaticBody3D();
-                        var col = new CollisionShape3D();
-                        var sphere = new SphereShape3D();
-                        sphere.Radius = 1.0f;
-                        col.Shape = sphere;
-                        staticBody.AddChild(col);
-                        container.AddChild(staticBody);
+                        // Use dynamic collision which handles AABB calculation
+                        // Use dynamic collision which handles AABB calculation
+                        container.AddDynamicCollision();
 
                         node = container;
                     }

@@ -9,7 +9,7 @@ public partial class DatabaseManager : Node
 
     public override void _Ready()
     {
-        _dbPath = Path.Combine(ProjectSettings.GlobalizePath("user://"), "golf_rpg.db");
+        _dbPath = Path.Combine(ProjectSettings.GlobalizePath("user://"), "arch_hurry.db");
         InitializeDatabase();
     }
 
@@ -22,69 +22,69 @@ public partial class DatabaseManager : Node
             var command = connection.CreateCommand();
             command.CommandText =
             @"
-                CREATE TABLE IF NOT EXISTS PlayerStats (
+                CREATE TABLE IF NOT EXISTS Characters (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Power INTEGER DEFAULT 4,
-                    Control INTEGER DEFAULT 10,
-                    Touch INTEGER DEFAULT 10,
-                    Consistency INTEGER DEFAULT 10,
-                    Focus INTEGER DEFAULT 10,
-                    Temper INTEGER DEFAULT 10,
-                    IsRightHanded INTEGER DEFAULT 1,
-                    Anger REAL DEFAULT 0.0
+                    Name TEXT DEFAULT 'Archer',
+                    Level INTEGER DEFAULT 1,
+                    Experience INTEGER DEFAULT 0,
+                    Gold INTEGER DEFAULT 0,
+                    Strength INTEGER DEFAULT 10,
+                    Agility INTEGER DEFAULT 10,
+                    Dexterity INTEGER DEFAULT 10,
+                    Vitality INTEGER DEFAULT 10,
+                    Intelligence INTEGER DEFAULT 10,
+                    MaxHealth INTEGER DEFAULT 100,
+                    CurrentHealth INTEGER DEFAULT 100,
+                    MaxStamina INTEGER DEFAULT 100,
+                    CurrentStamina INTEGER DEFAULT 100,
+                    IsRightHanded INTEGER DEFAULT 1
                 );
 
-                CREATE TABLE IF NOT EXISTS PlayerSkills (
+                CREATE TABLE IF NOT EXISTS Inventory (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Driving REAL DEFAULT 0.0,
-                    Approach REAL DEFAULT 0.0,
-                    Putting REAL DEFAULT 0.0,
-                    Chipping REAL DEFAULT 0.0,
-                    Pitching REAL DEFAULT 0.0,
-                    Lobbing REAL DEFAULT 0.0,
-                    Accuracy REAL DEFAULT 0.0,
-                    SwingForgiveness REAL DEFAULT 0.0,
-                    AngerControl REAL DEFAULT 0.0
+                    CharacterId INTEGER,
+                    ItemName TEXT,
+                    ItemType TEXT,
+                    Quantity INTEGER DEFAULT 1,
+                    SlotIndex INTEGER,
+                    Data TEXT,
+                    FOREIGN KEY(CharacterId) REFERENCES Characters(Id)
                 );
 
-                CREATE TABLE IF NOT EXISTS Clubs (
+                CREATE TABLE IF NOT EXISTS Quests (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Name TEXT,
-                    Type TEXT,
-                    Tier TEXT,
-                    Mastery REAL DEFAULT 0.0,
-                    Durability REAL DEFAULT 100.0,
-                    Condition TEXT DEFAULT 'Good'
+                    QuestKey TEXT UNIQUE,
+                    Status INTEGER DEFAULT 0,
+                    CurrentStep INTEGER DEFAULT 0
                 );
 
-                -- Initialize default records if empty
-                INSERT INTO PlayerStats (Id) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM PlayerStats WHERE Id = 1);
-                INSERT INTO PlayerSkills (Id) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM PlayerSkills WHERE Id = 1);
+                CREATE TABLE IF NOT EXISTS WorldState (
+                    Key TEXT PRIMARY KEY,
+                    Value TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS GalleryAssets (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Name TEXT UNIQUE,
+                    Path TEXT,
+                    MainCategory TEXT,
+                    SubCategory TEXT
+                );
+
+                -- Initialize default character if empty
+                INSERT INTO Characters (Id) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM Characters WHERE Id = 1);
             ";
             command.ExecuteNonQuery();
 
-            // Migration check for IsRightHanded if table already existed
+            // Migration: Check for legacy tables and drop them if requested (optional/safe)
+            // For now, we just ensure the new ones exist. 
+            // We could also drop the old ones if we are 100% sure we are in 'Arch Hurry' now.
             try
             {
-                command.CommandText = "ALTER TABLE PlayerStats ADD COLUMN IsRightHanded INTEGER DEFAULT 1";
+                command.CommandText = "DROP TABLE IF EXISTS PlayerStats; DROP TABLE IF EXISTS PlayerSkills; DROP TABLE IF EXISTS Clubs;";
                 command.ExecuteNonQuery();
             }
-            catch (Exception) { /* Column already exists */ }
-
-            try
-            {
-                command.CommandText = "ALTER TABLE PlayerStats ADD COLUMN Anger REAL DEFAULT 0.0";
-                command.ExecuteNonQuery();
-            }
-            catch (Exception) { /* Column already exists */ }
-
-            // Reset Power to new calibrated baseline (5)
-            try
-            {
-                command.CommandText = "UPDATE PlayerStats SET Power = 4 WHERE Id = 1";
-                command.ExecuteNonQuery();
-            }
-            catch (Exception) { }
+            catch (Exception) { /* Already gone or failed */ }
         }
         GD.Print($"Database initialized at: {_dbPath}");
     }

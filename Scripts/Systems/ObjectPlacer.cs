@@ -12,6 +12,7 @@ public partial class ObjectPlacer : Node
     private Vector3 _originalRotation; // Vector3 (Euler)
     private bool _isNewObject = false;
     private string _originalObjectName = ""; // Tracks original for networked move
+    private System.Collections.Generic.Dictionary<string, Vector3> _lastScales = new System.Collections.Generic.Dictionary<string, Vector3>();
 
     // Placement State
     private float _currentRotationY = 0.0f;
@@ -60,11 +61,44 @@ public partial class ObjectPlacer : Node
         {
             obj.GlobalPosition = camera.GlobalPosition + camera.ProjectRayNormal(GetViewport().GetMousePosition()) * 5.0f;
         }
+
+        // Apply persistent scale if we have one for this object type
+        bool isTower = obj.ObjectName.ToLower().Contains("watch+tower");
+        if (_lastScales.ContainsKey(obj.ObjectName))
+        {
+            Vector3 storedScale = _lastScales[obj.ObjectName];
+
+            // Special Rule: If it's a tower and the stored scale is roughly "default" (0.6 - 1.2),
+            // override it with the new preferred default (0.42).
+            // This catches cases where user placed it at 1.0 or 0.65 previously.
+            if (isTower && (storedScale.X > 0.6f && storedScale.X < 1.2f))
+            {
+                obj.Scale = new Vector3(0.42f, 0.42f, 0.42f);
+                // Update the memory too so it sticks
+                _lastScales[obj.ObjectName] = obj.Scale;
+            }
+            else
+            {
+                obj.Scale = storedScale;
+            }
+            GD.Print($"ObjectPlacer: Re-applying last used scale ({obj.Scale}) for {obj.ObjectName}");
+        }
+        else if (isTower)
+        {
+            // Default smaller size for towers as requested (first time placement)
+            obj.Scale = new Vector3(0.42f, 0.42f, 0.42f);
+        }
     }
 
     public void ConfirmPlacement()
     {
         if (_currentObject == null) return;
+
+        // Save scale for next time we place this object type
+        _lastScales[_currentObject.ObjectName] = _currentObject.Scale;
+
+        // DEBUG: Print exact details for user feedback
+        GD.Print($"[PLACEMENT] Object: {_currentObject.ObjectName} | Scale: {_currentObject.Scale} | Pos: {_currentObject.GlobalPosition}");
 
         // Enforce Single-Instance Rule for Tee and Pin
         bool isTee = _currentObject.ObjectName.Contains("Tee");

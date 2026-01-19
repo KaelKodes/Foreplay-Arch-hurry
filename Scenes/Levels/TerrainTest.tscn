@@ -1,16 +1,10 @@
-[gd_scene load_steps=21 format=3 uid="uid://y3rxus5eavjb"]
+[gd_scene load_steps=11 format=3 uid="uid://y3rxus5eavjb"]
 
-[ext_resource type="Script" path="res://Scripts/Systems/ArcherySystem.cs" id="1_swing"]
-[ext_resource type="PackedScene" uid="uid://b5k8q8q8q8q8" path="res://Scenes/Entities/Arrow.tscn" id="2_ball"]
 [ext_resource type="PackedScene" uid="uid://c6u7q8q8q8q8" path="res://Scenes/UI/HUD.tscn" id="3_hud_scene"]
-[ext_resource type="Script" uid="uid://nxdsvm1xh80" path="res://Scripts/Systems/CameraController.cs" id="5_camera"]
 [ext_resource type="PackedScene" uid="uid://dmsk8j8j8j8j" path="res://Scenes/Environment/DistanceMarker.tscn" id="6_marker"]
 [ext_resource type="Script" uid="uid://c6nnxkn1no5sy" path="res://Scripts/Systems/WindSystem.cs" id="7_wind"]
-[ext_resource type="Script" uid="uid://c78rj73wym8kb" path="res://Scripts/Systems/PlayerController.cs" id="9_player"]
-[ext_resource type="Script" uid="uid://dray5mi350m3q" path="res://Scripts/Systems/AimAssist.cs" id="10_aim"]
 [ext_resource type="Script" uid="uid://cqv2uyvt2dx6d" path="res://Scripts/Systems/HeightmapTerrain.cs" id="11_terrain"]
-[ext_resource type="Script" path="res://Scripts/Systems/MeleeSystem.cs" id="12_melee"]
-[ext_resource type="Script" path="res://Scripts/Systems/LevelInitializer.cs" id="13_init"]
+[ext_resource type="Script" uid="uid://b8us01i657vj3" path="res://Scripts/Systems/LevelInitializer.cs" id="13_init"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.384314, 0.454902, 0.54902, 1)
@@ -29,37 +23,6 @@ albedo_color = Color(0.1, 0.4, 0.1, 1)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rough"]
 albedo_color = Color(0.2, 0.35, 0.2, 1)
-
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_Player"]
-radius = 0.3
-height = 1.8
-
-[sub_resource type="StandardMaterial3D" id="Mat_AimLine"]
-transparency = 1
-albedo_color = Color(0, 0.5, 1, 0.5)
-emission_enabled = true
-emission = Color(0, 0.5, 1, 1)
-emission_energy_multiplier = 2.0
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_AimLine"]
-material = SubResource("Mat_AimLine")
-top_radius = 0.05
-bottom_radius = 0.05
-height = 1.0
-
-[sub_resource type="StandardMaterial3D" id="Mat_Marker"]
-transparency = 1
-albedo_color = Color(1, 0, 0, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_Marker"]
-material = SubResource("Mat_Marker")
-top_radius = 2.0
-bottom_radius = 2.0
-height = 0.05
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_Avatar"]
-radius = 0.25
-height = 1.8
 
 [node name="TerrainTest" type="Node3D"]
 
@@ -165,23 +128,18 @@ radius = 0.02
 height = 3.0
 material = SubResource("StandardMaterial3D_tee")
 
-
-
 [node name="WindSystem" type="Node" parent="."]
 script = ExtResource("7_wind")
 
-
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
-_spawnable_scenes = PackedStringArray("res://Scenes/Entities/Player.tscn")
+_spawnable_scenes = PackedStringArray("uid://d2gs8xu75xew3")
 spawn_path = NodePath("..")
 
 [node name="Projectiles" type="Node3D" parent="."]
 
 [node name="ProjectileSpawner" type="MultiplayerSpawner" parent="."]
-_spawnable_scenes = PackedStringArray("res://Scenes/Entities/Arrow.tscn")
+_spawnable_scenes = PackedStringArray("uid://b5k8q8q8q8q8")
 spawn_path = NodePath("../Projectiles")
-
-
 
 [node name="HUD" parent="." instance=ExtResource("3_hud_scene")]
 PlayerPath = NodePath("")

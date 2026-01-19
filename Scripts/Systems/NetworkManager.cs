@@ -326,7 +326,7 @@ public partial class NetworkManager : Node
         // Directly instantiate (don't use spawner to avoid tracker issues)
         Node obj = null;
 
-		if (resourcePath.EndsWith(".gltf"))
+		if (resourcePath.EndsWith(".gltf") || resourcePath.EndsWith(".fbx") || resourcePath.EndsWith(".glb"))
         {
             if (!ResourceLoader.Exists(resourcePath))
             {
@@ -343,13 +343,7 @@ public partial class NetworkManager : Node
             wrapper.ModelPath = resourcePath;
             wrapper.AddChild(model);
 
-            var staticBody = new StaticBody3D();
-            var col = new CollisionShape3D();
-            var sphere = new SphereShape3D();
-            sphere.Radius = 1.0f;
-            col.Shape = sphere;
-            staticBody.AddChild(col);
-            wrapper.AddChild(staticBody);
+            wrapper.AddDynamicCollision();
 
             obj = wrapper;
         }
@@ -744,7 +738,7 @@ public partial class NetworkManager : Node
             // OBJECT Spawn Logic (Original)
 			string path = (string)data["path"];
             // Logic similar to MainHUDController selection
-			if (path.EndsWith(".gltf"))
+			if (path.EndsWith(".gltf") || path.EndsWith(".fbx") || path.EndsWith(".glb"))
             {
                 // GLTF Direct Load
                 if (!ResourceLoader.Exists(path))
@@ -765,14 +759,8 @@ public partial class NetworkManager : Node
                 wrapper.ModelPath = path; // Preserve it for persistence
                 wrapper.AddChild(model);
 
-                // Collision
-                var staticBody = new StaticBody3D();
-                var col = new CollisionShape3D();
-                var sphere = new SphereShape3D();
-                sphere.Radius = 1.0f;
-                col.Shape = sphere;
-                staticBody.AddChild(col);
-                wrapper.AddChild(staticBody);
+                // Collision handled dynamically
+                wrapper.AddDynamicCollision();
 
                 obj = wrapper;
             }

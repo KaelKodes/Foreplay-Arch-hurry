@@ -20,20 +20,66 @@ public static class ObjectGalleryData
     /// <summary>
     /// Main categories for the object gallery.
     /// </summary>
-    public static readonly string[] MainCategories = { "Nature", "Structures", "Furniture", "Decor", "Utility", "Misc" };
+    public static readonly string[] MainCategories = { "Nature", "Structures", "Furniture", "Decor", "Utility", "MOBA", "Misc" };
 
     /// <summary>
-    /// Scans and returns all available assets for the gallery.
+    /// Returns all available assets for the gallery from the SQL database.
     /// </summary>
-    public static List<ObjectAsset> ScanAssets()
+    public static List<ObjectAsset> GetAssets()
     {
         var assets = new List<ObjectAsset>();
+        try
+        {
+            using (var connection = DatabaseManager.GetConnection())
+            {
+                connection.Open();
+                var command = connection.CreateCommand();
+                command.CommandText = "SELECT Name, Path, MainCategory, SubCategory FROM GalleryAssets ORDER BY MainCategory, SubCategory, Name";
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        assets.Add(new ObjectAsset
+                        {
+                            Name = reader.GetString(0),
+                            Path = reader.GetString(1),
+                            MainCategory = reader.GetString(2),
+                            SubCategory = reader.GetString(3)
+                        });
+                    }
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            GD.PrintErr($"ObjectGalleryData: Failed to fetch assets: {e.Message}");
+        }
 
+        // If DB is empty, trigger a sync and retry once
+        if (assets.Count == 0)
+        {
+            GD.Print("ObjectGalleryData: Asset DB empty. Synchronizing...");
+            SyncAssetsToDB();
+            return GetAssets(); // Recursion once
+        }
+
+        return assets;
+    }
+
+    /// <summary>
+    /// Scans the filesystem and indexes assets into the SQL database.
+    /// This should be called once on game start or when the library changes.
+    /// </summary>
+    public static void SyncAssetsToDB()
+    {
+        var discoveredAssets = new List<ObjectAsset>();
+
+        // 1. Add procedural/virtual assets (not file-based)
         // Utility - Markers
-        assets.Add(new ObjectAsset { Name = "TeePin", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
-        assets.Add(new ObjectAsset { Name = "Pin", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
-        assets.Add(new ObjectAsset { Name = "DistanceSign", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
-        assets.Add(new ObjectAsset { Name = "CourseMap", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
+        discoveredAssets.Add(new ObjectAsset { Name = "TeePin", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
+        discoveredAssets.Add(new ObjectAsset { Name = "Pin", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
+        discoveredAssets.Add(new ObjectAsset { Name = "DistanceSign", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
+        discoveredAssets.Add(new ObjectAsset { Name = "CourseMap", MainCategory = "Utility", SubCategory = "Markers", Path = "" });
 
         // Utility - Combat (Monsters)
         string[] monsters = {
@@ -48,13 +94,13 @@ public static class ObjectGalleryData
         };
         foreach (var m in monsters)
         {
-            assets.Add(new ObjectAsset { Name = m, MainCategory = "Utility", SubCategory = "Combat", Path = "" });
+            discoveredAssets.Add(new ObjectAsset { Name = m, MainCategory = "Utility", SubCategory = "Combat", Path = "" });
         }
 
-        // Monsters with dedicated scenes (not using generic Monster.tscn)
-        assets.Add(new ObjectAsset { Name = "Zombie", MainCategory = "Utility", SubCategory = "Combat", Path = "res://Scenes/Entities/Zombie.tscn" });
+        // Monsters with dedicated scenes
+        discoveredAssets.Add(new ObjectAsset { Name = "Zombie", MainCategory = "Utility", SubCategory = "Combat", Path = "res://Scenes/Entities/Zombie.tscn" });
 
-        // Scan filesystem for GLTF assets
+        // 2. Scan filesystem
         string[] searchPaths = {
             "res://Assets/Textures/NatureObjects/",
             "res://Assets/Textures/ManObjects/",
@@ -70,15 +116,16 @@ public static class ObjectGalleryData
                 string fileName = dir.GetNext();
                 while (fileName != "")
                 {
-                    if (fileName.EndsWith(".gltf") || fileName.EndsWith(".gltf.remap") || fileName.EndsWith(".gltf.import"))
+                    if (fileName.EndsWith(".gltf") || fileName.EndsWith(".gltf.remap") || fileName.EndsWith(".gltf.import") ||
+                        fileName.EndsWith(".fbx") || fileName.EndsWith(".fbx.import"))
                     {
                         string logicalName = fileName.Replace(".remap", "").Replace(".import", "");
-                        string cleanName = logicalName.Replace(".gltf", "");
+                        string cleanName = logicalName.Replace(".gltf", "").Replace(".fbx", "");
 
-                        if (!assets.Exists(a => a.Name == cleanName))
+                        if (!discoveredAssets.Exists(a => a.Name == cleanName))
                         {
                             var (main, sub) = GetAssetCategories(cleanName);
-                            assets.Add(new ObjectAsset
+                            discoveredAssets.Add(new ObjectAsset
                             {
                                 Name = cleanName,
                                 Path = path + logicalName,
@@ -92,8 +139,43 @@ public static class ObjectGalleryData
             }
         }
 
-        GD.Print($"ObjectGalleryData: Scanned {assets.Count} assets.");
-        return assets;
+        // 3. Update Database
+        try
+        {
+            using (var connection = DatabaseManager.GetConnection())
+            {
+                connection.Open();
+                using (var transaction = connection.BeginTransaction())
+                {
+                    // Clear old entries (simple approach) or upsert
+                    var deleteCmd = connection.CreateCommand();
+                    deleteCmd.CommandText = "DELETE FROM GalleryAssets";
+                    deleteCmd.ExecuteNonQuery();
+
+                    var insertCmd = connection.CreateCommand();
+                    insertCmd.CommandText = "INSERT INTO GalleryAssets (Name, Path, MainCategory, SubCategory) VALUES (@name, @path, @main, @sub)";
+                    var pName = insertCmd.Parameters.Add("@name", Microsoft.Data.Sqlite.SqliteType.Text);
+                    var pPath = insertCmd.Parameters.Add("@path", Microsoft.Data.Sqlite.SqliteType.Text);
+                    var pMain = insertCmd.Parameters.Add("@main", Microsoft.Data.Sqlite.SqliteType.Text);
+                    var pSub = insertCmd.Parameters.Add("@sub", Microsoft.Data.Sqlite.SqliteType.Text);
+
+                    foreach (var asset in discoveredAssets)
+                    {
+                        pName.Value = asset.Name;
+                        pPath.Value = asset.Path;
+                        pMain.Value = asset.MainCategory;
+                        pSub.Value = asset.SubCategory;
+                        insertCmd.ExecuteNonQuery();
+                    }
+                    transaction.Commit();
+                }
+            }
+            GD.Print($"ObjectGalleryData: Synchronized {discoveredAssets.Count} assets to SQL.");
+        }
+        catch (System.Exception e)
+        {
+            GD.PrintErr($"ObjectGalleryData: Sync failure: {e.Message}");
+        }
     }
 
     /// <summary>
@@ -128,6 +210,10 @@ public static class ObjectGalleryData
         if (name.Contains("banner") || name.Contains("flag") || name.Contains("shield") || name.Contains("sword") || name.Contains("weapon") || name.Contains("keyring")) return ("Decor", "Military");
         if (name.Contains("bottle") || name.Contains("plate") || name.Contains("cup") || name.Contains("coin") || name.Contains("key") || name.Contains("book") || name.Contains("food")) return ("Decor", "Items");
         if (name.Contains("prop") || name.Contains("cart") || name.Contains("wagon")) return ("Decor", "Misc");
+
+        // MOBA
+        if (name.Contains("watch+tower")) return ("MOBA", "Towers");
+        if (name.Contains("mine_mesh")) return ("MOBA", "Nexus");
 
         return ("Misc", "General");
     }

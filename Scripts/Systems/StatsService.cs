@@ -16,16 +16,24 @@ public partial class StatsService : Node
             {
                 connection.Open();
                 var command = connection.CreateCommand();
-                command.CommandText = "SELECT Power, Control, Touch, IsRightHanded, Anger FROM PlayerStats WHERE Id = 1";
+                command.CommandText = "SELECT Level, Experience, Gold, Strength, Agility, Dexterity, Vitality, Intelligence, MaxHealth, CurrentHealth, MaxStamina, CurrentStamina, IsRightHanded FROM Characters WHERE Id = 1";
                 using (var reader = command.ExecuteReader())
                 {
                     if (reader.Read())
                     {
-                        _playerStats.Power = reader.GetInt32(0);
-                        _playerStats.Control = reader.GetInt32(1);
-                        _playerStats.Touch = reader.GetInt32(2);
-                        _playerStats.IsRightHanded = reader.GetInt32(3) == 1;
-                        _playerStats.Anger = reader.IsDBNull(4) ? 0 : (float)reader.GetDouble(4);
+                        _playerStats.Level = reader.GetInt32(0);
+                        _playerStats.Experience = reader.GetInt32(1);
+                        _playerStats.Gold = reader.GetInt32(2);
+                        _playerStats.Strength = reader.GetInt32(3);
+                        _playerStats.Agility = reader.GetInt32(4);
+                        _playerStats.Dexterity = reader.GetInt32(5);
+                        _playerStats.Vitality = reader.GetInt32(6);
+                        _playerStats.Intelligence = reader.GetInt32(7);
+                        _playerStats.MaxHealth = reader.GetInt32(8);
+                        _playerStats.CurrentHealth = reader.GetInt32(9);
+                        _playerStats.MaxStamina = reader.GetInt32(10);
+                        _playerStats.CurrentStamina = reader.GetInt32(11);
+                        _playerStats.IsRightHanded = reader.GetInt32(12) == 1;
                     }
                 }
             }
@@ -44,8 +52,27 @@ public partial class StatsService : Node
             {
                 connection.Open();
                 var command = connection.CreateCommand();
-                command.CommandText = "UPDATE PlayerStats SET Anger = @anger WHERE Id = 1";
-                command.Parameters.AddWithValue("@anger", _playerStats.Anger);
+                command.CommandText = @"UPDATE Characters SET 
+                    Level = @lvl, Experience = @xp, Gold = @gold,
+                    Strength = @str, Agility = @agi, Dexterity = @dex,
+                    Vitality = @vit, Intelligence = @int,
+                    MaxHealth = @mhp, CurrentHealth = @chp,
+                    MaxStamina = @mst, CurrentStamina = @cst
+                    WHERE Id = 1";
+
+                command.Parameters.AddWithValue("@lvl", _playerStats.Level);
+                command.Parameters.AddWithValue("@xp", _playerStats.Experience);
+                command.Parameters.AddWithValue("@gold", _playerStats.Gold);
+                command.Parameters.AddWithValue("@str", _playerStats.Strength);
+                command.Parameters.AddWithValue("@agi", _playerStats.Agility);
+                command.Parameters.AddWithValue("@dex", _playerStats.Dexterity);
+                command.Parameters.AddWithValue("@vit", _playerStats.Vitality);
+                command.Parameters.AddWithValue("@int", _playerStats.Intelligence);
+                command.Parameters.AddWithValue("@mhp", _playerStats.MaxHealth);
+                command.Parameters.AddWithValue("@chp", _playerStats.CurrentHealth);
+                command.Parameters.AddWithValue("@mst", _playerStats.MaxStamina);
+                command.Parameters.AddWithValue("@cst", _playerStats.CurrentStamina);
+
                 command.ExecuteNonQuery();
             }
         }
@@ -57,17 +84,6 @@ public partial class StatsService : Node
 
     public void UpdateAnger(float accuracyError)
     {
-        float error = Math.Abs(accuracyError);
-        // Tolerance: +/- 5 units from 25
-        if (error > 5.0f)
-        {
-            _playerStats.Anger += 1.0f * (error - 5.0f);
-        }
-        else
-        {
-            _playerStats.Anger -= 5.0f;
-        }
-        _playerStats.Anger = Mathf.Clamp(_playerStats.Anger, 0, 100);
-        SavePlayerProgress();
+        // Legacy anger mechanic from golf era - disabled for Arch Hurry
     }
 }

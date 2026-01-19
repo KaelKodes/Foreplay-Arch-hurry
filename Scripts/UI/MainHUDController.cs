@@ -126,7 +126,7 @@ public partial class MainHUDController : CanvasLayer
 
 		// Tool button connections moved to BuildHUDController
 
-		ScanAssets();
+		_allAssets = ObjectGalleryData.GetAssets();
 		InitializeCategories();
 
 		if (_archerySystem != null)
@@ -296,14 +296,14 @@ public partial class MainHUDController : CanvasLayer
 		GD.Print($"Selected Object to Place: {objectId}");
 
 		string scenePath = "";
-		bool isDirectGltf = false;
+		bool isModelFile = false;
 
 		var asset = _allAssets.Find(a => a.Name == objectId);
 		if (!string.IsNullOrEmpty(asset.Path))
 		{
 			scenePath = asset.Path;
-			// Only treat as direct GLTF if it's actually a .gltf file, not a .tscn scene
-            isDirectGltf = asset.Path.EndsWith(".gltf") || asset.Path.EndsWith(".glb");
+			// Only treat as direct GLTF/FBX if it's a raw model file
+            isModelFile = asset.Path.EndsWith(".gltf") || asset.Path.EndsWith(".glb") || asset.Path.EndsWith(".fbx");
         }
         else
         {
@@ -324,254 +324,254 @@ public partial class MainHUDController : CanvasLayer
             }
         }
 
-        if (string.IsNullOrEmpty(scenePath)) return;
+        InteractableObject obj = null;
 
-        if (isDirectGltf)
+        if (isModelFile)
         {
             var model = GD.Load<PackedScene>(scenePath).Instantiate();
-            var obj = new InteractableObject();
+            obj = new InteractableObject();
             obj.Name = objectId;
             obj.ObjectName = objectId;
             obj.ModelPath = scenePath;
             obj.AddChild(model);
 
-            // Add a simple collision if missing
-            var staticBody = new StaticBody3D();
-            var col = new CollisionShape3D();
-            var sphere = new SphereShape3D();
-            sphere.Radius = 1.0f;
-            col.Shape = sphere;
-            staticBody.AddChild(col);
-            obj.AddChild(staticBody);
-
-            if (_archerySystem != null && _archerySystem.ObjectPlacer != null)
-            {
-                _archerySystem.ObjectPlacer.SpawnAndPlace(obj);
-            }
+            // Dynamic Collision is now handled by InteractableObject._Ready or explicitly here
+            obj.AddDynamicCollision();
         }
         else
         {
             var scene = GD.Load<PackedScene>(scenePath);
-            if (_archerySystem != null && _archerySystem.ObjectPlacer != null)
-            {
-                var obj = scene.Instantiate<InteractableObject>();
-                obj.ObjectName = objectId;
-                obj.ModelPath = scenePath;
+            var instance = scene.Instantiate();
 
-                if (obj is Monster monster)
-                {
-                    monster.Species = ObjectGalleryData.ResolveMonsterSpecies(objectId);
-                }
+			// Safety check: if the root isn't an InteractableObject, wrap it
+			if (instance is not InteractableObject interactable)
+			{
+				GD.Print($"MainHUD: {objectId} root is {instance.GetType()}, wrapping in InteractableObject.");
+				var wrapper = new InteractableObject();
+				wrapper.Name = objectId;
+				wrapper.ObjectName = objectId;
+				wrapper.ModelPath = scenePath;
+				wrapper.AddChild(instance);
 
-                _archerySystem.ObjectPlacer.SpawnAndPlace(obj);
-            }
-        }
+				wrapper.AddDynamicCollision();
 
-        // Minimize gallery after selection - NUKED as requested
-        // SetGalleryExpanded(false);
-    }
+				obj = wrapper;
+			}
+			else
+			{
+				obj = interactable;
+				obj.ObjectName = objectId;
+				obj.ModelPath = scenePath;
+				if (obj is Monster monster)
+				{
+					monster.Species = ObjectGalleryData.ResolveMonsterSpecies(objectId);
+				}
+			}
+		}
 
-    private void OnResizeHandleGuiInput(InputEvent @event)
-    {
-        if (@event is InputEventMouseButton mb)
-        {
-            if (mb.ButtonIndex == MouseButton.Left)
-            {
-                _isResizing = mb.Pressed;
-                if (_isResizing)
-                {
-                    _resizeStartPos = GetViewport().GetMousePosition();
-                    _resizeStartSize = _objectGallery.Size;
-                }
-            }
-        }
-        else if (@event is InputEventMouseMotion mm && _isResizing)
-        {
-            Vector2 currentMousePos = GetViewport().GetMousePosition();
-            Vector2 diff = currentMousePos - _resizeStartPos;
-            Vector2 newSize = _resizeStartSize + diff;
+		if (obj != null && _archerySystem != null && _archerySystem.ObjectPlacer != null)
+		{
+			_archerySystem.ObjectPlacer.SpawnAndPlace(obj);
+		}
 
-            // Enforce minimums
-            newSize.X = Mathf.Max(newSize.X, 400);
-            newSize.Y = Mathf.Max(newSize.Y, 300);
+		// Minimize gallery after selection - NUKED as requested
+		// SetGalleryExpanded(false);
+	}
 
-            _objectGallery.Size = newSize;
-        }
-    }
+	private void OnResizeHandleGuiInput(InputEvent @event)
+	{
+		if (@event is InputEventMouseButton mb)
+		{
+			if (mb.ButtonIndex == MouseButton.Left)
+			{
+				_isResizing = mb.Pressed;
+				if (_isResizing)
+				{
+					_resizeStartPos = GetViewport().GetMousePosition();
+					_resizeStartSize = _objectGallery.Size;
+				}
+			}
+		}
+		else if (@event is InputEventMouseMotion mm && _isResizing)
+		{
+			Vector2 currentMousePos = GetViewport().GetMousePosition();
+			Vector2 diff = currentMousePos - _resizeStartPos;
+			Vector2 newSize = _resizeStartSize + diff;
 
-    private void SetGalleryExpanded(bool expanded)
-    {
-        _objectGallery.Visible = expanded;
-    }
+			// Enforce minimums
+			newSize.X = Mathf.Max(newSize.X, 400);
+			newSize.Y = Mathf.Max(newSize.Y, 300);
 
-    private void ScanAssets()
-    {
-        _allAssets = ObjectGalleryData.ScanAssets();
-    }
+			_objectGallery.Size = newSize;
+		}
+	}
 
-    private (string Main, string Sub) GetAssetCategories(string name)
-    {
-        return ObjectGalleryData.GetAssetCategories(name);
-    }
+	private void SetGalleryExpanded(bool expanded)
+	{
+		_objectGallery.Visible = expanded;
+	}
 
-    private void InitializeCategories()
-    {
-        CreateMainCategoryButtons();
-        SelectMainCategory("Nature"); // Default
-    }
+	// Category logic now uses ObjectGalleryData methods directly or fetches via GetAssets()
 
-    private void CreateMainCategoryButtons()
-    {
-        // Clear existing
-        foreach (Node child in _mainCategoryContainer.GetChildren()) child.QueueFree();
+	private void InitializeCategories()
+	{
+		CreateMainCategoryButtons();
+		SelectMainCategory("Nature"); // Default
+	}
 
-        string[] categories = ObjectGalleryData.MainCategories;
-        foreach (var cat in categories)
-        {
-            var btn = new Button { Text = cat };
-            btn.CustomMinimumSize = new Vector2(90, 35);
-            btn.Pressed += () => SelectMainCategory(cat);
-            _mainCategoryContainer.AddChild(btn);
-        }
-    }
+	private void CreateMainCategoryButtons()
+	{
+		// Clear existing
+		foreach (Node child in _mainCategoryContainer.GetChildren()) child.QueueFree();
 
-    private void SelectMainCategory(string mainCategory)
-    {
-        _currentMainCategory = mainCategory;
-        UpdateSubCategoryButtons(mainCategory);
+		string[] categories = ObjectGalleryData.MainCategories;
+		foreach (var cat in categories)
+		{
+			var btn = new Button { Text = cat };
+			btn.CustomMinimumSize = new Vector2(90, 35);
+			btn.Pressed += () => SelectMainCategory(cat);
+			_mainCategoryContainer.AddChild(btn);
+		}
+	}
 
-        // Auto-select first available subcategory
-        var firstSub = _allAssets.Find(a => a.MainCategory == mainCategory).SubCategory;
-        if (string.IsNullOrEmpty(firstSub)) firstSub = "General"; // Fallback
+	private void SelectMainCategory(string mainCategory)
+	{
+		_currentMainCategory = mainCategory;
+		UpdateSubCategoryButtons(mainCategory);
 
-        SelectSubCategory(firstSub);
-    }
+		// Auto-select first available subcategory
+		var firstSub = _allAssets.Find(a => a.MainCategory == mainCategory).SubCategory;
+		if (string.IsNullOrEmpty(firstSub)) firstSub = "General"; // Fallback
 
-    private void UpdateSubCategoryButtons(string mainCategory)
-    {
-        foreach (Node child in _subCategoryContainer.GetChildren()) child.QueueFree();
+		SelectSubCategory(firstSub);
+	}
 
-        // Find distinct subcategories for this main category
-        var subCats = _allAssets
-            .FindAll(a => a.MainCategory == mainCategory)
-            .Select(a => a.SubCategory)
-            .Distinct()
-            .OrderBy(s => s)
-            .ToList();
+	private void UpdateSubCategoryButtons(string mainCategory)
+	{
+		foreach (Node child in _subCategoryContainer.GetChildren()) child.QueueFree();
 
-        if (subCats.Count == 0) return;
+		// Find distinct subcategories for this main category
+		var subCats = _allAssets
+			.FindAll(a => a.MainCategory == mainCategory)
+			.Select(a => a.SubCategory)
+			.Distinct()
+			.OrderBy(s => s)
+			.ToList();
 
-        foreach (var sub in subCats)
-        {
-            var btn = new Button { Text = sub };
-            btn.CustomMinimumSize = new Vector2(80, 30);
-            btn.Pressed += () => SelectSubCategory(sub);
-            _subCategoryContainer.AddChild(btn);
-        }
-    }
+		if (subCats.Count == 0) return;
 
-    private void SelectSubCategory(string subCategory)
-    {
-        _currentSubCategory = subCategory;
-        PopulateGallery();
-    }
+		foreach (var sub in subCats)
+		{
+			var btn = new Button { Text = sub };
+			btn.CustomMinimumSize = new Vector2(80, 30);
+			btn.Pressed += () => SelectSubCategory(sub);
+			_subCategoryContainer.AddChild(btn);
+		}
+	}
 
-    private void PopulateGallery()
-    {
-        foreach (Node child in _objectGrid.GetChildren()) child.QueueFree();
+	private void SelectSubCategory(string subCategory)
+	{
+		_currentSubCategory = subCategory;
+		PopulateGallery();
+	}
 
-        var filtered = _allAssets.FindAll(a => a.MainCategory == _currentMainCategory && a.SubCategory == _currentSubCategory);
-        foreach (var asset in filtered)
-        {
-            var btn = new Button { Text = asset.Name };
-            // Fill width
-            btn.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            btn.CustomMinimumSize = new Vector2(120, 40); // Slightly smaller min width to fit grid
-            btn.Pressed += () => SelectObjectToPlace(asset.Name);
-            _objectGrid.AddChild(btn);
-        }
-    }
+	private void PopulateGallery()
+	{
+		foreach (Node child in _objectGrid.GetChildren()) child.QueueFree();
 
-    private FileDialog _saveDialog;
-    private FileDialog _loadDialog;
+		var filtered = _allAssets.FindAll(a => a.MainCategory == _currentMainCategory && a.SubCategory == _currentSubCategory);
+		foreach (var asset in filtered)
+		{
+			var btn = new Button { Text = asset.Name };
+			// Fill width
+			btn.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+			btn.CustomMinimumSize = new Vector2(120, 40); // Slightly smaller min width to fit grid
+			btn.Pressed += () => SelectObjectToPlace(asset.Name);
+			_objectGrid.AddChild(btn);
+		}
+	}
 
-    public void ShowSaveLoadMenu()
-    {
-        if (_saveDialog == null) SetupFileDialogs();
+	private FileDialog _saveDialog;
+	private FileDialog _loadDialog;
 
-        // Simple Popup Menu to choose Save or Load
-        var popup = new PopupMenu();
-        popup.AddItem("Save Course");
-        popup.AddItem("Load Course");
-        popup.IdPressed += (id) =>
-        {
-            if (id == 0) _saveDialog.PopupCentered(new Vector2I(600, 400));
-            else _loadDialog.PopupCentered(new Vector2I(600, 400));
-        };
+	public void ShowSaveLoadMenu()
+	{
+		if (_saveDialog == null) SetupFileDialogs();
 
-        AddChild(popup);
-        popup.PopupCentered(new Vector2I(200, 100)); // Show immediately
-    }
+		// Simple Popup Menu to choose Save or Load
+		var popup = new PopupMenu();
+		popup.AddItem("Save Course");
+		popup.AddItem("Load Course");
+		popup.IdPressed += (id) =>
+		{
+			if (id == 0) _saveDialog.PopupCentered(new Vector2I(600, 400));
+			else _loadDialog.PopupCentered(new Vector2I(600, 400));
+		};
 
-    private void SetupFileDialogs()
-    {
-        _saveDialog = new FileDialog();
-        _saveDialog.FileMode = FileDialog.FileModeEnum.SaveFile;
-        _saveDialog.Access = FileDialog.AccessEnum.Userdata;
-        _saveDialog.Filters = new string[] { "*.json" };
-        _saveDialog.CurrentDir = "user://courses";
-        _saveDialog.FileSelected += OnSaveFileSelected;
-        AddChild(_saveDialog);
+		AddChild(popup);
+		popup.PopupCentered(new Vector2I(200, 100)); // Show immediately
+	}
 
-        _loadDialog = new FileDialog();
-        _loadDialog.FileMode = FileDialog.FileModeEnum.OpenFile;
-        _loadDialog.Access = FileDialog.AccessEnum.Userdata;
-        _loadDialog.Filters = new string[] { "*.json" };
-        _loadDialog.CurrentDir = "user://courses";
-        _loadDialog.FileSelected += OnLoadFileSelected;
-        AddChild(_loadDialog);
-    }
+	private void SetupFileDialogs()
+	{
+		_saveDialog = new FileDialog();
+		_saveDialog.FileMode = FileDialog.FileModeEnum.SaveFile;
+		_saveDialog.Access = FileDialog.AccessEnum.Userdata;
+		_saveDialog.Filters = new string[] { "*.json" };
+		_saveDialog.CurrentDir = "user://courses";
+		_saveDialog.FileSelected += OnSaveFileSelected;
+		AddChild(_saveDialog);
 
-    private void OnSaveFileSelected(string path)
-    {
-        // Extract filename from path
-        string filename = System.IO.Path.GetFileNameWithoutExtension(path);
+		_loadDialog = new FileDialog();
+		_loadDialog.FileMode = FileDialog.FileModeEnum.OpenFile;
+		_loadDialog.Access = FileDialog.AccessEnum.Userdata;
+		_loadDialog.Filters = new string[] { "*.json" };
+		_loadDialog.CurrentDir = "user://courses";
+		_loadDialog.FileSelected += OnLoadFileSelected;
+		AddChild(_loadDialog);
+	}
 
-        // Get Scene Data
-        var terrain = GetTree().GetFirstNodeInGroup("terrain") as HeightmapTerrain;
-        var root = GetTree().CurrentScene;
+	private void OnSaveFileSelected(string path)
+	{
+		// Extract filename from path
+		string filename = System.IO.Path.GetFileNameWithoutExtension(path);
 
-        CoursePersistenceManager.Instance.SaveCourse(filename, terrain, root);
+		// Get Scene Data
+		var terrain = GetTree().GetFirstNodeInGroup("terrain") as HeightmapTerrain;
+		var root = GetTree().CurrentScene;
 
-        // Feedback
-        if (_archerySystem != null)
-        {
-            _archerySystem.SetPrompt(true, $"SAVED: {filename}");
-            GetTree().CreateTimer(2.0f).Connect("timeout", Callable.From(() => _archerySystem.SetPrompt(false)));
-        }
-    }
+		CoursePersistenceManager.Instance.SaveCourse(filename, terrain, root);
 
-    private void OnLoadFileSelected(string path)
-    {
-        string filename = System.IO.Path.GetFileNameWithoutExtension(path);
+		// Feedback
+		if (_archerySystem != null)
+		{
+			_archerySystem.SetPrompt(true, $"SAVED: {filename}");
+			GetTree().CreateTimer(2.0f).Connect("timeout", Callable.From(() => _archerySystem.SetPrompt(false)));
+		}
+	}
 
-        // Get Scene Data
-        var terrain = GetTree().GetFirstNodeInGroup("terrain") as HeightmapTerrain;
-        var root = GetTree().CurrentScene;
+	private void OnLoadFileSelected(string path)
+	{
+		string filename = System.IO.Path.GetFileNameWithoutExtension(path);
 
-        bool success = CoursePersistenceManager.Instance.LoadCourse(filename, terrain, root);
+		// Get Scene Data
+		var terrain = GetTree().GetFirstNodeInGroup("terrain") as HeightmapTerrain;
+		var root = GetTree().CurrentScene;
 
-        if (_archerySystem != null)
-        {
-            if (success)
-            {
-                _archerySystem.SetPrompt(true, $"LOADED: {filename}");
-            }
-            else
-            {
-                _archerySystem.SetPrompt(true, $"FAILED TO LOAD: {filename}");
-            }
-            GetTree().CreateTimer(2.0f).Connect("timeout", Callable.From(() => _archerySystem.SetPrompt(false)));
-        }
-    }
+		bool success = CoursePersistenceManager.Instance.LoadCourse(filename, terrain, root);
+
+		if (_archerySystem != null)
+		{
+			if (success)
+			{
+				_archerySystem.SetPrompt(true, $"LOADED: {filename}");
+			}
+			else
+			{
+				_archerySystem.SetPrompt(true, $"FAILED TO LOAD: {filename}");
+			}
+			GetTree().CreateTimer(2.0f).Connect("timeout", Callable.From(() => _archerySystem.SetPrompt(false)));
+		}
+	}
+
 }
