@@ -63,25 +63,17 @@ public static class PlayerAnimations
         if (player.CurrentState == PlayerState.CombatMelee && meleeSystem != null)
         {
             var sState = (MeleeSystem.SwingState)player.SynchronizedMeleeStage;
-            if (sState == MeleeSystem.SwingState.Drawing || sState == MeleeSystem.SwingState.Finishing)
-            {
-                isSwinging = true;
-                animTree.Set("parameters/MeleeAttack/WindupSpeed/scale", 0.0f);
 
-                float seekTime = (player.IsLocal ? meleeSystem.VisualBarValue : 0f) * 0.35f / 100f;
-                animTree.Set("parameters/MeleeAttack/seek_request", seekTime);
-                animTree.Set("parameters/MeleeAttack/AttackType/transition_request", "Normal");
-            }
-            else if (sState == MeleeSystem.SwingState.Executing)
+            // Drawing = bar fills, no animation yet
+            // Animation only starts on second click (Finishing/Executing)
+            if (sState == MeleeSystem.SwingState.Finishing || sState == MeleeSystem.SwingState.Executing)
             {
                 isSwinging = true;
                 animTree.Set("parameters/MeleeAttack/WindupSpeed/scale", 1.0f);
 
                 string attackType = "Normal";
-                float power = player.IsLocal ? meleeSystem.LockedPower : 50f;
-
-                if (power > 95f) attackType = "Power";
-                else if (power > 90f) attackType = "Perfect";
+                if (meleeSystem.IsPowerSlam) attackType = "Power";
+                else if (meleeSystem.IsPerfectSlam) attackType = "Perfect";
 
                 animTree.Set("parameters/MeleeAttack/AttackType/transition_request", attackType);
             }

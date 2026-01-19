@@ -377,7 +377,7 @@ properties/10/spawn = true
 properties/10/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D"]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0.1, 0)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
 collision_mask = 3
 script = ExtResource("1_script")
 CameraPath = NodePath("Camera3D")
@@ -399,6 +399,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 274.32)
 mesh = SubResource("CylinderMesh_Marker")
 
 [node name="Erika" parent="." instance=ExtResource("6_erika")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
 
 [node name="Skeleton3D" parent="Erika" index="0"]
 bones/0/position = Vector3(0.009736141, 0.971603, 0.0038088001)
@@ -459,6 +460,7 @@ bones/65/rotation = Quaternion(0.33777136, -0.0018426446, 0.006910106, 0.9412011
 autoplay = "standing idle 01"
 
 [node name="ErikaBow" parent="." instance=ExtResource("9_erika_bow")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
 visible = false
 
 [node name="Skeleton3D" parent="ErikaBow" index="0"]

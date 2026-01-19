@@ -110,15 +110,16 @@ public partial class ObjectPlacer : Node
             {
                 resourcePath = "res://Scenes/Environment/CourseMapSign.tscn";
             }
-            else if (objName == "Monster" || _currentObject is Monster)
-            {
-                string species = (_currentObject as Monster)?.Species ?? "Yeti";
-                resourcePath = $"res://Scenes/Entities/Monster.tscn:{species}";
-            }
             else if (!string.IsNullOrEmpty(_currentObject.ModelPath))
             {
-                // TRUST THE MODEL PATH set by MainHUDController
+                // TRUST THE MODEL PATH set by MainHUDController (handles dedicated scenes like Zombie.tscn)
                 resourcePath = _currentObject.ModelPath;
+            }
+            else if (objName == "Monster" || _currentObject is Monster)
+            {
+                // Fallback for generic monsters without a dedicated scene
+                string species = (_currentObject as Monster)?.Species ?? "Yeti";
+                resourcePath = $"res://Scenes/Entities/Monster.tscn:{species}";
             }
             else
             {

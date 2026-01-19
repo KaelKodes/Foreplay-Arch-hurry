@@ -51,6 +51,9 @@ public static class ObjectGalleryData
             assets.Add(new ObjectAsset { Name = m, MainCategory = "Utility", SubCategory = "Combat", Path = "" });
         }
 
+        // Monsters with dedicated scenes (not using generic Monster.tscn)
+        assets.Add(new ObjectAsset { Name = "Zombie", MainCategory = "Utility", SubCategory = "Combat", Path = "res://Scenes/Entities/Zombie.tscn" });
+
         // Scan filesystem for GLTF assets
         string[] searchPaths = {
             "res://Assets/Textures/NatureObjects/",

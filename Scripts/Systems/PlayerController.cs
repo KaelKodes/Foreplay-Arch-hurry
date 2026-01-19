@@ -195,6 +195,7 @@ public partial class PlayerController : CharacterBody3D
             if (_animTree != null && _animTree.TreeRoot != null)
             {
                 _animTree.Active = true;
+                _animTree.Advance(0); // Force immediate update to prevent T-Pose
                 GD.Print("[PlayerController] AnimationTree Activated.");
             }
             else
@@ -217,7 +218,11 @@ public partial class PlayerController : CharacterBody3D
         _hud = GetTree().CurrentScene.FindChild("HUD", true, false) as MainHUDController;
         GD.Print($"[PlayerController] HUD resolve: {(_hud != null ? "SUCCESS" : "FAILED")}");
 
-        if (_meleeSystem != null) _meleeSystem.RegisterPlayer(this);
+        if (_meleeSystem != null)
+        {
+            _meleeSystem.RegisterPlayer(this);
+            _meleeSystem.PowerSlamTriggered += OnPowerSlamTriggered;
+        }
         if (_archerySystem != null) _archerySystem.RegisterPlayer(this);
 
         if (IsLocal)
@@ -1016,6 +1021,25 @@ public partial class PlayerController : CharacterBody3D
                         if (_selectedObject != null) _selectedObject.SetSelected(true);
                     }
                 }
+            }
+        }
+    }
+
+    private void OnPowerSlamTriggered(Vector3 position, int playerIndex)
+    {
+        var scene = GD.Load<PackedScene>("res://Scenes/VFX/Shockwave.tscn");
+        if (scene != null)
+        {
+            var wave = scene.Instantiate<Node3D>();
+            // Add to world root so it doesn't move with player
+            GetTree().CurrentScene.AddChild(wave);
+            wave.GlobalPosition = position;
+
+            // Set color based on player index (syncs across multiplayer)
+            if (wave is Shockwave sw)
+            {
+                Color playerColor = TargetingHelper.GetPlayerColor(playerIndex);
+                sw.SetColor(playerColor);
             }
         }
     }

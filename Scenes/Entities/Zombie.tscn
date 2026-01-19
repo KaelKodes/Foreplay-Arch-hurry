@@ -1,6 +1,6 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=4 format=3 uid="uid://ik032wdpkka0"]
 
-[ext_resource type="Script" path="res://Scripts/Entities/Monster.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://fyf3dsopdwlv" path="res://Scripts/Entities/Monster.cs" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://be60sld8pix8q" path="res://Assets/Scary Zombie Pack/Parasite L Starkie.fbx" id="2_mesh"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_zombie"]
@@ -8,7 +8,6 @@ radius = 0.4
 height = 1.8
 
 [node name="Zombie" type="CharacterBody3D"]
-collision_layer = 1
 collision_mask = 3
 script = ExtResource("1_script")
 Species = "Zombie"
