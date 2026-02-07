@@ -322,7 +322,7 @@ public partial class Monsters : InteractableObject
 	/// <summary>
 	/// Public method for AI to set animation state.
 	/// </summary>
-	public void SetAnimation(string animName)
+	public virtual void SetAnimation(string animName)
 	{
 		PlayAnimationRobust(animName);
 	}
@@ -331,7 +331,7 @@ public partial class Monsters : InteractableObject
 	/// Apply movement velocity. Since Monsters extends Node3D (via InteractableObject)
 	/// but is attached to a CharacterBody3D node, we access movement via the native node.
 	/// </summary>
-	public void ApplyMovement(Vector3 velocity, float delta)
+	public virtual void ApplyMovement(Vector3 velocity, float delta)
 	{
 		// Apply horizontal movement
 		Vector3 newPos = GlobalPosition;

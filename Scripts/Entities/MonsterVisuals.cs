@@ -207,6 +207,10 @@ public static class MonsterVisuals
     {
         if (string.Equals(nodeName, species, StringComparison.OrdinalIgnoreCase)) return true;
 
+        // Special case: Zombie species matches "Parasite" nodes
+        if (string.Equals(species, "Zombie", StringComparison.OrdinalIgnoreCase) &&
+            nodeName.StartsWith("Parasite", StringComparison.OrdinalIgnoreCase)) return true;
+
         if (nodeName.StartsWith(species, StringComparison.OrdinalIgnoreCase))
         {
             string remainder = nodeName.Substring(species.Length);

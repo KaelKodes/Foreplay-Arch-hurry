@@ -27,12 +27,12 @@ public partial class MainHUDController : CanvasLayer
 	private Control _meleeHUD;
 	private Control _buildHUD;
 	private Control _walkHUD;
-    
-    // Pause Menu
-    private Control _pauseMenu;
-    private Button _resumeBtn;
-    private Button _hostBtn;
-    private Button _exitBtn;
+	
+	// Pause Menu
+	private Control _pauseMenu;
+	private Button _resumeBtn;
+	private Button _hostBtn;
+	private Button _exitBtn;
 
 	// private Control _toolsPanel; // Removed: replaced by BuildHUD
 
@@ -102,16 +102,16 @@ public partial class MainHUDController : CanvasLayer
 		_buildHUD = GetNode<Control>("BuildHUD");
 		_walkHUD = GetNode<Control>("WalkHUD");
 
-        // Pause Menu
-        _pauseMenu = GetNode<Control>("PauseMenu");
-        _resumeBtn = GetNode<Button>("PauseMenu/VBox/ResumeBtn");
-        _hostBtn = GetNode<Button>("PauseMenu/VBox/HostBtn");
-        _exitBtn = GetNode<Button>("PauseMenu/VBox/ExitBtn");
+		// Pause Menu
+		_pauseMenu = GetNode<Control>("PauseMenu");
+		_resumeBtn = GetNode<Button>("PauseMenu/VBox/ResumeBtn");
+		_hostBtn = GetNode<Button>("PauseMenu/VBox/HostBtn");
+		_exitBtn = GetNode<Button>("PauseMenu/VBox/ExitBtn");
 
-        _resumeBtn.Pressed += () => SetPauseMenuVisible(false);
-        _entryHostBtn = _hostBtn; // Support visibility check
-        _hostBtn.Pressed += OnHostMidGamePressed;
-        _exitBtn.Pressed += OnExitToMenuPressed;
+		_resumeBtn.Pressed += () => SetPauseMenuVisible(false);
+		_entryHostBtn = _hostBtn; // Support visibility check
+		_hostBtn.Pressed += OnHostMidGamePressed;
+		_exitBtn.Pressed += OnExitToMenuPressed;
 
 		// _toolsPanel = GetNode<Control>("ToolsPanel"); // Gone
 		_objectGallery = GetNode<Control>("ObjectGallery");
@@ -155,52 +155,52 @@ public partial class MainHUDController : CanvasLayer
 		UpdateHUDForMode(PlayerState.WalkMode);
 	}
 
-    private Button _entryHostBtn;
+	private Button _entryHostBtn;
 
-    public override void _Input(InputEvent @event)
-    {
-        if (@event.IsActionPressed("ui_cancel") || (@event is InputEventKey k && k.Pressed && k.Keycode == Key.Escape))
-        {
-            TogglePauseMenu();
-        }
-    }
+	public override void _Input(InputEvent @event)
+	{
+		if (@event.IsActionPressed("ui_cancel") || (@event is InputEventKey k && k.Pressed && k.Keycode == Key.Escape))
+		{
+			TogglePauseMenu();
+		}
+	}
 
-    private void TogglePauseMenu()
-    {
-        SetPauseMenuVisible(!_pauseMenu.Visible);
-    }
+	private void TogglePauseMenu()
+	{
+		SetPauseMenuVisible(!_pauseMenu.Visible);
+	}
 
-    private void SetPauseMenuVisible(bool visible)
-    {
-        if (_pauseMenu == null) return;
-        _pauseMenu.Visible = visible;
-        
-        if (visible)
-        {
-            Input.MouseMode = Input.MouseModeEnum.Visible;
-            // Update Host button visibility
-            _hostBtn.Visible = (Multiplayer.MultiplayerPeer == null);
-        }
-        else
-        {
-            if (_player != null) Input.MouseMode = Input.MouseModeEnum.Captured;
-        }
-    }
+	private void SetPauseMenuVisible(bool visible)
+	{
+		if (_pauseMenu == null) return;
+		_pauseMenu.Visible = visible;
+		
+		if (visible)
+		{
+			Input.MouseMode = Input.MouseModeEnum.Visible;
+			// Update Host button visibility
+			_hostBtn.Visible = (Multiplayer.MultiplayerPeer == null);
+		}
+		else
+		{
+			if (_player != null) Input.MouseMode = Input.MouseModeEnum.Captured;
+		}
+	}
 
-    private void OnHostMidGamePressed()
-    {
-        GD.Print("MainHUD: Hosting from active session...");
-        NetworkManager.Instance.HostActiveGame();
-        _hostBtn.Visible = false;
-        SetPauseMenuVisible(false);
-    }
+	private void OnHostMidGamePressed()
+	{
+		GD.Print("MainHUD: Hosting from active session...");
+		NetworkManager.Instance.HostActiveGame();
+		_hostBtn.Visible = false;
+		SetPauseMenuVisible(false);
+	}
 
-    private void OnExitToMenuPressed()
-    {
-        GD.Print("MainHUD: Exiting to Main Menu...");
-        // NetworkManager handles scene change and cleanup if we use its method
-        GetTree().ChangeSceneToFile("res://Scenes/Menus/MainMenu.tscn");
-    }
+	private void OnExitToMenuPressed()
+	{
+		GD.Print("MainHUD: Exiting to Main Menu...");
+		// NetworkManager handles scene change and cleanup if we use its method
+		GetTree().ChangeSceneToFile("res://Scenes/Menus/MainMenu.tscn");
+	}
 
 	public override void _Process(double delta)
 	{

@@ -103,3 +103,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 300)
 [node name="HUD" parent="." instance=ExtResource("8_hud")]
 PlayerPath = NodePath("")
 
+[node name="ProjectileSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://Scenes/Entities/Arrow.tscn")
+spawn_path = NodePath("../Projectiles")
+
+[node name="Projectiles" type="Node3D" parent="."]
+

@@ -154,11 +154,20 @@ public partial class ArcherySystem : Node
             NetworkManager.Instance.CallDeferred("LevelLoaded", GetParent());
         }
 
-        // [FIX] Initialize TeePosition from Scene (with fallbacks)
+        // [FIX] Initialize TeePosition from Scene (with global search)
         Node3D spawnPoint = GetParent().GetNodeOrNull<Node3D>("SpawnPoint");
         if (spawnPoint == null) spawnPoint = GetParent().FindChild("TeeBox", true, false) as Node3D;
         if (spawnPoint == null) spawnPoint = GetParent().FindChild("VisualTee", true, false) as Node3D;
         if (spawnPoint == null) spawnPoint = GetParent().FindChild("Tee", true, false) as Node3D;
+
+        // Global fallback search
+        if (spawnPoint == null)
+        {
+            var root = GetTree().CurrentScene;
+            spawnPoint = root.FindChild("SpawnPoint", true, false) as Node3D;
+            if (spawnPoint == null) spawnPoint = root.FindChild("TeeBox", true, false) as Node3D;
+            if (spawnPoint == null) spawnPoint = root.FindChild("Tee", true, false) as Node3D;
+        }
 
         if (spawnPoint != null)
         {
@@ -167,11 +176,56 @@ public partial class ArcherySystem : Node
         }
         else
         {
-            GD.PrintErr("ArcherySystem: No spawn point found (tried SpawnPoint, TeeBox, VisualTee, Tee)! Home teleport will default to (0,0,0).");
+            GD.PrintErr("ArcherySystem: No spawn point found (tried local & global search)! Home teleport will default to (0,0,0).");
         }
 
-        // Connect to ProjectileSpawner to catch arrows as they are spawned/replicated
-        var spawner = GetTree().CurrentScene.GetNodeOrNull<MultiplayerSpawner>("ProjectileSpawner");
+        // MOBA Specific: Team-based spawn positions
+        if (MobaGameManager.Instance != null && _currentPlayer != null)
+        {
+            // MOBA specific spawn positions: BlueTeam spawns at BlueSpawn (near Blue Nexus), RedTeam at RedSpawn
+            // Note: MobaGameManager stores these as _redSpawnPos and _blueSpawnPos (inner turret locations)
+            // But usually Red is top/left, Blue is bottom/right.
+            // Actually, the manager sets:
+            // if (tower.Team == MobaTeam.Red) ... _redSpawnPos = tower.GlobalPosition;
+
+            // We need a public cleaner way to get these or just use the logic here.
+			// Let's use a dynamic lookup for "SpawnPoint_" + Team
+
+			var teamSpawnName = _currentPlayer.Team == MobaTeam.Red ? "SpawnPoint_Red" : "SpawnPoint_Blue";
+			var teamSpawn = GetTree().CurrentScene.FindChild(teamSpawnName, true, false) as Node3D;
+
+			if (teamSpawn != null)
+			{
+				TeePosition = teamSpawn.GlobalPosition;
+				GD.Print($"ArcherySystem: Spawning at Team Spawn: {teamSpawn.Name} ({TeePosition})");
+			}
+			else
+			{
+				// Fallback to MobaGameManager's registered structure positions
+                // RedSpawnPos in manager is Red Inner Tower.
+				// We'll need to check if those private fields are accessible or add accessors.
+				// For now, let's look for "RedNexus" / "BlueNexus" as fallback spawn points.
+                var nexus = GetTree().CurrentScene.FindChild(_currentPlayer.Team.ToString() + "Nexus", true, false) as Node3D;
+                if (nexus != null)
+                {
+                    TeePosition = nexus.GlobalPosition + Vector3.Up;
+                    GD.Print($"ArcherySystem: Spawning at Team Nexus: {nexus.Name}");
+                }
+            }
+        }
+
+        if (_currentPlayer != null)
+        {
+            _currentPlayer.TeleportTo(TeePosition, TeePosition + Vector3.Forward * 10.0f);
+        }
+
+        // Connect to ProjectileSpawner
+        var spawner = GetTree().CurrentScene.FindChild("ProjectileSpawner", true, false) as MultiplayerSpawner;
+        if (spawner == null)
+        {
+            // Fallback: look for any MultiplayerSpawner named ProjectileSpawner
+            spawner = GetTree().CurrentScene.GetNodeOrNull<MultiplayerSpawner>("ProjectileSpawner");
+        }
         if (spawner != null)
         {
             spawner.SpawnFunction = new Callable(this, nameof(SpawnArrowLocally));
@@ -207,6 +261,12 @@ public partial class ArcherySystem : Node
             float b = (float)data["color_b"];
             arrow.SetColor(new Color(r, g, b));
             GD.Print($"ArcherySystem: SpawnArrowLocally applied color ({r},{g},{b}) to {arrow.Name}");
+        }
+
+        // Apply team from spawn data
+        if (data != null && data.ContainsKey("team"))
+        {
+            arrow.Team = (MobaTeam)(int)data["team"];
         }
 
         return arrow;
@@ -674,7 +734,8 @@ public partial class ArcherySystem : Node
 
 	private void FindTargetablesRecursive(Node node, System.Collections.Generic.List<Node3D> results)
 	{
-		TargetingHelper.FindTargetablesRecursive(node, results);
+		MobaTeam team = _currentPlayer?.Team ?? MobaTeam.None;
+		TargetingHelper.FindTargetablesRecursive(node, results, team, false);
 	}
 
 	public void ClearTarget()

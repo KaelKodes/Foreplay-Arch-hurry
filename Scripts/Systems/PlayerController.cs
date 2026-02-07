@@ -19,6 +19,8 @@ public partial class PlayerController : CharacterBody3D
     [Export] public float RotationSpeed = 1.0f;
     [Export] public float MoveSpeed = 5.0f;
     [Export] public float JumpForce = 5.0f;
+    [Export] public float LookSensitivity = 0.5f;
+    [Export] public MobaTeam Team = MobaTeam.None;
     [Export] public float Gravity = 9.8f;
     [Export] public NodePath CameraPath { get; set; } // Now a property for external access
     [Export] public NodePath ArcherySystemPath;

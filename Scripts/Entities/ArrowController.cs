@@ -12,6 +12,7 @@ public partial class ArrowController : RigidBody3D
 
 	public bool HasBeenShot { get; private set; } = false;
 	public bool IsCollectible { get; private set; } = false;
+	[Export] public MobaTeam Team = MobaTeam.None;
 
 	private Vector3 _windVelocity = Vector3.Zero;
 	private Vector3 _startPosition;
@@ -198,8 +199,38 @@ public partial class ArrowController : RigidBody3D
         // Combat Logic: Check if we hit an interactable that can take damage
         if (body is InteractableObject interactable)
         {
-            float damage = LinearVelocity.Length() * 0.5f; // damage scales with speed
-            interactable.OnHit(damage, GlobalPosition, LinearVelocity.Normalized());
+            // Check team affiliation
+            MobaTeam otherTeam = MobaTeam.None;
+            if (body is MobaMinion minion) otherTeam = minion.Team;
+            else if (body is MobaTower tower) otherTeam = tower.Team;
+            else if (body is MobaNexus nexus) otherTeam = nexus.Team;
+            else if (body is PlayerController pc) otherTeam = pc.Team;
+
+            if (TeamSystem.AreEnemies(Team, otherTeam) || Team == MobaTeam.None)
+            {
+                float damage = LinearVelocity.Length() * 0.5f; // damage scales with speed
+                interactable.OnHit(damage, GlobalPosition, LinearVelocity.Normalized());
+            }
+            else
+            {
+                GD.Print($"Arrow: Friendly fire ignored on {body.Name} (Team: {otherTeam})");
+            }
+        }
+        else if (body is MobaTower tower)
+        {
+            if (TeamSystem.AreEnemies(Team, tower.Team) || Team == MobaTeam.None)
+            {
+                float damage = LinearVelocity.Length() * 0.5f;
+                tower.TakeDamage(damage);
+            }
+        }
+        else if (body is MobaNexus nexus)
+        {
+            if (TeamSystem.AreEnemies(Team, nexus.Team) || Team == MobaTeam.None)
+            {
+                float damage = LinearVelocity.Length() * 0.5f;
+                nexus.TakeDamage(damage);
+            }
         }
         else if (body.GetParent() is InteractableObject parentInteractable)
         {
@@ -216,11 +247,11 @@ public partial class ArrowController : RigidBody3D
         _isStuck = true;
         _isFlying = false;
 
-		// No picking up arrows in MOBA mode
-		if (MobaGameManager.Instance == null)
-		{
-			IsCollectible = true; // Enable collection
-		}
+        // No picking up arrows in MOBA mode
+        if (MobaGameManager.Instance == null)
+        {
+            IsCollectible = true; // Enable collection
+        }
 
 
         // Pull back slightly to prevent penetration visual

@@ -13,20 +13,58 @@ public static class TargetingHelper
     /// <summary>
     /// Find all targetable objects in the scene recursively.
     /// </summary>
-    public static void FindTargetablesRecursive(Node node, List<Node3D> results)
+    public static void FindTargetablesRecursive(Node node, List<Node3D> results, MobaTeam attackerTeam = MobaTeam.None, bool alliesOnly = false)
     {
-        if (node is InteractableObject io && io.IsTargetable)
+        if (node is Node3D targetNode)
         {
-            results.Add(io);
-        }
-        else if (node is PlayerController pc && !pc.IsLocal)
-        {
-            results.Add(pc);
+            bool isTargetable = false;
+            MobaTeam targetTeam = MobaTeam.None;
+
+            if (targetNode is InteractableObject io)
+            {
+                if (io.IsTargetable)
+                {
+                    isTargetable = true;
+                    if (io is MobaMinion minion) targetTeam = minion.Team;
+                    else if (io is Monsters monster) targetTeam = MobaTeam.None; // Neutral
+                }
+            }
+            else if (targetNode is MobaTower tower)
+            {
+                isTargetable = true;
+                targetTeam = tower.Team;
+            }
+            else if (targetNode is MobaNexus nexus)
+            {
+                isTargetable = true;
+                targetTeam = nexus.Team;
+            }
+            else if (targetNode is PlayerController pc && !pc.IsLocal)
+            {
+                isTargetable = true;
+                targetTeam = pc.Team;
+            }
+
+            if (isTargetable)
+            {
+                bool isEnemy = TeamSystem.AreEnemies(attackerTeam, targetTeam);
+
+                if (alliesOnly)
+                {
+                    if (!isEnemy && attackerTeam != MobaTeam.None && targetTeam != MobaTeam.None)
+                        results.Add(targetNode);
+                }
+                else
+                {
+                    if (isEnemy || attackerTeam == MobaTeam.None || targetTeam == MobaTeam.None)
+                        results.Add(targetNode);
+                }
+            }
         }
 
         foreach (Node child in node.GetChildren())
         {
-            FindTargetablesRecursive(child, results);
+            FindTargetablesRecursive(child, results, attackerTeam, alliesOnly);
         }
     }
 

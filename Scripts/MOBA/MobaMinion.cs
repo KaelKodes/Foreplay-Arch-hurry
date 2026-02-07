@@ -108,7 +108,7 @@ public partial class MobaMinion : Monsters
     /// <summary>
     /// Apply velocity for movement. Uses CharacterBody3D.MoveAndSlide internally.
     /// </summary>
-    public void ApplyMovement(Vector3 velocity, float delta)
+    public override void ApplyMovement(Vector3 velocity, float delta)
     {
         // MobaMinion inherits Node3D chain, use direct position movement
         GlobalPosition += velocity * delta;
@@ -117,7 +117,7 @@ public partial class MobaMinion : Monsters
     /// <summary>
     /// Play a named animation if an AnimationPlayer exists.
     /// </summary>
-    public void SetAnimation(string animName)
+    public override void SetAnimation(string animName)
     {
         var animPlayer = GetNodeOrNull<AnimationPlayer>("AnimationPlayer");
         if (animPlayer == null)

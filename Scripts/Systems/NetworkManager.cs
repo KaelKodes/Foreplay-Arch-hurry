@@ -68,304 +68,304 @@ public partial class NetworkManager : Node
 		PrintIPs();
 	}
 
-    /// <summary>
-    /// Hosts the game without reloading the scene. Used for hosting from an active session.
-    /// </summary>
-    public void HostActiveGame()
-    {
-        if (Multiplayer.MultiplayerPeer != null)
-        {
-            GD.PrintErr("NetworkManager: Already hosting or connected.");
-            return;
-        }
+	/// <summary>
+	/// Hosts the game without reloading the scene. Used for hosting from an active session.
+	/// </summary>
+	public void HostActiveGame()
+	{
+		if (Multiplayer.MultiplayerPeer != null)
+		{
+			GD.PrintErr("NetworkManager: Already hosting or connected.");
+			return;
+		}
 
-        _peer = new ENetMultiplayerPeer();
-        var error = _peer.CreateServer(Port, 8);
-        if (error != Error.Ok)
-        {
-            GD.PrintErr($"Failed to create server: {error}");
-            return;
-        }
+		_peer = new ENetMultiplayerPeer();
+		var error = _peer.CreateServer(Port, 8);
+		if (error != Error.Ok)
+		{
+			GD.PrintErr($"Failed to create server: {error}");
+			return;
+		}
 
-        Multiplayer.MultiplayerPeer = _peer;
-        GD.Print("Server started in active session on port " + Port);
+		Multiplayer.MultiplayerPeer = _peer;
+		GD.Print("Server started in active session on port " + Port);
 
-        // Notify systems that we are now the server
-        LevelLoaded(GetTree().CurrentScene);
+		// Notify systems that we are now the server
+		LevelLoaded(GetTree().CurrentScene);
 
-        SetupUPnP();
-        PrintIPs();
-    }
+		SetupUPnP();
+		PrintIPs();
+	}
 
 	private void SetupUPnP()
 	{
-        try 
-        {
-            var upnp = new Upnp();
-            int err = upnp.Discover();
+		try 
+		{
+			var upnp = new Upnp();
+			int err = upnp.Discover();
 
-            if (err != (int)Error.Ok)
-            {
-                GD.PrintErr($"UPnP Discovery Failed! Error Code: {err}");
-                return;
-            }
+			if (err != (int)Error.Ok)
+			{
+				GD.PrintErr($"UPnP Discovery Failed! Error Code: {err}");
+				return;
+			}
 
-            var gateway = upnp.GetGateway();
-            if (gateway != null && gateway.IsValidGateway())
-            {
-                string extAddress = "";
-                try {
-                    extAddress = gateway.QueryExternalAddress();
-                    GD.Print($"UPnP Discovery Successful! Gateway: {extAddress}");
-                } catch (Exception ex) {
-                    GD.PrintErr($"UPnP: Failed to query external address: {ex.Message}");
-                }
+			var gateway = upnp.GetGateway();
+			if (gateway != null && gateway.IsValidGateway())
+			{
+				string extAddress = "";
+				try {
+					extAddress = gateway.QueryExternalAddress();
+					GD.Print($"UPnP Discovery Successful! Gateway: {extAddress}");
+				} catch (Exception ex) {
+					GD.PrintErr($"UPnP: Failed to query external address: {ex.Message}");
+				}
 
-                // Try to map the port
-                upnp.AddPortMapping(Port, Port, "Godot_Game_UDP", "UDP");
-                upnp.AddPortMapping(Port, Port, "Godot_Game_TCP", "TCP");
+				// Try to map the port
+				upnp.AddPortMapping(Port, Port, "Godot_Game_UDP", "UDP");
+				upnp.AddPortMapping(Port, Port, "Godot_Game_TCP", "TCP");
 
-                GD.Print($"UPnP Port Mapping Attempted for {Port}");
-            }
-            else
-            {
-                GD.PrintErr("UPnP: No valid gateway found.");
-            }
-        }
-        catch (Exception ex)
-        {
-            GD.PrintErr($"UPnP: Unhandled exception during setup: {ex.Message}");
-        }
-    }
+				GD.Print($"UPnP Port Mapping Attempted for {Port}");
+			}
+			else
+			{
+				GD.PrintErr("UPnP: No valid gateway found.");
+			}
+		}
+		catch (Exception ex)
+		{
+			GD.PrintErr($"UPnP: Unhandled exception during setup: {ex.Message}");
+		}
+	}
 
-    private void PrintIPs()
-    {
-        GD.Print("--- Available IP Addresses ---");
-        foreach (var ip in IP.GetLocalAddresses())
-        {
-            if (ip.Contains(".")) // Simple filter for IPv4
-            {
-                GD.Print($"  {ip}");
-            }
-        }
-        GD.Print("------------------------------");
-    }
+	private void PrintIPs()
+	{
+		GD.Print("--- Available IP Addresses ---");
+		foreach (var ip in IP.GetLocalAddresses())
+		{
+			if (ip.Contains(".")) // Simple filter for IPv4
+			{
+				GD.Print($"  {ip}");
+			}
+		}
+		GD.Print("------------------------------");
+	}
 
-    public void JoinGame(string ip)
-    {
-        if (string.IsNullOrEmpty(ip)) ip = "127.0.0.1";
+	public void JoinGame(string ip)
+	{
+		if (string.IsNullOrEmpty(ip)) ip = "127.0.0.1";
 
-        _peer = new ENetMultiplayerPeer();
-        var error = _peer.CreateClient(ip, Port);
-        if (error != Error.Ok)
-        {
-            GD.PrintErr($"Failed to create client: {error}");
-            return;
-        }
+		_peer = new ENetMultiplayerPeer();
+		var error = _peer.CreateClient(ip, Port);
+		if (error != Error.Ok)
+		{
+			GD.PrintErr($"Failed to create client: {error}");
+			return;
+		}
 
-        Multiplayer.MultiplayerPeer = _peer;
-        GD.Print($"Connecting to {ip}:{Port}...");
-    }
+		Multiplayer.MultiplayerPeer = _peer;
+		GD.Print($"Connecting to {ip}:{Port}...");
+	}
 
-    private void LoadGameScene()
-    {
-        GetTree().ChangeSceneToFile("res://Scenes/Levels/MOBA1.tscn");
-        GD.Print("Loading MOBA1...");
-    }
+	private void LoadGameScene()
+	{
+		GetTree().ChangeSceneToFile("res://Scenes/Levels/MOBA1.tscn");
+		GD.Print("Loading MOBA1...");
+	}
 
-    private void OnPeerConnected(long id)
-    {
-        GD.Print($"Peer Connected: {id}");
+	private void OnPeerConnected(long id)
+	{
+		GD.Print($"Peer Connected: {id}");
 
-        // REMOVED: Do NOT spawn immediately. Wait for Client to load map and send NotifyClientReady.
-        // This prevents void spawning.
-    }
+		// REMOVED: Do NOT spawn immediately. Wait for Client to load map and send NotifyClientReady.
+		// This prevents void spawning.
+	}
 
-    private void OnPeerDisconnected(long id)
-    {
-        GD.Print($"Peer Disconnected: {id}");
-        if (_players.ContainsKey(id))
-        {
-            var player = _players[id];
-            if (player != null && IsInstanceValid(player))
-            {
-                GD.Print($"NetworkManager: Removing disconnected player object {player.Name}");
-                player.QueueFree();
-            }
-            _players.Remove(id);
-        }
-        EmitSignal(SignalName.PlayerDisconnected, id);
-    }
+	private void OnPeerDisconnected(long id)
+	{
+		GD.Print($"Peer Disconnected: {id}");
+		if (_players.ContainsKey(id))
+		{
+			var player = _players[id];
+			if (player != null && IsInstanceValid(player))
+			{
+				GD.Print($"NetworkManager: Removing disconnected player object {player.Name}");
+				player.QueueFree();
+			}
+			_players.Remove(id);
+		}
+		EmitSignal(SignalName.PlayerDisconnected, id);
+	}
 
-    private void OnConnectedToServer()
-    {
-        GD.Print("Connected to Server!");
-        // Client loads game scene upon successful connection
-        CallDeferred(nameof(LoadGameScene));
-    }
+	private void OnConnectedToServer()
+	{
+		GD.Print("Connected to Server!");
+		// Client loads game scene upon successful connection
+		CallDeferred(nameof(LoadGameScene));
+	}
 
-    private void OnConnectionFailed()
-    {
-        GD.Print("Connection Failed!");
-        ReturnToMainMenu();
-    }
+	private void OnConnectionFailed()
+	{
+		GD.Print("Connection Failed!");
+		ReturnToMainMenu();
+	}
 
-    private void OnServerDisconnected()
-    {
-        GD.Print("Server Disconnected!");
-        ReturnToMainMenu();
-    }
+	private void OnServerDisconnected()
+	{
+		GD.Print("Server Disconnected!");
+		ReturnToMainMenu();
+	}
 
-    private void ReturnToMainMenu()
-    {
-        GD.Print("NetworkManager: Returning to Main Menu...");
+	private void ReturnToMainMenu()
+	{
+		GD.Print("NetworkManager: Returning to Main Menu...");
 
-        // Reset Peer
-        Multiplayer.MultiplayerPeer = null;
-        _peer = null;
-        _players.Clear();
+		// Reset Peer
+		Multiplayer.MultiplayerPeer = null;
+		_peer = null;
+		_players.Clear();
 
-        // Change Scene
-        GetTree().ChangeSceneToFile("res://Scenes/Menus/MainMenu.tscn");
-    }
+		// Change Scene
+		GetTree().ChangeSceneToFile("res://Scenes/Menus/MainMenu.tscn");
+	}
 
-    // Called by ArcherySystem._Ready() on both Client and Server
-    public async void LevelLoaded(Node root)
-    {
-        GD.Print($"NetworkManager: Level Loaded ({root.Name}). Waiting for physics bake...");
+	// Called by ArcherySystem._Ready() on both Client and Server
+	public async void LevelLoaded(Node root)
+	{
+		GD.Print($"NetworkManager: Level Loaded ({root.Name}). Waiting for physics bake...");
 
-        // Wait for physics frames to ensure collisions (CSG) are baked and ground is solid
-        await ToSignal(GetTree(), "physics_frame");
-        await ToSignal(GetTree(), "physics_frame");
-        await ToSignal(GetTree(), "physics_frame");
+		// Wait for physics frames to ensure collisions (CSG) are baked and ground is solid
+		await ToSignal(GetTree(), "physics_frame");
+		await ToSignal(GetTree(), "physics_frame");
+		await ToSignal(GetTree(), "physics_frame");
 
-        SetupObjectSpawner();
-        SetupTerrainSpawner();
+		SetupObjectSpawner();
+		SetupTerrainSpawner();
 
-        if (Multiplayer.IsServer())
-        {
-            // If we are the Host, spawn ourselves immediately
-            if (!_players.ContainsKey(1))
-            {
-                SpawnPlayer(1, root);
-            }
-        }
-        else
-        {
-            // If we are a Client, tell Server we are ready to receive our pawn
-            GD.Print("NetworkManager: Client Ready. Sending Spawn Request...");
-            RpcId(1, nameof(NotifyClientReady));
-        }
-    }
+		if (Multiplayer.IsServer())
+		{
+			// If we are the Host, spawn ourselves immediately
+			if (!_players.ContainsKey(1))
+			{
+				SpawnPlayer(1, root);
+			}
+		}
+		else
+		{
+			// If we are a Client, tell Server we are ready to receive our pawn
+			GD.Print("NetworkManager: Client Ready. Sending Spawn Request...");
+			RpcId(1, nameof(NotifyClientReady));
+		}
+	}
 
-    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    public void NotifyClientReady()
-    {
+	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	public void NotifyClientReady()
+	{
 		// Executed on Server when Client says "I'm loaded!"
-        if (!Multiplayer.IsServer()) return;
+		if (!Multiplayer.IsServer()) return;
 
-        long senderId = Multiplayer.GetRemoteSenderId();
+		long senderId = Multiplayer.GetRemoteSenderId();
 		GD.Print($"NetworkManager: Received ClientReady from ID {senderId}. Spawning...");
 
-        // Safety check
-        if (_players.ContainsKey(senderId))
-        {
+		// Safety check
+		if (_players.ContainsKey(senderId))
+		{
 			GD.Print($"NetworkManager: Player {senderId} already exists. Ignoring duplicate spawn request.");
-            return;
-        }
+			return;
+		}
 
-        // Find root scene to spawn into
-        Node root = GetTree().CurrentScene;
-        SpawnPlayer(senderId, root);
+		// Find root scene to spawn into
+		Node root = GetTree().CurrentScene;
+		SpawnPlayer(senderId, root);
 
-        // Sync terrain data to this client
-        SyncTerrainToClient(senderId);
+		// Sync terrain data to this client
+		SyncTerrainToClient(senderId);
 
-        // Sync existing world objects to this client
-        SyncWorldObjectsToClient(senderId);
-    }
+		// Sync existing world objects to this client
+		SyncWorldObjectsToClient(senderId);
+	}
 
-    private void SyncTerrainToClient(long clientId)
-    {
+	private void SyncTerrainToClient(long clientId)
+	{
 		var terrain = GetTree().GetFirstNodeInGroup("terrain") as HeightmapTerrain;
-        if (terrain != null)
-        {
+		if (terrain != null)
+		{
 			GD.Print($"NetworkManager: Syncing Heightmap to client {clientId}...");
-            float[] heights = terrain.GetFlattenedHeightData();
-            int[] types = terrain.GetFlattenedTypeData();
-            RpcId((int)clientId, nameof(NetSyncHeightmap), heights, types);
-        }
-    }
+			float[] heights = terrain.GetFlattenedHeightData();
+			int[] types = terrain.GetFlattenedTypeData();
+			RpcId((int)clientId, nameof(NetSyncHeightmap), heights, types);
+		}
+	}
 
-    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    public void NetSyncHeightmap(float[] heights, int[] types)
-    {
+	[Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	public void NetSyncHeightmap(float[] heights, int[] types)
+	{
 		GD.Print("NetworkManager: Received Heightmap Sync from Server.");
 		var terrain = GetTree().GetFirstNodeInGroup("terrain") as HeightmapTerrain;
-        if (terrain != null)
-        {
-            terrain.SetFlattenedData(heights, types);
-        }
-        else
-        {
+		if (terrain != null)
+		{
+			terrain.SetFlattenedData(heights, types);
+		}
+		else
+		{
 			GD.PrintErr("NetworkManager: Could not find terrain for sync!");
-        }
-    }
+		}
+	}
 
-    private void SyncWorldObjectsToClient(long clientId)
-    {
-        if (_worldObjectsContainer == null) return;
+	private void SyncWorldObjectsToClient(long clientId)
+	{
+		if (_worldObjectsContainer == null) return;
 
 		GD.Print($"NetworkManager: Syncing {_worldObjectsContainer.GetChildCount()} world objects to client {clientId}...");
 
-        foreach (Node child in _worldObjectsContainer.GetChildren())
-        {
-            if (child is InteractableObject io)
-            {
-                string resourcePath = io.ModelPath;
-                if (string.IsNullOrEmpty(resourcePath) && !string.IsNullOrEmpty(io.SceneFilePath))
-                {
-                    resourcePath = io.SceneFilePath;
-                }
-                if (string.IsNullOrEmpty(resourcePath)) continue;
+		foreach (Node child in _worldObjectsContainer.GetChildren())
+		{
+			if (child is InteractableObject io)
+			{
+				string resourcePath = io.ModelPath;
+				if (string.IsNullOrEmpty(resourcePath) && !string.IsNullOrEmpty(io.SceneFilePath))
+				{
+					resourcePath = io.SceneFilePath;
+				}
+				if (string.IsNullOrEmpty(resourcePath)) continue;
 
-                // Handle Monster species
+				// Handle Monster species
 				string species = "";
-                if (io is Monsters monster)
-                {
-                    species = monster.Species;
-                }
+				if (io is Monsters monster)
+				{
+					species = monster.Species;
+				}
 
-                RpcId((int)clientId, nameof(NetSpawnExistingObject), resourcePath, io.GlobalPosition, io.GlobalRotation, io.Scale, species, io.Name);
-            }
-        }
-    }
+				RpcId((int)clientId, nameof(NetSpawnExistingObject), resourcePath, io.GlobalPosition, io.GlobalRotation, io.Scale, species, io.Name);
+			}
+		}
+	}
 
-    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void NetSpawnExistingObject(string resourcePath, Vector3 position, Vector3 rotation, Vector3 scale, string species, string nodeName)
-    {
+	[Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	private void NetSpawnExistingObject(string resourcePath, Vector3 position, Vector3 rotation, Vector3 scale, string species, string nodeName)
+	{
 		GD.Print($"NetworkManager: Client spawning existing object {nodeName} from {resourcePath}");
 
-        // Ensure container exists
-        if (_worldObjectsContainer == null)
-        {
+		// Ensure container exists
+		if (_worldObjectsContainer == null)
+		{
 			_worldObjectsContainer = GetTree().CurrentScene.GetNodeOrNull("WorldObjects");
-            if (_worldObjectsContainer == null)
-            {
-                _worldObjectsContainer = new Node3D();
+			if (_worldObjectsContainer == null)
+			{
+				_worldObjectsContainer = new Node3D();
 				_worldObjectsContainer.Name = "WorldObjects";
-                GetTree().CurrentScene.AddChild(_worldObjectsContainer);
-            }
-        }
+				GetTree().CurrentScene.AddChild(_worldObjectsContainer);
+			}
+		}
 
-        // Check if we already have this object (avoid duplicates)
-        if (_worldObjectsContainer.HasNode(nodeName))
-        {
+		// Check if we already have this object (avoid duplicates)
+		if (_worldObjectsContainer.HasNode(nodeName))
+		{
 			GD.Print($"NetworkManager: Object {nodeName} already exists, skipping.");
-            return;
-        }
+			return;
+		}
 
-        // Directly instantiate (don't use spawner to avoid tracker issues)
+		// Directly instantiate (don't use spawner to avoid tracker issues)
         Node obj = null;
 
 		if (resourcePath.EndsWith(".gltf") || resourcePath.EndsWith(".fbx") || resourcePath.EndsWith(".glb"))
@@ -393,7 +393,7 @@ public partial class NetworkManager : Node
         {
             // PackedScene (e.g. Monsters.tscn)
             string actualPath = resourcePath;
-            int colonIndex = resourcePath.LastIndexOf(':');
+			int colonIndex = resourcePath.LastIndexOf(':');
             if (colonIndex > 4)
             {
                 actualPath = resourcePath.Substring(0, colonIndex);
@@ -454,83 +454,83 @@ public partial class NetworkManager : Node
 
         // Sequential Indexing: 0, 1, 2, 3 based on join order
         // _players contains already spawned players. For the FIRST one (Host), count is 0.
-        // But we add to _players AFTER this. So let's check count.
-        int newIndex = _players.Count;
-        player.SetPlayerIndex(newIndex);
+		// But we add to _players AFTER this. So let's check count.
+		int newIndex = _players.Count;
+		player.SetPlayerIndex(newIndex);
 
-        player.SetMultiplayerAuthority((int)id); // Authority assignment
+		player.SetMultiplayerAuthority((int)id); // Authority assignment
 
-        // FIND SPAWN POSITION FIRST (before AddChild so spawn packet has correct position)
-        // Try SpawnPoint first, then TeeBox, then VisualTee
+		// FIND SPAWN POSITION FIRST (before AddChild so spawn packet has correct position)
+		// Try SpawnPoint first, then TeeBox, then VisualTee
 		Node3D spawnPoint = root.GetNodeOrNull<Node3D>("SpawnPoint");
 		if (spawnPoint == null) spawnPoint = root.FindChild("TeeBox", true, false) as Node3D;
 		if (spawnPoint == null) spawnPoint = root.FindChild("VisualTee", true, false) as Node3D;
 		if (spawnPoint == null) spawnPoint = root.FindChild("Tee", true, false) as Node3D;
 
-        Vector3 spawnPos = Vector3.Zero;
-        Vector3 spawnRot = Vector3.Zero;
+		Vector3 spawnPos = Vector3.Zero;
+		Vector3 spawnRot = Vector3.Zero;
 
-        if (spawnPoint != null)
-        {
-            // Add safety height and random offset to prevent stacking
-            float rngX = (float)GD.RandRange(-1.0, 1.0);
-            float rngZ = (float)GD.RandRange(-1.0, 1.0);
-            spawnPos = spawnPoint.GlobalPosition + new Vector3(rngX, 2.0f, rngZ);
-            spawnRot = spawnPoint.GlobalRotation;
+		if (spawnPoint != null)
+		{
+			// Add safety height and random offset to prevent stacking
+			float rngX = (float)GD.RandRange(-1.0, 1.0);
+			float rngZ = (float)GD.RandRange(-1.0, 1.0);
+			spawnPos = spawnPoint.GlobalPosition + new Vector3(rngX, 2.0f, rngZ);
+			spawnRot = spawnPoint.GlobalRotation;
 			GD.Print($"NetworkManager: Spawn position calculated as {spawnPos} from {spawnPoint.Name}");
-        }
-        else
-        {
+		}
+		else
+		{
 			GD.PrintErr("NetworkManager: No spawn point found (tried SpawnPoint, TeeBox, VisualTee, Tee)! Spawning at origin.");
-        }
+		}
 
-        // Use LOCAL Position/Rotation (works before AddChild, GlobalPosition requires being in tree)
-        // Since player is added directly to scene root, local = global
-        player.Position = spawnPos;
-        player.Rotation = spawnRot;
+		// Use LOCAL Position/Rotation (works before AddChild, GlobalPosition requires being in tree)
+		// Since player is added directly to scene root, local = global
+		player.Position = spawnPos;
+		player.Rotation = spawnRot;
 
-        // Add to scene at root (Walking sim style)
+		// Add to scene at root (Walking sim style)
 		// If there's a specific "Players" node, use it, otherwise root.
         // Add to scene at root (Walking sim style)
 		// If there's a specific "Players" node, use it, otherwise root.
 		var playersNode = root.GetNodeOrNull("Players") ?? root;
-        playersNode.AddChild(player, true); // force_readable_name = true
+		playersNode.AddChild(player, true); // force_readable_name = true
 
-        _players[id] = player;
+		_players[id] = player;
 
-        // Force Teleport (RPC) to ensure everyone agrees on position
-        // This fixes cases where Client Auth overrides spawn position to (0,0,0)
-        player.Rpc(nameof(PlayerController.NetTeleport), spawnPos, player.RotationDegrees);
-        player.Rpc(nameof(PlayerController.NetSetPlayerIndex), newIndex);
+		// Force Teleport (RPC) to ensure everyone agrees on position
+		// This fixes cases where Client Auth overrides spawn position to (0,0,0)
+		player.Rpc(nameof(PlayerController.NetTeleport), spawnPos, player.RotationDegrees);
+		player.Rpc(nameof(PlayerController.NetSetPlayerIndex), newIndex);
 
 		GD.Print($"Spawned Player for ID: {id} at {spawnPos} (RPC Sent)");
-    }
+	}
 
-    // --- Dynamic Object Spawning ---
-    private Node _worldObjectsContainer;
-    private MultiplayerSpawner _objectSpawner;
+	// --- Dynamic Object Spawning ---
+	private Node _worldObjectsContainer;
+	private MultiplayerSpawner _objectSpawner;
 
-    public void SetupObjectSpawner()
-    {
-        // Container for spawned objects
+	public void SetupObjectSpawner()
+	{
+		// Container for spawned objects
 		_worldObjectsContainer = GetTree().CurrentScene.GetNodeOrNull("WorldObjects");
-        if (_worldObjectsContainer == null)
-        {
-            _worldObjectsContainer = new Node3D();
+		if (_worldObjectsContainer == null)
+		{
+			_worldObjectsContainer = new Node3D();
 			_worldObjectsContainer.Name = "WorldObjects";
-            GetTree().CurrentScene.AddChild(_worldObjectsContainer);
-        }
+			GetTree().CurrentScene.AddChild(_worldObjectsContainer);
+		}
 
-        // Clean up old spawner if it exists (e.g. scene reload)
-        if (_objectSpawner != null)
-        {
-            _objectSpawner.QueueFree();
-            _objectSpawner = null;
-        }
+		// Clean up old spawner if it exists (e.g. scene reload)
+		if (_objectSpawner != null)
+		{
+			_objectSpawner.QueueFree();
+			_objectSpawner = null;
+		}
 
-        // Spawner - Add to SCENE, not NetworkManager, to ensure it cleans up with level?
-        // Actually, Autoload is safer for logic, but Spawner needs to be same path on both?
-        // Let's add it to NetworkManager (Autoload) but update SpawnPath.
+		// Spawner - Add to SCENE, not NetworkManager, to ensure it cleans up with level?
+		// Actually, Autoload is safer for logic, but Spawner needs to be same path on both?
+		// Let's add it to NetworkManager (Autoload) but update SpawnPath.
         _objectSpawner = new MultiplayerSpawner();
 		_objectSpawner.Name = "ObjectSpawner";
         AddChild(_objectSpawner); // Add to tree FIRST so it can resolve paths
@@ -751,15 +751,15 @@ public partial class NetworkManager : Node
                 bakedNode.Operation = CsgShape3D.OperationEnum.Union;
                 bakedNode.Depth = 0.1f + elevation;
                 // Position will be set later by Spawner using returned obj?
-                // Wait, Spawner sets Transform if 'pos' is passed?
+				// Wait, Spawner sets Transform if 'pos' is passed?
                 // But CSG logic sets GlobalPosition based on centroid.
                 // We should set pos = centroid in our data?
-                // OR we set it here and ignore Spawner's override?
-                // Spawner overrides obj properties? No, custom spawn func returns node, Spawner adds it.
-                // Check documentation: Spawner does NOT auto-sync transform unless MultiplayerSynchronizer is used?
-                // OR spawn() data is just for init.
+				// OR we set it here and ignore Spawner's override?
+				// Spawner overrides obj properties? No, custom spawn func returns node, Spawner adds it.
+				// Check documentation: Spawner does NOT auto-sync transform unless MultiplayerSynchronizer is used?
+				// OR spawn() data is just for init.
 
-                // Let's set Transform here explicitly.
+				// Let's set Transform here explicitly.
                 pos = new Vector3(centroid.X, 0.1f, centroid.Z);
             }
             else
@@ -811,8 +811,8 @@ public partial class NetworkManager : Node
                 // PackedScene Load
                 string actualPath = path;
 				string species = "";
-                int colonIndex = path.LastIndexOf(':');
-                // Check if the colon is not the one in 'res://' (index 3)
+				int colonIndex = path.LastIndexOf(':');
+				// Check if the colon is not the one in 'res://' (index 3)
                 if (colonIndex > 4)
                 {
                     actualPath = path.Substring(0, colonIndex);
@@ -839,34 +839,34 @@ public partial class NetworkManager : Node
                     if (instance is InteractableObject io)
                     {
                         io.ObjectName = System.IO.Path.GetFileNameWithoutExtension(actualPath);
-                        // Only set ModelPath if it's not already defined (scene may have FBX path for texturing)
-                        if (string.IsNullOrEmpty(io.ModelPath))
-                            io.ModelPath = path;
+						// Only set ModelPath if it's not already defined (scene may have FBX path for texturing)
+						if (string.IsNullOrEmpty(io.ModelPath))
+							io.ModelPath = path;
 
-                        if (io is Monsters monster && !string.IsNullOrEmpty(species))
-                        {
-                            monster.Species = species;
-                        }
-                    }
-                    obj = instance;
+						if (io is Monsters monster && !string.IsNullOrEmpty(species))
+						{
+							monster.Species = species;
+						}
+					}
+					obj = instance;
 					GD.Print($"[NetworkManager] Instantiated TSCN: {obj.Name}");
-                }
-                else
-                {
+				}
+				else
+				{
 					GD.PrintErr($"[NetworkManager] Failed to load PackedScene: {actualPath}");
-                }
-            }
-        }
+				}
+			}
+		}
 
-        if (obj is Node3D n3d)
-        {
-            // Use LOCAL properties because node is not in tree yet.
-            // Parent is WorldObjects (at 0,0,0), so Position == GlobalPosition.
-            n3d.Position = pos;
-            n3d.Rotation = rot;
-            n3d.Scale = scale;
-        }
+		if (obj is Node3D n3d)
+		{
+			// Use LOCAL properties because node is not in tree yet.
+			// Parent is WorldObjects (at 0,0,0), so Position == GlobalPosition.
+			n3d.Position = pos;
+			n3d.Rotation = rot;
+			n3d.Scale = scale;
+		}
 
-        return obj;
-    }
+		return obj;
+	}
 }
