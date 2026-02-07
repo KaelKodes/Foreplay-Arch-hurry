@@ -1,0 +1,99 @@
+[gd_scene load_steps=11 format=3 uid="uid://cxb7lhhnqacfp"]
+
+[ext_resource type="Script" uid="uid://djj7x8erqs5uk" path="res://Scripts/MOBA/MobaGameManager.cs" id="1_manager"]
+[ext_resource type="PackedScene" uid="uid://ua6g4swtrvqs" path="res://Assets/Textures/BuildingObjects/watch+tower01.fbx" id="2_tower_outer"]
+[ext_resource type="PackedScene" uid="uid://cg7hjxiw1ovct" path="res://Assets/Textures/BuildingObjects/watch+tower03.fbx" id="3_tower_inner"]
+[ext_resource type="PackedScene" uid="uid://5df1wke61kys" path="res://Assets/Textures/BuildingObjects/mine_mesh_FBX.fbx" id="4_nexus"]
+[ext_resource type="Script" uid="uid://dyovtj3yoma6i" path="res://Scripts/MOBA/MobaTower.cs" id="5_tower_script"]
+[ext_resource type="Script" uid="uid://bnanxrcxyim0b" path="res://Scripts/MOBA/MobaNexus.cs" id="6_nexus_script"]
+[ext_resource type="Script" uid="uid://b8us01i657vj3" path="res://Scripts/Systems/LevelInitializer.cs" id="7_init"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.1, 0.4, 0.1, 1)
+roughness = 0.8
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(300, 1, 700)
+
+[node name="Moba1" type="Node3D"]
+
+[node name="MobaGameManager" type="Node" parent="."]
+script = ExtResource("1_manager")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 50, 0)
+shadow_enabled = true
+
+[node name="Floor" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="FloorMesh" type="CSGBox3D" parent="Floor"]
+size = Vector3(300, 1, 700)
+material = SubResource("StandardMaterial3D_floor")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("BoxShape3D_floor")
+
+[node name="RedTeam" type="Node3D" parent="."]
+
+[node name="RedNexus" parent="RedTeam" instance=ExtResource("4_nexus")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -324)
+script = ExtResource("6_nexus_script")
+Team = 1
+
+[node name="RedTowerInner" parent="RedTeam" instance=ExtResource("3_tower_inner")]
+transform = Transform3D(0, 0, 0.6, 0, 0.6, 0, -0.6, 0, 0, 0, 0, -284)
+script = ExtResource("5_tower_script")
+Team = 1
+Type = 1
+
+[node name="RedTowerOuter1" parent="RedTeam" instance=ExtResource("2_tower_outer")]
+transform = Transform3D(0, 0, 0.6, 0, 0.6, 0, -0.6, 0, 0, 0, 0, -224)
+script = ExtResource("5_tower_script")
+Team = 1
+
+[node name="RedTowerOuter2" parent="RedTeam" instance=ExtResource("2_tower_outer")]
+transform = Transform3D(0, 0, 0.6, 0, 0.6, 0, -0.6, 0, 0, 0, 0, -140)
+script = ExtResource("5_tower_script")
+Team = 1
+
+[node name="RedTowerOuter3" parent="RedTeam" instance=ExtResource("2_tower_outer")]
+transform = Transform3D(0, 0, 0.6, 0, 0.6, 0, -0.6, 0, 0, 0, 0, -56)
+script = ExtResource("5_tower_script")
+Team = 1
+
+[node name="BlueTeam" type="Node3D" parent="."]
+
+[node name="BlueTowerOuter3" parent="BlueTeam" instance=ExtResource("2_tower_outer")]
+transform = Transform3D(0, 0, -0.6, 0, 0.6, 0, 0.6, 0, 0, 0, 0, 56)
+script = ExtResource("5_tower_script")
+Team = 2
+
+[node name="BlueTowerOuter2" parent="BlueTeam" instance=ExtResource("2_tower_outer")]
+transform = Transform3D(0, 0, -0.6, 0, 0.6, 0, 0.6, 0, 0, 0, 0, 140)
+script = ExtResource("5_tower_script")
+Team = 2
+
+[node name="BlueTowerOuter1" parent="BlueTeam" instance=ExtResource("2_tower_outer")]
+transform = Transform3D(0, 0, -0.6, 0, 0.6, 0, 0.6, 0, 0, 0, 0, 224)
+script = ExtResource("5_tower_script")
+Team = 2
+
+[node name="BlueTowerInner" parent="BlueTeam" instance=ExtResource("3_tower_inner")]
+transform = Transform3D(0, 0, -0.6, 0, 0.6, 0, 0.6, 0, 0, 0, 0, 284)
+script = ExtResource("5_tower_script")
+Team = 2
+Type = 1
+
+[node name="BlueNexus" parent="BlueTeam" instance=ExtResource("4_nexus")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 324)
+script = ExtResource("6_nexus_script")
+Team = 2
+
+[node name="LevelInitializer" type="Node" parent="."]
+script = ExtResource("7_init")
+
+[node name="SpawnPoint" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 300)

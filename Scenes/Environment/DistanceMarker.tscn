@@ -1,0 +1,77 @@
+[gd_scene load_steps=6 format=3 uid="uid://dmsk8j8j8j8j"]
+
+[ext_resource type="Script" path="res://Scripts/Environment/DistanceMarker.cs" id="1_marker"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_Post"]
+albedo_color = Color(0.3, 0.2, 0.1, 1.0)
+
+[sub_resource type="CylinderMesh" id="Mesh_Post"]
+material = SubResource("Mat_Post")
+top_radius = 0.05
+bottom_radius = 0.05
+height = 2.0
+
+[sub_resource type="StandardMaterial3D" id="Mat_Board"]
+albedo_color = Color(0.9, 0.9, 0.9, 1.0)
+
+[sub_resource type="BoxMesh" id="Mesh_Board"]
+material = SubResource("Mat_Board")
+size = Vector3(1.5, 0.8, 0.1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Sign_Thick"]
+size = Vector3(1.5, 2.0, 0.4)
+
+[node name="DistanceMarker" type="Node3D"]
+script = ExtResource("1_marker")
+Text = "100y"
+TextColor = Color(0, 0, 0, 1)
+
+[node name="Post" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("Mesh_Post")
+
+[node name="Board" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0.06)
+mesh = SubResource("Mesh_Board")
+
+[node name="Label3D" type="Label3D" parent="Board"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.06)
+pixel_size = 0.005
+modulate = Color(0, 0, 0, 1)
+text = "100y"
+font_size = 120
+outline_render_priority = 0
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("BoxShape3D_Sign_Thick")
+
+[node name="SubViewport" type="SubViewport" parent="."]
+disable_3d = true
+transparent_bg = true
+size = Vector2i(1024, 512)
+render_target_update_mode = 3
+
+[node name="Background" type="ColorRect" parent="SubViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.9, 0.9, 0.9, 1)
+
+[node name="Label" type="Label" parent="SubViewport"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 350
+text = "100y"
+horizontal_alignment = 1
+vertical_alignment = 1

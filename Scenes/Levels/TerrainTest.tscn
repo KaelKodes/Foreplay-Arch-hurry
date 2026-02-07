@@ -1,0 +1,148 @@
+[gd_scene load_steps=11 format=3 uid="uid://y3rxus5eavjb"]
+
+[ext_resource type="PackedScene" uid="uid://c6u7q8q8q8q8" path="res://Scenes/UI/HUD.tscn" id="3_hud_scene"]
+[ext_resource type="PackedScene" uid="uid://dmsk8j8j8j8j" path="res://Scenes/Environment/DistanceMarker.tscn" id="6_marker"]
+[ext_resource type="Script" uid="uid://c6nnxkn1no5sy" path="res://Scripts/Systems/WindSystem.cs" id="7_wind"]
+[ext_resource type="Script" uid="uid://cqv2uyvt2dx6d" path="res://Scripts/Systems/HeightmapTerrain.cs" id="11_terrain"]
+[ext_resource type="Script" uid="uid://b8us01i657vj3" path="res://Scripts/Systems/LevelInitializer.cs" id="13_init"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_top_color = Color(0.384314, 0.454902, 0.54902, 1)
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tee"]
+albedo_color = Color(0.1, 0.4, 0.1, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rough"]
+albedo_color = Color(0.2, 0.35, 0.2, 1)
+
+[node name="TerrainTest" type="Node3D"]
+
+[node name="SpawnPoint" type="Marker3D" parent="."]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 49.5, 2, -60)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 50, 0)
+shadow_enabled = true
+
+[node name="HeightmapTerrain" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49.42, 0, -99.73)
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("11_terrain")
+GridWidth = 400
+GridDepth = 800
+CellSize = 0.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HeightmapTerrain"]
+
+[node name="FairwayPlaceholder" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.5802, -0.5, 100.26672)
+visible = false
+size = Vector3(200.10034, 1, 400.67896)
+material = SubResource("StandardMaterial3D_tee")
+
+[node name="RoughLeft" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.017815, -0.45, 100)
+use_collision = true
+size = Vector3(50, 1, 400)
+material = SubResource("StandardMaterial3D_rough")
+
+[node name="RoughRight" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.16175, -0.45, 100)
+use_collision = true
+size = Vector3(50, 1, 400)
+material = SubResource("StandardMaterial3D_rough")
+
+[node name="RoughBack" type="CSGBox3D" parent="."]
+transform = Transform3D(-0.00356046, 0, -0.9999937, 0, 1, 0, 0.9999937, 0, -0.00356046, 50.15, -0.45, -77.897)
+use_collision = true
+size = Vector3(44.78125, 1, 200.05084)
+material = SubResource("StandardMaterial3D_rough")
+
+[node name="TeeBox" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.51819, 0, -59.909077)
+use_collision = true
+size = Vector3(10, 0.2, 10)
+material = SubResource("StandardMaterial3D_tee")
+
+[node name="VisualTee" type="CSGCylinder3D" parent="TeeBox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 0)
+radius = 0.02
+height = 0.08
+material = SubResource("StandardMaterial3D_tee")
+
+[node name="Marker100" parent="." instance=ExtResource("6_marker")]
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 50, 0, -9.909077)
+
+[node name="Marker200" parent="." instance=ExtResource("6_marker")]
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 50, 0, 40.090923)
+Text = "200y"
+
+[node name="Marker300" parent="." instance=ExtResource("6_marker")]
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 50, 0, 90.09093)
+Text = "300y"
+
+[node name="Marker400" parent="." instance=ExtResource("6_marker")]
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 50, 0, 140.09093)
+Text = "400y"
+
+[node name="Marker500" parent="." instance=ExtResource("6_marker")]
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 50, 0, 190.09093)
+visible = false
+Text = "500y"
+
+[node name="Green500" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 0, 190.091)
+
+[node name="Surface" type="CSGCylinder3D" parent="Green500"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+use_collision = true
+radius = 15.0
+height = 0.1
+sides = 32
+material = SubResource("StandardMaterial3D_tee")
+
+[node name="Cup" type="CSGCylinder3D" parent="Green500"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+operation = 2
+radius = 0.108
+height = 0.15
+sides = 16
+material = SubResource("StandardMaterial3D_rough")
+
+[node name="FlagPole" type="CSGCylinder3D" parent="Green500"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+radius = 0.02
+height = 3.0
+material = SubResource("StandardMaterial3D_tee")
+
+[node name="WindSystem" type="Node" parent="."]
+script = ExtResource("7_wind")
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("uid://d2gs8xu75xew3")
+spawn_path = NodePath("..")
+
+[node name="Projectiles" type="Node3D" parent="."]
+
+[node name="ProjectileSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("uid://b5k8q8q8q8q8")
+spawn_path = NodePath("../Projectiles")
+
+[node name="HUD" parent="." instance=ExtResource("3_hud_scene")]
+PlayerPath = NodePath("")
+
+[node name="LevelInitializer" type="Node" parent="."]
+script = ExtResource("13_init")

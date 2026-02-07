@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://codxvaona7tx2"]
+
+[ext_resource type="Script" uid="uid://b1h2q6r3qdol1" path="res://Scripts/Tools/InspectAnimation.cs" id="1_inspect"]
+
+[node name="InspectAnimation" type="Node"]
+script = ExtResource("1_inspect")

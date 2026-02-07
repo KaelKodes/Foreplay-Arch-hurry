@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://damage_number_vfx"]
+
+[ext_resource type="Script" path="res://Scripts/VFX/DamageNumber.cs" id="1_script"]
+
+[sub_resource type="SystemFont" id="SystemFont_dmg"]
+
+[node name="DamageNumber" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Label3D" type="Label3D" parent="."]
+billboard = 1
+no_depth_test = true
+font_size = 48
+outline_size = 8
+modulate = Color(1, 1, 0.8, 1)
+text = "0"
+font = SubResource("SystemFont_dmg")

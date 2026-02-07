@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://health_bar_3d"]
+
+[ext_resource type="Script" path="res://Scripts/UI/Combat/HealthBar3D.cs" id="1_script"]
+
+[node name="HealthBar3D" type="Node3D"]
+script = ExtResource("1_script")

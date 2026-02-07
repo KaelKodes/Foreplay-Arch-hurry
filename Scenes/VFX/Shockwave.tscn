@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3 uid="uid://shockwave_vfx"]
+
+[ext_resource type="Script" path="res://Scripts/VFX/Shockwave.cs" id="1_script"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wave"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.329412, 0.658824, 1, 0.8)
+emission_enabled = true
+emission = Color(0.329412, 0.658824, 1, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="TorusMesh" id="TorusMesh_wave"]
+inner_radius = 0.95
+outer_radius = 1.0
+rings = 32
+ring_segments = 6
+
+[node name="Shockwave" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+material_override = SubResource("StandardMaterial3D_wave")
+mesh = SubResource("TorusMesh_wave")

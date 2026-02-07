@@ -1,0 +1,147 @@
+[gd_scene format=3 uid="uid://dg5v7v7v7v7v"]
+
+[ext_resource type="Script" uid="uid://bb306iqpv63uy" path="res://Scripts/UI/MainMenuController.cs" id="1_menu_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
+bg_color = Color(0.05, 0.05, 0.08, 1)
+
+[sub_resource type="Environment" id="Environment_MainMenuBalls"]
+background_mode = 1
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.4
+tonemap_mode = 2
+glow_enabled = true
+
+[node name="MainMenu" type="Control" unique_id=1058286575]
+layout_mode = 3
+anchor_top = -0.1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 65.8
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu_script")
+
+[node name="Background" type="Panel" parent="." unique_id=1724148463]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -1.0
+offset_top = -79.0
+offset_bottom = 155.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
+
+[node name="BallViewport" type="SubViewportContainer" parent="." unique_id=1938018409]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="BallViewport" unique_id=1154857074]
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(1152, 647)
+render_target_update_mode = 4
+
+[node name="MenuStage" type="Node3D" parent="BallViewport/SubViewport" unique_id=1274056202]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="BallViewport/SubViewport/MenuStage" unique_id=943202827]
+environment = SubResource("Environment_MainMenuBalls")
+
+[node name="Camera3D" type="Camera3D" parent="BallViewport/SubViewport/MenuStage" unique_id=623169198]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5)
+projection = 1
+size = 2.0
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="BallViewport/SubViewport/MenuStage" unique_id=1875155313]
+transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, 2, 2)
+light_energy = 1.2
+sky_mode = 1
+
+[node name="BallsContainer" type="Node3D" parent="BallViewport/SubViewport/MenuStage" unique_id=172854719]
+
+[node name="CollidersContainer" type="Node3D" parent="BallViewport/SubViewport/MenuStage" unique_id=1273212581]
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=349831816]
+layout_mode = 1
+anchors_preset = -1
+anchor_top = -0.13100001
+anchor_right = 1.0
+anchor_bottom = 1.131
+offset_top = 98.356995
+offset_right = -1.0
+offset_bottom = -51.157043
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=227059892]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Title" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1985417078]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_font_sizes/font_size = 64
+text = "ARCH -HURRY"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="CenterContainer/VBoxContainer" unique_id=37677324]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.8, 0.5, 1)
+theme_override_font_sizes/font_size = 24
+text = "Kaels Test Land!"
+horizontal_alignment = 1
+
+[node name="HostBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=711959525]
+custom_minimum_size = Vector2(250, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Host Game"
+
+[node name="LoadBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=2094173480]
+custom_minimum_size = Vector2(250, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Load Your Hole"
+
+[node name="CharacterImportBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1999137990]
+visible = false
+custom_minimum_size = Vector2(250, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Import Character"
+
+[node name="LobbyTitle" type="Label" parent="CenterContainer/VBoxContainer" unique_id=155665269]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Multiplayer Lobby"
+horizontal_alignment = 1
+
+[node name="IPInput" type="LineEdit" parent="CenterContainer/VBoxContainer" unique_id=552346656]
+custom_minimum_size = Vector2(250, 40)
+layout_mode = 2
+placeholder_text = "Host IP (e.g. 127.0.0.1)"
+alignment = 1
+
+[node name="JoinBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=3585083]
+custom_minimum_size = Vector2(250, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Join Game"
+
+[node name="ExitBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=214373033]
+custom_minimum_size = Vector2(250, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Quit Game"
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/CharacterImportBtn" to="." method="OnCharacterImportPressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/ExitBtn" to="." method="OnExitPressed"]

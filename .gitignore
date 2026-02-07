@@ -1,0 +1,20 @@
+# Godot generated files
+.import/
+.godot/
+export.cfg
+export.cfg
+# export_presets.cfg
+# Mono/.NET
+.mono/
+# Build output
+bin/
+obj/
+# OS files
+.DS_Store
+Thumbs.db
+# Temporary files
+*.tmp
+# VSCode
+.vscode/
+# Rider
+.idea/

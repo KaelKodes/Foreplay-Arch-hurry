@@ -1,0 +1,36 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" uid="uid://s1mynw5om6ra" path="res://Scripts/MOBA/MobaMinion.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://cq0e1tuf6b0t4" path="res://Assets/Monsters/Crawler/Crawler_Mesh.fbx" id="2_mesh"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_crawler"]
+radius = 0.3
+height = 0.8
+
+[node name="MobaCrawler" type="CharacterBody3D"]
+collision_mask = 3
+script = ExtResource("1_script")
+Health = 300.0
+MaxHealth = 300.0
+Species = "Crawler"
+ObjectName = "MobaCrawler"
+Team = 1
+MinionType = 1
+Armor = 1.0
+AttackDamage = 15.0
+AttackRange = 15.0
+AttackCooldown = 1.5
+MoveSpeed = 3.5
+GoldOnLastHit = 15.0
+GoldOnProximity = 6.0
+XpOnLastHit = 40.0
+XpOnProximity = 10.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+shape = SubResource("CapsuleShape3D_crawler")
+
+[node name="Visuals" type="Node3D" parent="."]
+transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 0, 0, 0)
+
+[node name="scene" parent="Visuals" instance=ExtResource("2_mesh")]

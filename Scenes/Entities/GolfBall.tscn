@@ -1,0 +1,41 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Entities/ArrowController.cs" id="1_ball_script"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_1"]
+bounce = 0.4
+friction = 0.3
+
+[sub_resource type="CapsuleShape3D" id="ArrowShape"]
+radius = 0.02
+height = 0.7
+
+[sub_resource type="CylinderMesh" id="ArrowMesh"]
+top_radius = 0.015
+bottom_radius = 0.015
+height = 0.7
+
+[sub_resource type="StandardMaterial3D" id="ArrowMat"]
+albedo_color = Color(1, 0.2, 0.2, 1)
+emission_enabled = true
+emission = Color(1, 0, 0, 1)
+emission_energy_multiplier = 2.0
+
+[node name="Arrow" type="RigidBody3D"]
+collision_layer = 1
+collision_mask = 2
+physics_material_override = SubResource("PhysicsMaterial_1")
+continuous_cd = true
+contact_monitor = true
+max_contacts_reported = 4
+mass = 0.045
+script = ExtResource("1_ball_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0)
+shape = SubResource("ArrowShape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0)
+mesh = SubResource("ArrowMesh")
+material_override = SubResource("ArrowMat")
