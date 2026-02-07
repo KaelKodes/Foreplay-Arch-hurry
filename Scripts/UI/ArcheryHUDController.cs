@@ -123,6 +123,16 @@ public partial class ArcheryHUDController : Control
 
 	private void OnModeChanged(bool inCombatMode)
 	{
+		// Auto-hide elements in MOBA
+		if (MobaGameManager.Instance != null)
+		{
+			var statsPanel = GetNodeOrNull<Control>("StatsPanel");
+			if (statsPanel != null) statsPanel.Visible = false;
+
+			var windContainer = GetNodeOrNull<Control>("WindContainer");
+			if (windContainer != null) windContainer.Visible = false;
+		}
+
 		// Only show if specifically in Archer state to prevent overlap with Melee
 		if (_player != null)
 		{

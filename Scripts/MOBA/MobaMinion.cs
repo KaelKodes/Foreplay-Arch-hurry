@@ -219,6 +219,28 @@ public partial class MobaMinion : Monsters
 
         GD.Print($"[MobaMinion] {Name} upgraded to SUPER CREEP!");
     }
+
+    protected override void Die()
+    {
+        base.Die();
+        // Thoroughly remove all collision in MOBA to prevent blocking movement
+        DisableCollisionRecursive(this);
+        GD.Print($"[MobaMinion] {Name} collision completely disabled on death.");
+    }
+
+    private void DisableCollisionRecursive(Node node)
+    {
+        if (node is CollisionShape3D col) col.Disabled = true;
+        foreach (Node child in node.GetChildren())
+        {
+            DisableCollisionRecursive(child);
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        base._ExitTree();
+    }
 }
 
 /// <summary>

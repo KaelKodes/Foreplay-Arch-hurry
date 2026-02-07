@@ -478,7 +478,7 @@ public partial class Monsters : InteractableObject
         }
     }
 
-    private void Die()
+    protected virtual void Die()
     {
         _isDead = true;
         GD.Print($"[Monsters] {ObjectName} died!");

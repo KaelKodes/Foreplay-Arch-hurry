@@ -282,7 +282,7 @@ public partial class ArcherySystem : Node
         // Other peers will receive the arrow via replication (OnArrowSpawned).
         if (_currentPlayer != null && !_currentPlayer.IsLocal) return;
 
-        if (ArrowCount <= 0)
+        if (ArrowCount <= 0 && MobaGameManager.Instance == null)
         {
 			SetPrompt(true, "Out of Arrows!");
             return;
@@ -913,8 +913,11 @@ public partial class ArcherySystem : Node
 		}
 
 		EmitSignal(SignalName.ShotResult, _lockedPower, _lockedAccuracy);
-		ArrowCount--;
-		UpdateArrowLabel();
+		if (MobaGameManager.Instance == null)
+		{
+			ArrowCount--;
+			UpdateArrowLabel();
+		}
 		_stage = DrawStage.ShotComplete;
 		EmitSignal(SignalName.DrawStageChanged, (int)_stage);
 

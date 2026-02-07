@@ -1,0 +1,8 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/Monsters/Crawler/M_Body_BaseColor.tga" id="1_tex"]
+
+[resource]
+resource_name = "M_Body"
+albedo_texture = ExtResource("1_tex")
+vertex_color_use_as_albedo = false

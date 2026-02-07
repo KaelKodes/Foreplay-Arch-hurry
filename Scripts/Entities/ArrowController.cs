@@ -215,7 +215,13 @@ public partial class ArrowController : RigidBody3D
     {
         _isStuck = true;
         _isFlying = false;
-        IsCollectible = true; // Enable collection
+
+		// No picking up arrows in MOBA mode
+		if (MobaGameManager.Instance == null)
+		{
+			IsCollectible = true; // Enable collection
+		}
+
 
         // Pull back slightly to prevent penetration visual
         // Since we just entered, the arrow center is likely inside.

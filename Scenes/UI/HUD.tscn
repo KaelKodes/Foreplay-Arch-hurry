@@ -10,12 +10,8 @@
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_main")
 
-[node name="Hotbar" parent="." instance=ExtResource("5_hotbar")]
-layout_mode = 3
-offset_top = 0.0
-offset_bottom = 80.0
-
 [node name="ModeLabel" type="Label" parent="."]
+
 visible = false
 offset_left = 20.0
 offset_top = 20.0
@@ -660,3 +656,16 @@ text = "HOST GAME"
 custom_minimum_size = Vector2(0, 45)
 layout_mode = 2
 text = "EXIT TO MENU"
+
+[node name="Hotbar" parent="." instance=ExtResource("5_hotbar")]
+layout_mode = 3
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -272.0
+offset_top = 80.0
+offset_right = 272.0
+offset_bottom = 160.0
+grow_horizontal = 2
+
+

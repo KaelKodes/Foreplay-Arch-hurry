@@ -1023,6 +1023,21 @@ public partial class PlayerController : CharacterBody3D
                 }
             }
         }
+
+        // Combat Input Handling (Left Click)
+        if (@event is InputEventMouseButton attackBtn && attackBtn.Pressed && attackBtn.ButtonIndex == MouseButton.Left)
+        {
+            if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
+            {
+                _meleeSystem.HandleInput();
+                GetViewport().SetInputAsHandled();
+            }
+            else if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
+            {
+                _archerySystem.HandleInput();
+                GetViewport().SetInputAsHandled();
+            }
+        }
     }
 
     private void OnPowerSlamTriggered(Vector3 position, int playerIndex)

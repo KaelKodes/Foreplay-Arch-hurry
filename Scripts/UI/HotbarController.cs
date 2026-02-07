@@ -63,7 +63,17 @@ public partial class HotbarController : Control
             _slotContainer = hbox;
         }
 
+        // MOBA Specific Defaults
+        if (MobaGameManager.Instance != null)
+        {
+            _currentLayout = HotbarLayout.Vertical8x1;
+            SetAnchorsPreset(LayoutPreset.CenterRight);
+            OffsetTop = -300; // Position vertically centered-ish
+            GD.Print("[Hotbar] MOBA Mode detected: Defaulting to Vertical Right-Side layout.");
+        }
+
         CreateSlots();
+        RebuildContainer(); // Force initial layout rebuild
 
         // Subscribe to ToolManager
         if (ToolManager.Instance != null)
@@ -220,9 +230,19 @@ public partial class HotbarController : Control
         Size = new Vector2(width, height);
 
         // Recenter anchored position
-        OffsetLeft = -width / 2f;
-        OffsetRight = width / 2f;
-        OffsetBottom = OffsetTop + height;
+        if ((LayoutPreset)AnchorsPreset == LayoutPreset.CenterRight)
+        {
+            OffsetLeft = -width - 20; // 20px padding from right edge
+            OffsetRight = -20;
+            OffsetTop = -height / 2f;
+            OffsetBottom = height / 2f;
+        }
+        else
+        {
+            OffsetLeft = -width / 2f;
+            OffsetRight = width / 2f;
+            OffsetBottom = OffsetTop + height;
+        }
     }
 
     private void DeferredSubscribe()
