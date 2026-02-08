@@ -1,0 +1,121 @@
+[gd_scene load_steps=2 format=3 uid="uid://d1w8j4p8k7y2w"]
+
+[ext_resource type="Script" path="res://Scripts/UI/LobbyController.cs" id="1_script"]
+
+[node name="Lobby" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0823529, 0.0823529, 0.101961, 1)
+
+[node name="Vignette" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.313726)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 60
+theme_override_constants/margin_top = 60
+theme_override_constants/margin_right = 60
+theme_override_constants/margin_bottom = 60
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Title" type="Label" parent="MarginContainer/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 48
+text = "WARRIOR SELECTION"
+horizontal_alignment = 1
+
+[node name="TeamsContainer" type="HBoxContainer" parent="MarginContainer/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 60
+
+[node name="RedTeam" type="VBoxContainer" parent="MarginContainer/VBox/TeamsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="Header" type="Label" parent="MarginContainer/VBox/TeamsContainer/RedTeam"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.890196, 0.231373, 0.231373, 1)
+theme_override_font_sizes/font_size = 28
+text = "RED FORCE"
+horizontal_alignment = 1
+
+[node name="Grid" type="GridContainer" parent="MarginContainer/VBox/TeamsContainer/RedTeam"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 15
+theme_override_constants/v_separation = 15
+columns = 2
+
+[node name="VS" type="Label" parent="MarginContainer/VBox/TeamsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.235294)
+theme_override_font_sizes/font_size = 64
+text = "VS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BlueTeam" type="VBoxContainer" parent="MarginContainer/VBox/TeamsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="Header" type="Label" parent="MarginContainer/VBox/TeamsContainer/BlueTeam"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.52549, 0.890196, 1)
+theme_override_font_sizes/font_size = 28
+text = "BLUE GLORY"
+horizontal_alignment = 1
+
+[node name="Grid" type="GridContainer" parent="MarginContainer/VBox/TeamsContainer/BlueTeam"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 15
+theme_override_constants/v_separation = 15
+columns = 2
+
+[node name="HBox" type="HBoxContainer" parent="MarginContainer/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="BackBtn" type="Button" parent="MarginContainer/VBox/HBox"]
+custom_minimum_size = Vector2(250, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "BACK TO MENU"
+
+[node name="StartBtn" type="Button" parent="MarginContainer/VBox/HBox"]
+custom_minimum_size = Vector2(250, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ENTER BATTLE"

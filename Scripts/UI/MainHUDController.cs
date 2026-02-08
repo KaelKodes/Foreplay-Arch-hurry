@@ -27,7 +27,7 @@ public partial class MainHUDController : CanvasLayer
 	private Control _meleeHUD;
 	private Control _buildHUD;
 	private Control _walkHUD;
-	
+
 	// Pause Menu
 	private Control _pauseMenu;
 	private Button _resumeBtn;
@@ -174,7 +174,7 @@ public partial class MainHUDController : CanvasLayer
 	{
 		if (_pauseMenu == null) return;
 		_pauseMenu.Visible = visible;
-		
+
 		if (visible)
 		{
 			Input.MouseMode = Input.MouseModeEnum.Visible;
@@ -198,8 +198,8 @@ public partial class MainHUDController : CanvasLayer
 	private void OnExitToMenuPressed()
 	{
 		GD.Print("MainHUD: Exiting to Main Menu...");
-		// NetworkManager handles scene change and cleanup if we use its method
-		GetTree().ChangeSceneToFile("res://Scenes/Menus/MainMenu.tscn");
+		// NetworkManager handles scene change AND peer cleanup
+		NetworkManager.Instance.ReturnToMainMenu();
 	}
 
 	public override void _Process(double delta)

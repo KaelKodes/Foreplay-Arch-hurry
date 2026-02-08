@@ -89,6 +89,7 @@ public partial class PlayerController : CharacterBody3D
         get => _modelManager?.CurrentModelId ?? _currentModelId;
         set
         {
+            _currentModelId = value;
             if (_modelManager != null && _modelManager.CurrentModelId != value && !string.IsNullOrEmpty(value))
             {
                 GD.Print($"[PlayerController] SyncModel changing to {value}");
@@ -156,8 +157,16 @@ public partial class PlayerController : CharacterBody3D
 
         GD.Print($"[PlayerController] _Ready starting for {Name}. Authority: {GetMultiplayerAuthority()}, IsLocal: {IsLocal}");
 
-        _camera = GetNodeOrNull<CameraController>(CameraPath);
-        GD.Print($"[PlayerController] Camera resolve: {(_camera != null ? "SUCCESS" : "FAILED")} (Path: {CameraPath})");
+        if (!CameraPath.IsEmpty)
+        {
+            _camera = GetNodeOrNull<CameraController>(CameraPath);
+            GD.Print($"[PlayerController] Camera resolve: {(_camera != null ? "SUCCESS" : "FAILED")} (Path: {CameraPath})");
+        }
+
+        if (_camera != null)
+        {
+            _camera.Current = IsLocal;
+        }
 
         // Find systems as children
         _archerySystem = GetNodeOrNull<ArcherySystem>("ArcherySystem");
@@ -173,8 +182,12 @@ public partial class PlayerController : CharacterBody3D
 
         // Attempt to find the visual avatar
         _avatarMesh = GetNodeOrNull<MeshInstance3D>("AvatarMesh");
-        _animTree = GetNodeOrNull<AnimationTree>(AnimationTreePath);
-        if (_animTree == null) _animTree = GetNodeOrNull<AnimationTree>("AnimationTree");
+
+        if (!AnimationTreePath.IsEmpty)
+            _animTree = GetNodeOrNull<AnimationTree>(AnimationTreePath);
+
+        if (_animTree == null)
+            _animTree = GetNodeOrNull<AnimationTree>("AnimationTree");
 
         _meleeModel = GetNodeOrNull<Node3D>("Erika");
         _archeryModel = GetNodeOrNull<Node3D>("ErikaBow");
@@ -186,6 +199,9 @@ public partial class PlayerController : CharacterBody3D
         _modelManager = new CharacterModelManager();
         AddChild(_modelManager);
         _modelManager.Initialize(this, _meleeModel, _archeryModel, _animTree, _meleeAnimPlayer, _archeryAnimPlayer);
+
+        // Apply current/synced model
+        _modelManager.SetCharacterModel(_currentModelId);
 
         // Default to Melee
         _animPlayer = _meleeAnimPlayer;

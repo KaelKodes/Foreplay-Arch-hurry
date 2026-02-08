@@ -33,7 +33,7 @@ public partial class CharacterRegistry : Node
         public Dictionary<string, CharacterConfig.MeshConfig> Meshes { get; set; } = new();
 
         // Fallback Model (if animation missing, try this model's mapping)
-        public string FallbackModelId { get; set; } = "erika";
+        public string FallbackModelId { get; set; } = "Ranger";
     }
 
     private static CharacterRegistry _instance;
@@ -81,7 +81,7 @@ public partial class CharacterRegistry : Node
                 AnimationSources = config.AnimationSources ?? new Dictionary<string, string>(), // New
                 RotationOffset = config.Rotation,
                 ModelScale = config.Scale,
-                FallbackModelId = config.AnimationSource == "erika" ? "erika" : config.AnimationSource,
+                FallbackModelId = config.AnimationSource == "Ranger" ? "Ranger" : config.AnimationSource,
                 Meshes = config.Meshes ?? new Dictionary<string, CharacterConfig.MeshConfig>()
             };
 
@@ -96,34 +96,62 @@ public partial class CharacterRegistry : Node
 
     private void RegisterDefaultModels()
     {
-        // Erika - Default model (Shared Skeleton)
+        // Ranger (Formerly Erika - Shared Skeleton)
         AvailableModels.Add(new CharacterModel
         {
-            Id = "erika",
-            DisplayName = "Erika",
+            Id = "Ranger",
+            DisplayName = "Ranger",
             MeleeScenePath = "res://Assets/Erika/Erika Archer.fbx",
             ArcheryScenePath = "res://Assets/ErikaBow/Erika Archer With Bow Arrow.fbx",
+            IsCustomSkeleton = false,
+            AnimationMap = new Dictionary<string, string> {
+                { "Idle", "standing idle 01" },
+                { "Walk", "standing walk forward" },
+                { "Run", "standing run forward" }
+            }
+        });
+
+        // Warrior (Formerly Paladin.fbx - Shared Skeleton)
+        AvailableModels.Add(new CharacterModel
+        {
+            Id = "Warrior",
+            DisplayName = "Warrior",
+            MeleeScenePath = "res://Assets/CharacterMeshes/Paladin.fbx",
+            ArcheryScenePath = "res://Assets/CharacterMeshes/Paladin.fbx",
             IsCustomSkeleton = false
         });
 
-        // Warrior (Shared Skeleton - mesh swap only)
+        // Cleric (Formerly Warrior.fbx - Shared Skeleton)
         AvailableModels.Add(new CharacterModel
         {
-            Id = "warrior",
-            DisplayName = "Warrior",
+            Id = "Cleric",
+            DisplayName = "Cleric",
             MeleeScenePath = "res://Assets/CharacterMeshes/Warrior.fbx",
             ArcheryScenePath = "res://Assets/CharacterMeshes/Warrior.fbx",
             IsCustomSkeleton = false
         });
 
-        // Paladin (Shared Skeleton - mesh swap only)
+        // Necromancer (Mixamo rig - uses his own custom skeleton logic)
         AvailableModels.Add(new CharacterModel
         {
-            Id = "paladin",
-            DisplayName = "Paladin",
-            MeleeScenePath = "res://Assets/CharacterMeshes/Paladin.fbx",
-            ArcheryScenePath = "res://Assets/CharacterMeshes/Paladin.fbx",
-            IsCustomSkeleton = false
+            Id = "Necromancer",
+            DisplayName = "Necromancer",
+            MeleeScenePath = "res://Assets/Necromancer/Vampire A Lusth.fbx",
+            ArcheryScenePath = "res://Assets/Necromancer/Vampire A Lusth.fbx",
+            IsCustomSkeleton = true,
+            AnimationSources = new Dictionary<string, string> {
+                { "Idle", "res://Assets/Necromancer/standing idle.fbx" },
+                { "Walk", "res://Assets/Necromancer/Standing Walk Forward.fbx" },
+                { "Run", "res://Assets/Necromancer/Standing Run Forward.fbx" },
+                { "Jump", "res://Assets/Necromancer/Standing Jump.fbx" },
+                { "MeleeAttack1", "res://Assets/Necromancer/Standing 1H Magic Attack 01.fbx" },
+                { "MeleeAttack2", "res://Assets/Necromancer/Standing 1H Magic Attack 02.fbx" },
+                { "MeleeAttack3", "res://Assets/Necromancer/Standing 1H Magic Attack 03.fbx" },
+                { "ArcheryIdle", "res://Assets/Necromancer/standing idle.fbx" }, // Use Idle for Bow Aim
+                { "ArcheryDraw", "res://Assets/Necromancer/standing 1H cast spell 01.fbx" },
+                { "ArcheryFire", "res://Assets/Necromancer/Standing 1H Magic Attack 01.fbx" },
+                { "Death", "res://Assets/Necromancer/Standing React Death Backward.fbx" }
+            }
         });
 
         // Note: Guardian, Monk and Pale Knight removed - they had compatibility issues

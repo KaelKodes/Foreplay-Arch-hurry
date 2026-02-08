@@ -9,7 +9,6 @@ namespace Archery;
 public partial class MobaMinion : Monsters
 {
     // ── Exports ──────────────────────────────────────────────
-    [Export] public MobaTeam Team = MobaTeam.None;
     [Export] public MobaMinionType MinionType = MobaMinionType.Melee;
     [Export] public float Armor = 4f;
     [Export] public float AttackDamage = 12f;

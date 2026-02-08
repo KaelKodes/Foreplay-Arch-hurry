@@ -259,11 +259,24 @@ public partial class MeleeSystem : Node
 		{
 			var collider = (Node)result["collider"];
 			var interactable = collider as InteractableObject ?? collider.GetParent() as InteractableObject;
-			if (interactable != null)
+			var tower = collider as MobaTower ?? collider.GetParent() as MobaTower;
+			var nexus = collider as MobaNexus ?? collider.GetParent() as MobaNexus;
+
+			MobaTeam attackerTeam = _currentPlayer?.Team ?? MobaTeam.None;
+			MobaTeam targetTeam = MobaTeam.None;
+
+			if (interactable != null) targetTeam = interactable.Team;
+			else if (tower != null) targetTeam = tower.Team;
+			else if (nexus != null) targetTeam = nexus.Team;
+
+			if (TeamSystem.AreEnemies(attackerTeam, targetTeam) || targetTeam == MobaTeam.None)
 			{
 				Vector3 hitPos = ((Node3D)collider).GlobalPosition;
 				Vector3 dir = (hitPos - center).Normalized();
-				interactable.OnHit(damage, hitPos, dir);
+
+				if (interactable != null) interactable.OnHit(damage, hitPos, dir);
+				else if (tower != null) tower.TakeDamage(damage);
+				else if (nexus != null) nexus.TakeDamage(damage);
 			}
 		}
 	}
@@ -289,7 +302,17 @@ public partial class MeleeSystem : Node
 		{
 			var collider = (Node)result["collider"];
 			var interactable = collider as InteractableObject ?? collider.GetParent() as InteractableObject;
-			if (interactable != null)
+			var tower = collider as MobaTower ?? collider.GetParent() as MobaTower;
+			var nexus = collider as MobaNexus ?? collider.GetParent() as MobaNexus;
+
+			MobaTeam attackerTeam = _currentPlayer?.Team ?? MobaTeam.None;
+			MobaTeam targetTeam = MobaTeam.None;
+
+			if (interactable != null) targetTeam = interactable.Team;
+			else if (tower != null) targetTeam = tower.Team;
+			else if (nexus != null) targetTeam = nexus.Team;
+
+			if (TeamSystem.AreEnemies(attackerTeam, targetTeam) || targetTeam == MobaTeam.None)
 			{
 				Vector3 hitPos = Vector3.Zero;
 				if (result.ContainsKey("point"))
@@ -298,11 +321,12 @@ public partial class MeleeSystem : Node
 				}
 				else
 				{
-					// Fallback: Use the object's position if specific hit point is missing
 					hitPos = ((Node3D)collider).GlobalPosition;
 				}
 
-				interactable.OnHit(damage, hitPos, forward);
+				if (interactable != null) interactable.OnHit(damage, hitPos, forward);
+				else if (tower != null) tower.TakeDamage(damage);
+				else if (nexus != null) nexus.TakeDamage(damage);
 			}
 		}
 	}

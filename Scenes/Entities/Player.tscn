@@ -382,6 +382,10 @@ collision_mask = 3
 script = ExtResource("1_script")
 CameraPath = NodePath("Camera3D")
 ArcherySystemPath = NodePath("ArcherySystem")
+MeleeSystemPath = NodePath("MeleeSystem")
+AnimationTreePath = NodePath("AnimationTree")
+MeleeModelPath = NodePath("Erika")
+ArcheryModelPath = NodePath("ErikaBow")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

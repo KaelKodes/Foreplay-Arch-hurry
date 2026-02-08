@@ -10,6 +10,7 @@ public partial class NetworkHUD : Control
     private Button _hostButton;
     private Button _joinButton;
     private Label _statusLabel;
+    private OptionButton _teamOption;
     private NetworkManager _networkManager;
 
     public override void _Ready()
@@ -49,9 +50,20 @@ public partial class NetworkHUD : Control
         vbox.AddChild(title);
 
         // IP Input
-        _ipInput = new LineEdit();
         _ipInput.PlaceholderText = "127.0.0.1";
         vbox.AddChild(_ipInput);
+
+        // Team Selection
+        var teamLabel = new Label();
+        teamLabel.Text = "Select Team:";
+        vbox.AddChild(teamLabel);
+
+        _teamOption = new OptionButton();
+        _teamOption.AddItem("None", (int)MobaTeam.None);
+        _teamOption.AddItem("Red Team", (int)MobaTeam.Red);
+        _teamOption.AddItem("Blue Team", (int)MobaTeam.Blue);
+        _teamOption.ItemSelected += OnTeamSelected;
+        vbox.AddChild(_teamOption);
 
         // Host Button
         _hostButton = new Button();
@@ -108,5 +120,14 @@ public partial class NetworkHUD : Control
         _statusLabel.Text = $"Joining {ip}...";
         _networkManager.JoinGame(ip);
         Visible = false; // Hide HUD on connect? Maybe wait for success signal?
+    }
+
+    private void OnTeamSelected(long index)
+    {
+        if (_networkManager != null)
+        {
+            _networkManager.SelectedTeam = (MobaTeam)_teamOption.GetItemId((int)index);
+            GD.Print($"NetworkHUD: Local Team Preference set to {_networkManager.SelectedTeam}");
+        }
     }
 }

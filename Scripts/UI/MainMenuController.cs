@@ -48,15 +48,15 @@ public partial class MainMenuController : Control
 
     private void OnHostPressed()
     {
-        GD.Print("Host Pressed - Loading scene first");
-        GetTree().ChangeSceneToFile("res://Scenes/Levels/MOBA1.tscn");
+        GD.Print("Hosting Game via Lobby...");
+        NetworkManager.Instance.HostGame();
     }
 
     private void OnJoinPressed()
     {
         var ipInput = FindChild("IPInput", true, false) as LineEdit;
         string ip = ipInput?.Text ?? "127.0.0.1";
-        GD.Print($"Join Pressed: {ip}");
+        GD.Print($"Joining Game at {ip}...");
         NetworkManager.Instance.JoinGame(ip);
     }
 

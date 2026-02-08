@@ -45,8 +45,8 @@ public partial class MobaGameManager : Node
     public float WaveTimeRemaining => _waveTimer;
 
     // Spawn positions (inner turret positions, persisted even after destruction)
-    private Vector3 _redSpawnPos = Vector3.Zero;
-    private Vector3 _blueSpawnPos = Vector3.Zero;
+    public Vector3 RedSpawnPos { get; private set; } = Vector3.Zero;
+    public Vector3 BlueSpawnPos { get; private set; } = Vector3.Zero;
 
     // Container for spawned minions
     private Node _minionContainer;
@@ -78,13 +78,13 @@ public partial class MobaGameManager : Node
                 {
                     _redTowers.Add(tower);
                     if (tower.Type == TowerType.Inner)
-                        _redSpawnPos = tower.GlobalPosition;
+                        RedSpawnPos = tower.GlobalPosition;
                 }
                 else if (tower.Team == MobaTeam.Blue)
                 {
                     _blueTowers.Add(tower);
                     if (tower.Type == TowerType.Inner)
-                        _blueSpawnPos = tower.GlobalPosition;
+                        BlueSpawnPos = tower.GlobalPosition;
                 }
             }
         }
@@ -106,7 +106,7 @@ public partial class MobaGameManager : Node
 
         GD.Print($"[MobaGameManager] Registered - Red Towers: {_redTowers.Count}, Blue Towers: {_blueTowers.Count}");
         GD.Print($"[MobaGameManager] Red Nexus: {_redNexus != null}, Blue Nexus: {_blueNexus != null}");
-        GD.Print($"[MobaGameManager] Red Spawn: {_redSpawnPos}, Blue Spawn: {_blueSpawnPos}");
+        GD.Print($"[MobaGameManager] Red Spawn: {RedSpawnPos}, Blue Spawn: {BlueSpawnPos}");
 
         // Enable spawning after a short delay (let everything settle)
         _spawningEnabled = true;
@@ -144,8 +144,8 @@ public partial class MobaGameManager : Node
     {
         GD.Print($"[MobaGameManager] ═══ WAVE {_waveCount} ═══");
 
-        SpawnTeamWave(MobaTeam.Red, _redSpawnPos, _redInnerDestroyed);
-        SpawnTeamWave(MobaTeam.Blue, _blueSpawnPos, _blueInnerDestroyed);
+        SpawnTeamWave(MobaTeam.Red, RedSpawnPos, _redInnerDestroyed);
+        SpawnTeamWave(MobaTeam.Blue, BlueSpawnPos, _blueInnerDestroyed);
     }
 
     private void SpawnTeamWave(MobaTeam team, Vector3 spawnPos, bool innerDestroyed)

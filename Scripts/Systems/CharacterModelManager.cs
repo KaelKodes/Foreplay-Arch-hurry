@@ -13,6 +13,30 @@ public partial class CharacterModelManager : Node
     private Node3D _meleeModel;
     private Node3D _archeryModel;
     private Node3D _currentCustomModel;
+
+    private static readonly Dictionary<string, string> ErikaAnimationFiles = new()
+    {
+        { "standing idle 01", "res://Assets/Erika/standing idle 01.fbx" },
+        { "standing walk forward", "res://Assets/Erika/standing walk forward.fbx" },
+        { "standing walk back", "res://Assets/Erika/standing walk back.fbx" },
+        { "standing walk left", "res://Assets/Erika/standing walk left.fbx" },
+        { "standing walk right", "res://Assets/Erika/standing walk right.fbx" },
+        { "standing run forward", "res://Assets/Erika/standing run forward.fbx" },
+        { "standing run back", "res://Assets/Erika/standing run back.fbx" },
+        { "standing run left", "res://Assets/Erika/standing run left.fbx" },
+        { "standing run right", "res://Assets/Erika/standing run right.fbx" },
+        { "standing jump", "res://Assets/Erika/sword and shield jump (2).fbx" },
+        { "melee attack", "res://Assets/Erika/sword and shield slash.fbx" },
+        { "melee perfect attack", "res://Assets/Erika/sword and shield slash (2).fbx" },
+        { "melee power attack", "res://Assets/Erika/sword and shield slash (4).fbx" },
+        { "archery draw", "res://Assets/ErikaBow/standing draw arrow.fbx" },
+        { "archery aim idle", "res://Assets/ErikaBow/standing aim overdraw.fbx" },
+        { "archery recoil", "res://Assets/ErikaBow/standing aim recoil.fbx" },
+        { "archery walk forward", "res://Assets/ErikaBow/standing aim walk forward.fbx" },
+        { "archery walk back", "res://Assets/ErikaBow/standing aim walk back.fbx" },
+        { "archery walk left", "res://Assets/ErikaBow/standing aim walk left.fbx" },
+        { "archery walk right", "res://Assets/ErikaBow/standing aim walk right.fbx" }
+    };
     private AnimationTree _animTree;
     private AnimationPlayer _meleeAnimPlayer;
     private AnimationPlayer _archeryAnimPlayer;
@@ -70,6 +94,8 @@ public partial class CharacterModelManager : Node
             GD.PrintErr($"[CharacterModelManager] Model not found: {modelId}");
             return;
         }
+
+        if (modelId == _currentModelId && _meleeModel.Visible) return; // Already correctly set
 
         _currentModelId = modelId;
 
@@ -161,7 +187,8 @@ public partial class CharacterModelManager : Node
             catch { GD.PrintErr("[CharacterModelManager] Failed to deserialize BoneMap"); }
         }
 
-        if (boneMap == null || boneMap.Count == 0) return;
+        // REMOVED: Early return. We might not need a bone map if using ONLY native animations.
+        // if (boneMap == null || boneMap.Count == 0) return;
 
         // Ensure default library exists
         AnimationLibrary lib;
@@ -221,11 +248,17 @@ public partial class CharacterModelManager : Node
             if (source == "standard")
             {
                 // We need to load and retarget
+                if (boneMap == null || boneMap.Count == 0)
+                {
+                    // For custom skeletons, if no bone map is provided, we just don't load the standard Erika animations.
+                    // This is expected if they are using purely native animations (res://).
+                    continue;
+                }
                 if (!fileMap.ContainsKey(animName)) continue;
                 string fileKey = fileMap[animName];
 
-                if (!SetupErikaAnimations.AnimationFiles.ContainsKey(fileKey)) continue;
-                string fbxPath = SetupErikaAnimations.AnimationFiles[fileKey];
+                if (!ErikaAnimationFiles.ContainsKey(fileKey)) continue;
+                string fbxPath = ErikaAnimationFiles[fileKey];
 
                 // Load Source
                 if (!ResourceLoader.Exists(fbxPath)) continue;
@@ -305,6 +338,124 @@ public partial class CharacterModelManager : Node
                 // Overwrite if exists
                 if (lib.HasAnimation(animName)) lib.RemoveAnimation(animName);
                 lib.AddAnimation(animName, newAnim);
+            }
+            else if (source.StartsWith("res://"))
+            {
+                // Load native animation from file
+                if (!ResourceLoader.Exists(source))
+                {
+                    GD.PrintErr($"[CharacterModelManager] Native animation file NOT FOUND: {source}");
+                    continue;
+                }
+                var fbxScene = GD.Load<PackedScene>(source);
+                if (fbxScene == null)
+                {
+                    GD.PrintErr($"[CharacterModelManager] Failed to load native animation scene: {source}");
+                    continue;
+                }
+
+                var instance = fbxScene.Instantiate();
+                var srcPlayer = instance.FindChild("AnimationPlayer", true, false) as AnimationPlayer;
+                if (srcPlayer == null)
+                {
+                    // Fallback search for any AnimationPlayer
+                    srcPlayer = FindPopulatedAnimationPlayerRecursive(instance);
+                }
+
+                if (srcPlayer == null)
+                {
+                    GD.PrintErr($"[CharacterModelManager] No AnimationPlayer found in native animation file: {source}");
+                    instance.QueueFree();
+                    continue;
+                }
+
+                var srcList = srcPlayer.GetAnimationList();
+                if (srcList.Length == 0)
+                {
+                    GD.PrintErr($"[CharacterModelManager] AnimationPlayer in {source} has 0 animations.");
+                    instance.QueueFree();
+                    continue;
+                }
+
+                var srcAnim = srcPlayer.GetAnimation(srcList[0]);
+                var newAnim = srcAnim.Duplicate() as Animation;
+                instance.QueueFree();
+
+                // --- TRACK REMAPPING ---
+                // Native animations often have paths like "Skeleton:Bone" or just "Bone".
+                // We must ensure they point to OUR skeleton.
+                int trackCount = newAnim.GetTrackCount();
+                for (int i = 0; i < trackCount; i++)
+                {
+                    string trackPath = newAnim.TrackGetPath(i).ToString();
+
+                    // Native FBX tracks often look like "Skeleton:mixamorig_Hips" or just "mixamorig_Hips"
+                    string boneName = trackPath;
+                    string propertyPart = "";
+
+                    if (trackPath.Contains(":"))
+                    {
+                        var parts = trackPath.Split(':');
+                        // In Godot 4, 3D tracks are usually "SkeletonName:BoneName"
+                        // Property tracks are usually "SkeletonName:BoneName:property" OR "NodePath:property"
+
+                        boneName = parts[0];
+                        if (parts.Length > 1)
+                        {
+                            // If parts[0] is a known skeleton name prefix, skip it
+                            if (parts[0].ToLower().Contains("skeleton"))
+                            {
+                                boneName = parts[1];
+                                if (parts.Length > 2) propertyPart = parts[2];
+                            }
+                            else
+                            {
+                                // Otherwise trust the first part as bone and second as property
+                                propertyPart = parts[1];
+                            }
+                        }
+                    }
+
+                    // Strip any path segments (like "GeneralSkeleton/Hips") to get just the bone name
+                    int lastSlash = boneName.LastIndexOf('/');
+                    if (lastSlash != -1) boneName = boneName.Substring(lastSlash + 1);
+
+                    // Reconstruct path to our skeleton
+                    // Format: "SkeletonNodeName:BoneName"
+                    string newPath = $"{skeleton.Name}:{boneName}";
+                    if (!string.IsNullOrEmpty(propertyPart)) newPath += $":{propertyPart}";
+
+                    newAnim.TrackSetPath(i, newPath);
+
+                    // --- ROOT MOTION STRIPPING ---
+                    // If this bone is the Hips/Root, we want to strip horizontal movement (X/Z) 
+                    // so the character stays over their capsule and doesn't "snap back" on loop.
+                    string lowerBone = boneName.ToLower();
+                    if (lowerBone.Contains("hips") || lowerBone.Contains("root"))
+                    {
+                        if (newAnim.TrackGetType(i) == Animation.TrackType.Position3D)
+                        {
+                            for (int k = 0; k < newAnim.TrackGetKeyCount(i); k++)
+                            {
+                                Vector3 pos = (Vector3)newAnim.TrackGetKeyValue(i, k);
+                                // Keep Y (vertical bobbing), zero out X/Z (horizontal movement)
+                                newAnim.TrackSetKeyValue(i, k, new Vector3(0, pos.Y, 0));
+                            }
+                        }
+                    }
+                }
+
+                // Apply Loop Mode
+                newAnim.LoopMode = Animation.LoopModeEnum.None;
+                if (animName == "Idle" || animName == "Run" || animName == "Walk" || animName == "ArcheryIdle" || animName == "ArcheryDraw")
+                {
+                    newAnim.LoopMode = Animation.LoopModeEnum.Linear;
+                }
+
+                // Overwrite if exists
+                if (lib.HasAnimation(animName)) lib.RemoveAnimation(animName);
+                lib.AddAnimation(animName, newAnim);
+                GD.Print($"[CharacterModelManager] SUCCESS: Loaded native animation '{animName}' from {source}");
             }
         }
 
@@ -636,18 +787,18 @@ public partial class CharacterModelManager : Node
         }
         else
         {
+            // --- DIAGNOSTIC: List all animations ---
+            string allAnims = string.Join(", ", anims);
+            GD.PrintErr($"[CharacterModelManager] Animation not found: {standardName} (mapped to {targetAnim}) for {_currentModelId}. Available: [{allAnims}]");
+
             // 3. Simple internal fallback (Run -> Walk)
-            if (standardName == "Run" && model.AnimationMap.ContainsKey("Walk"))
+            if (standardName == "Run")
             {
                 PlayAnimation("Walk");
             }
-            else if (standardName == "Jump" && _customAnimPlayer.HasAnimation("Idle"))
+            else if (standardName == "Jump")
             {
                 PlayAnimation("Idle");
-            }
-            else
-            {
-                GD.PrintErr($"[CharacterModelManager] Animation not found: {standardName} (mapped to {targetAnim}) for {_currentModelId}");
             }
         }
     }
@@ -700,6 +851,7 @@ public partial class CharacterModelManager : Node
                 newMesh.Owner = null;
                 newSkeleton.RemoveChild(newMesh);
                 targetSkeleton.AddChild(newMesh);
+                newMesh.Skeleton = new NodePath(".."); // Explicitly bind to parent skeleton
                 FixMeshCulling(newMesh);
             }
         }

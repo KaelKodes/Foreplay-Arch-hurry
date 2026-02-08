@@ -1,0 +1,236 @@
+{
+  "classes": {
+    "Archer": {
+      "displayName": "Windrunner Archer",
+      "animations": {
+        "idle": "res://Assets/Erika/standing idle 01.fbx",
+        "walk": "res://Assets/Erika/standing walk forward.fbx",
+        "run": "res://Assets/Erika/standing run forward.fbx"
+      },
+      "abilities": {
+        "Rapid Fire": {
+          "description": "A flurry of arrows that turns the battlefield into a pincushion.",
+          "animationPath": "res://Assets/ErikaBow/standing draw arrow.fbx",
+          "branches": [
+            "Volley",
+            "Fleet Footwork",
+            "Searing Tips",
+            "Relentless",
+            "Static Link",
+            "Focus Pulse"
+          ]
+        },
+        "Piercing Shot": {
+          "description": "Charges a powerful shot that passes through all enemies in its path.",
+          "animationPath": "res://Assets/ErikaBow/standing draw arrow.fbx",
+          "branches": [
+            "Long-Range Bore",
+            "Shattering Point",
+            "Serrated Edge",
+            "Split Arrow",
+            "Resourceful",
+            "Gravity Core"
+          ]
+        },
+        "Rain of Arrows": {
+          "description": "Command the sky to rain destruction on your foes.",
+          "animationPath": "res://Assets/ErikaBow/standing draw arrow.fbx",
+          "branches": [
+            "Arctic Wind",
+            "Corrosive Rain",
+            "Heavy Impact",
+            "Scorched Earth",
+            "Lingering Gale",
+            "Marked for Death"
+          ]
+        },
+        "Vault": {
+          "description": "Graceful evasion that leaves your enemies chasing ghosts.",
+          "animationPath": "res://Assets/Erika/sword and shield jump (2).fbx",
+          "branches": [
+            "Aerial Shot",
+            "Smoke Screen",
+            "Explosive Exit",
+            "Wind Spirit",
+            "Second Wind",
+            "Mirage"
+          ]
+        }
+      }
+    },
+    "Warrior": {
+      "displayName": "Iron Vanguard",
+      "animations": {
+        "idle": "res://Assets/Erika/sword and shield idle.fbx",
+        "walk": "res://Assets/Erika/sword and shield walk.fbx",
+        "run": "res://Assets/Erika/sword and shield run.fbx"
+      },
+      "abilities": {
+        "Shield Slam": {
+          "description": "A forceful bash that leaves enemies reeling.",
+          "animationPath": "res://Assets/Erika/sword and shield attack.fbx",
+          "branches": [
+            "Echoing Impact",
+            "Concussive Force",
+            "Spiked Rim",
+            "Vanguard's Guard",
+            "Disarm",
+            "Momentum Bash"
+          ]
+        },
+        "Intercept": {
+          "description": "Bridge the gap instantly or boost a charging ally.",
+          "animationPath": "res://Assets/Erika/sword and shield run.fbx",
+          "branches": [
+            "Relentless Pursuit",
+            "Blazing Path",
+            "Shield Wall",
+            "Impact Crater",
+            "Swift Recovery",
+            "Thunderous Leap"
+          ]
+        },
+        "Demoralizing Shout": {
+          "description": "Assert dominance. Command the battlefield.",
+          "animationPath": "res://Assets/Erika/sword and shield power up.fbx",
+          "branches": [
+            "Terrifying Presence",
+            "Battle Aura",
+            "Echo of Aggression",
+            "Vampiric Roar",
+            "Lasting Grudge",
+            "Challenger's Vitality"
+          ]
+        },
+        "Avatar of War": {
+          "description": "Ascend into divine fury. Become the legend.",
+          "animationPath": "res://Assets/Erika/sword and shield power up.fbx",
+          "branches": [
+            "Colossus",
+            "Unyielding",
+            "Chain Smasher",
+            "Whirlwind Fury",
+            "Bloodthirst",
+            "Aegis of Olympus"
+          ]
+        }
+      }
+    },
+    "Cleric": {
+      "displayName": "High Priest",
+      "animations": {
+        "idle": "res://Assets/Necromancer/standing idle.fbx",
+        "walk": "res://Assets/Necromancer/Standing Walk Forward.fbx",
+        "run": "res://Assets/Necromancer/Standing Run Forward.fbx"
+      },
+      "abilities": {
+        "High Remedy": {
+          "description": "The most powerful single-target heal in the game.",
+          "animationPath": "res://Assets/Necromancer/Standing 2H Cast Spell 01.fbx",
+          "branches": [
+            "Divine Overflow",
+            "Quickening Grace",
+            "Focused Mend",
+            "Cleansing Light",
+            "Beacon of Hope",
+            "Echo of Life"
+          ]
+        },
+        "Celestial Buff": {
+          "description": "Bolster your allies with holy protection.",
+          "animationPath": "res://Assets/Necromancer/Standing 2H Cast Spell 01.fbx",
+          "branches": [
+            "Symbol of Fortitude",
+            "Aura of Retribution",
+            "Zealot's Haste",
+            "Iron Will",
+            "Vigor Pulse",
+            "Shared Burden"
+          ]
+        },
+        "Judgement": {
+          "description": "A holy strike that weakens the enemy's resolve.",
+          "animationPath": "res://Assets/Necromancer/Standing 1H Magic Attack 01.fbx",
+          "branches": [
+            "Blinding Flare",
+            "Searing Brand",
+            "Wrath of Heavens",
+            "Penance",
+            "Staggering Blow",
+            "Holy Vulnerability"
+          ]
+        },
+        "Divine Intervention": {
+          "description": "The ultimate insurance policy against death.",
+          "animationPath": "res://Assets/Necromancer/Standing 2H Magic Area Attack 01.fbx",
+          "branches": [
+            "Second Life",
+            "Guardian Angel",
+            "Martyr's Bond",
+            "Heavenly Wings",
+            "Pure Soul",
+            "Resurrecting Light"
+          ]
+        }
+      }
+    },
+    "Necromancer": {
+      "displayName": "Soul-Reaver Necromancer",
+      "animations": {
+        "idle": "res://Assets/Necromancer/standing idle.fbx",
+        "walk": "res://Assets/Necromancer/Standing Walk Forward.fbx",
+        "run": "res://Assets/Necromancer/Standing Run Forward.fbx"
+      },
+      "abilities": {
+        "Lifetap": {
+          "description": "Steal the very essence of your enemies to fuel your own heart.",
+          "animationPath": "res://Assets/Necromancer/Standing 1H Magic Attack 01.fbx",
+          "branches": [
+            "Soul Siphon",
+            "Blood Blast",
+            "Essence Bind",
+            "Death's Mark",
+            "Necrotic Burst",
+            "Lingering Drain"
+          ]
+        },
+        "Plague of Darkness": {
+          "description": "Cast a rotting decay that spreads through the enemy lines.",
+          "animationPath": "res://Assets/Necromancer/Standing 2H Magic Area Attack 02.fbx",
+          "branches": [
+            "Virulent Strain",
+            "Enveloping Gloom",
+            "Corruption",
+            "Dread Silence",
+            "Ravenous Plague",
+            "Pestilence"
+          ]
+        },
+        "Summon Undead": {
+          "description": "Raise a Skeleton Knight from the grave to do your bidding.",
+          "animationPath": "res://Assets/Necromancer/Standing 2H Cast Spell 01.fbx",
+          "branches": [
+            "Knight's Plate",
+            "Flaming Blade",
+            "Horde",
+            "Guard",
+            "Frenzy",
+            "Exploding Remains"
+          ]
+        },
+        "Lich Form": {
+          "description": "The ultimate transformation. Sacrifice your blood for infinite power.",
+          "animationPath": "res://Assets/Necromancer/Standing 2H Magic Area Attack 01.fbx",
+          "branches": [
+            "Dark Pact",
+            "Skeletal Command",
+            "Undying Soul",
+            "Reaper's Scythe",
+            "Sacrificial Lamb",
+            "Eternal Night"
+          ]
+        }
+      }
+    }
+  }
+}

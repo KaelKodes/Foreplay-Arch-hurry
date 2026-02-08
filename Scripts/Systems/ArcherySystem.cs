@@ -147,12 +147,7 @@ public partial class ArcherySystem : Node
         CallDeferred(MethodName.ExitCombatMode);
         CallDeferred(MethodName.UpdateArrowLabel);
 
-        // Notify NetworkManager that scene is ready for spawning
-        if (NetworkManager.Instance != null)
-        {
-            // Defer to avoid "Parent node busy" error during _Ready
-            NetworkManager.Instance.CallDeferred("LevelLoaded", GetParent());
-        }
+
 
         // [FIX] Initialize TeePosition from Scene (with global search)
         Node3D spawnPoint = GetParent().GetNodeOrNull<Node3D>("SpawnPoint");
@@ -446,7 +441,8 @@ public partial class ArcherySystem : Node
 			{ "color_g", playerColor.G },
 			{ "color_b", playerColor.B },
 			{ "player_id", playerId },
-			{ "name", uniqueName }
+			{ "name", uniqueName },
+			{ "team", (int)(owner?.Team ?? MobaTeam.None) }
         };
 
             // spawner.Spawn() will handle instantiation on all peers via SpawnArrowLocally
