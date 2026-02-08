@@ -93,9 +93,14 @@ public partial class HotbarController : Control
         {
             CallDeferred(nameof(DeferredSubscribe));
         }
-        // Enable mouse input for the background panel to allow dragging
+        // Style the hotbar background with MobaTheme
         var bg = GetNodeOrNull<Control>("Background");
-        if (bg != null)
+        if (bg is ColorRect bgRect)
+        {
+            bgRect.Color = MobaTheme.PanelBg;
+            bgRect.GuiInput += OnBackgroundGuiInput;
+        }
+        else if (bg != null)
         {
             bg.GuiInput += OnBackgroundGuiInput;
         }
@@ -317,13 +322,24 @@ public partial class HotbarController : Control
             slot.StretchMode = TextureButton.StretchModeEnum.Scale;
             slot.IgnoreTextureSize = true;
 
-            // Create a background rect
-            var colorRect = new ColorRect();
-            colorRect.Name = "Background";
-            colorRect.Color = new Color(0.15f, 0.15f, 0.15f, 0.8f); // Dark background
-            colorRect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            colorRect.MouseFilter = MouseFilterEnum.Ignore;
-            slot.AddChild(colorRect);
+            // Create a styled slot background using MobaTheme
+            var slotPanel = new Panel();
+            slotPanel.Name = "Background";
+            var slotStyle = new StyleBoxFlat();
+            slotStyle.BgColor = new Color(0.1f, 0.1f, 0.15f, 0.9f);
+            slotStyle.CornerRadiusTopLeft = 4;
+            slotStyle.CornerRadiusTopRight = 4;
+            slotStyle.CornerRadiusBottomLeft = 4;
+            slotStyle.CornerRadiusBottomRight = 4;
+            slotStyle.BorderWidthTop = 1;
+            slotStyle.BorderWidthBottom = 1;
+            slotStyle.BorderWidthLeft = 1;
+            slotStyle.BorderWidthRight = 1;
+            slotStyle.BorderColor = MobaTheme.PanelBorder;
+            slotPanel.AddThemeStyleboxOverride("panel", slotStyle);
+            slotPanel.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            slotPanel.MouseFilter = MouseFilterEnum.Ignore;
+            slot.AddChild(slotPanel);
 
             // Add icon rect (layered on top of background)
             var iconRect = new TextureRect();
@@ -338,13 +354,15 @@ public partial class HotbarController : Control
             iconRect.MouseFilter = MouseFilterEnum.Ignore;
             slot.AddChild(iconRect);
 
-            // Add number label
+            // Add number label with themed styling
             var label = new Label();
             label.Name = "NumberLabel";
             label.Text = (i + 1).ToString();
             label.HorizontalAlignment = HorizontalAlignment.Center;
             label.VerticalAlignment = VerticalAlignment.Bottom;
             label.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            label.AddThemeFontSizeOverride("font_size", 11);
+            label.AddThemeColorOverride("font_color", MobaTheme.TextMuted);
             label.MouseFilter = MouseFilterEnum.Ignore;
             slot.AddChild(label);
 
@@ -357,10 +375,10 @@ public partial class HotbarController : Control
             nameLabel.MouseFilter = MouseFilterEnum.Ignore;
             slot.AddChild(nameLabel);
 
-            // Selection highlight
+            // Selection highlight with themed glow
             var highlight = new ColorRect();
             highlight.Name = "Highlight";
-            highlight.Color = new Color(1, 1, 1, 0.3f);
+            highlight.Color = new Color(0.4f, 0.6f, 1f, 0.25f);
             highlight.SetAnchorsPreset(Control.LayoutPreset.FullRect);
             highlight.Visible = false;
             highlight.MouseFilter = MouseFilterEnum.Ignore;
@@ -480,13 +498,9 @@ public partial class HotbarController : Control
                 }
             }
 
-            // Show dark background behind all slots (icons or not)
-            var bg = slot.GetNodeOrNull<ColorRect>("Background");
-            if (bg != null)
-            {
-                bg.Visible = true;
-                bg.Color = new Color(0.15f, 0.15f, 0.15f, 0.8f); // Same dark gray for all slots
-            }
+            // Ensure slot background is visible
+            var bg = slot.GetNodeOrNull<Panel>("Background");
+            if (bg != null) bg.Visible = true;
         }
 
         // Ensure highlight is correct after refresh

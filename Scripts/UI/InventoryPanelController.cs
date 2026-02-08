@@ -36,6 +36,7 @@ public partial class InventoryPanelController : Control
         }
 
         CreateSlots();
+        ApplyTheme();
 
         if (ToolManager.Instance != null)
         {
@@ -44,6 +45,16 @@ public partial class InventoryPanelController : Control
 
             // Initial visibility
             Visible = ToolManager.Instance.CurrentMode == ToolManager.HotbarMode.RPG;
+        }
+    }
+
+    private void ApplyTheme()
+    {
+        // Style the background panel with MobaTheme
+        var bgPanel = GetNodeOrNull<Panel>("Background");
+        if (bgPanel != null)
+        {
+            bgPanel.AddThemeStyleboxOverride("panel", MobaTheme.CreatePanelStyle());
         }
     }
 
@@ -70,10 +81,21 @@ public partial class InventoryPanelController : Control
             slot.StretchMode = TextureButton.StretchModeEnum.Scale;
             slot.IgnoreTextureSize = true;
 
-            // Background
-            var bg = new ColorRect();
+            // Slot background with MobaTheme styling
+            var bg = new Panel();
             bg.Name = "Background";
-            bg.Color = new Color(0.1f, 0.1f, 0.1f, 0.9f);
+            var slotStyle = new StyleBoxFlat();
+            slotStyle.BgColor = new Color(0.1f, 0.1f, 0.15f, 0.9f);
+            slotStyle.CornerRadiusTopLeft = 4;
+            slotStyle.CornerRadiusTopRight = 4;
+            slotStyle.CornerRadiusBottomLeft = 4;
+            slotStyle.CornerRadiusBottomRight = 4;
+            slotStyle.BorderWidthTop = 1;
+            slotStyle.BorderWidthBottom = 1;
+            slotStyle.BorderWidthLeft = 1;
+            slotStyle.BorderWidthRight = 1;
+            slotStyle.BorderColor = MobaTheme.PanelBorder;
+            bg.AddThemeStyleboxOverride("panel", slotStyle);
             bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
             bg.MouseFilter = MouseFilterEnum.Ignore;
             slot.AddChild(bg);
