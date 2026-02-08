@@ -5,18 +5,22 @@ namespace Archery;
 public partial class StatsService : Node
 {
     private Stats _playerStats = new Stats();
+    private string _currentHeroName = "Ranger";
 
     public Stats PlayerStats => _playerStats;
 
-    public void LoadStats()
+    public void LoadStats(string heroName = "Ranger")
     {
+        _currentHeroName = heroName;
         try
         {
             using (var connection = DatabaseManager.GetConnection())
             {
                 connection.Open();
                 var command = connection.CreateCommand();
-                command.CommandText = "SELECT Level, Experience, Gold, Strength, Agility, Dexterity, Vitality, Intelligence, MaxHealth, CurrentHealth, MaxStamina, CurrentStamina, MaxMana, CurrentMana, MaxFury, CurrentFury, IsRightHanded FROM Characters WHERE Id = 1";
+                command.CommandText = "SELECT Level, Experience, Gold, Strength, Agility, Dexterity, Vitality, Intelligence, MaxHealth, CurrentHealth, MaxStamina, CurrentStamina, MaxMana, CurrentMana, MaxFury, CurrentFury, IsRightHanded FROM Characters WHERE Name = @name";
+                command.Parameters.AddWithValue("@name", _currentHeroName);
+
                 using (var reader = command.ExecuteReader())
                 {
                     if (reader.Read())
@@ -38,13 +42,18 @@ public partial class StatsService : Node
                         _playerStats.MaxFury = reader.GetInt32(14);
                         _playerStats.CurrentFury = reader.GetInt32(15);
                         _playerStats.IsRightHanded = reader.GetInt32(16) == 1;
+                        GD.Print($"[StatsService] Found record for {_currentHeroName}. HP: {_playerStats.CurrentHealth}");
+                    }
+                    else
+                    {
+                        GD.PrintErr($"[StatsService] FAILED to find record for hero: {_currentHeroName}");
                     }
                 }
             }
         }
         catch (Exception e)
         {
-            GD.PrintErr($"StatsService: Failed to load stats: {e.Message}");
+            GD.PrintErr($"StatsService: Failed to load stats for {_currentHeroName}: {e.Message}");
         }
     }
 
@@ -64,8 +73,9 @@ public partial class StatsService : Node
                     MaxStamina = @mst, CurrentStamina = @cst,
                     MaxMana = @mmp, CurrentMana = @cmp,
                     MaxFury = @mfu, CurrentFury = @cfu
-                    WHERE Id = 1";
+                    WHERE Name = @name";
 
+                command.Parameters.AddWithValue("@name", _currentHeroName);
                 command.Parameters.AddWithValue("@lvl", _playerStats.Level);
                 command.Parameters.AddWithValue("@xp", _playerStats.Experience);
                 command.Parameters.AddWithValue("@gold", _playerStats.Gold);
@@ -88,7 +98,7 @@ public partial class StatsService : Node
         }
         catch (Exception e)
         {
-            GD.PrintErr($"StatsService: Failed to save progress: {e.Message}");
+            GD.PrintErr($"StatsService: Failed to save progress for {_currentHeroName}: {e.Message}");
         }
     }
 

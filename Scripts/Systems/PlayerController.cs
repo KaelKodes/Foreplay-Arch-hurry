@@ -137,7 +137,7 @@ public partial class PlayerController : CharacterBody3D
     private Archery.DrawStage _lastArcheryStage = Archery.DrawStage.Idle;
 
     // Character Model Selection
-    private string _currentModelId = "erika";
+    private string _currentModelId = "Ranger";
     public string CurrentModelId => _modelManager?.CurrentModelId ?? _currentModelId;
     private CharacterModelManager _modelManager;
     private Mesh _cachedBowMesh; // Legacy - now managed by CharacterModelManager
@@ -338,13 +338,22 @@ public partial class PlayerController : CharacterBody3D
 
         if (isRPG)
         {
-            // Auto-refresh combat components when arriving in RPG mode
-            bool isRanger = CurrentModelId.ToLower() == "ranger" || CurrentModelId.ToLower() == "erika";
-            if (isRanger)
+            // Resolve Hero Class
+            string heroClass = CurrentModelId;
+
+            // Update Hotbar Icons/Abilities
+            toolManager?.UpdateRPGAbilities(heroClass);
+
+            // Class-specific setup
+            if (heroClass.ToLower() == "ranger")
             {
                 _archerySystem?.PrepareNextShot();
                 SetModelMode(true);
-                toolManager?.UpdateRPGAbilities("Ranger");
+            }
+            else
+            {
+                // Warriors, Clerics, etc. might default to Melee mode
+                SetModelMode(false);
             }
         }
     }
@@ -354,7 +363,7 @@ public partial class PlayerController : CharacterBody3D
         if (!IsLocal) return;
 
         // Ability Logic for Ranger
-        bool isRanger = CurrentModelId.ToLower() == "ranger" || CurrentModelId.ToLower() == "erika";
+        bool isRanger = CurrentModelId.ToLower() == "ranger";
         if (!isRanger) return;
 
         switch (index)
@@ -448,12 +457,17 @@ public partial class PlayerController : CharacterBody3D
         _animPlayer = archery ? _archeryAnimPlayer : _meleeAnimPlayer;
     }
 
-    /// <summary>
-    /// Cycles to the next available character model (delegates to CharacterModelManager).
-    /// </summary>
     private void CycleCharacterModel()
     {
         _modelManager?.CycleCharacterModel();
+
+        // Refresh local stats if authority
+        if (IsLocal && _archerySystem != null)
+        {
+            string heroId = _modelManager?.CurrentModelId ?? "Ranger";
+            _archerySystem.PlayerStatsService?.LoadStats(heroId);
+        }
+
         // Sync to other players
         if (_modelManager != null)
         {
@@ -465,6 +479,10 @@ public partial class PlayerController : CharacterBody3D
     private void NetSetCharacterModel(string modelId)
     {
         _modelManager?.SetCharacterModel(modelId);
+
+        // Remote players don't necessarily load local DB for other players' stats 
+        // (those are synced via properties), but we update local state if needed.
+
         GD.Print($"[PlayerController] Received model change from network: {modelId}");
     }
 
@@ -1171,7 +1189,7 @@ public partial class PlayerController : CharacterBody3D
             if (attackBtn.Pressed)
             {
                 // In RPG mode, LMB is basic attack. For Ranger, we allow charging like the tool.
-                bool isRangerMatch = CurrentModelId.ToLower() == "ranger" || CurrentModelId.ToLower() == "erika";
+                bool isRangerMatch = CurrentModelId.ToLower() == "ranger";
 
                 if (isRPGMode && isRangerMatch && !_isChargingAttack)
                 {
@@ -1202,7 +1220,7 @@ public partial class PlayerController : CharacterBody3D
                     float finalHoldTime = _attackHoldTimer;
                     _attackHoldTimer = 0f;
 
-                    bool isRangerRelease = CurrentModelId.ToLower() == "ranger" || CurrentModelId.ToLower() == "erika";
+                    bool isRangerRelease = CurrentModelId.ToLower() == "ranger";
 
                     if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
                         _meleeSystem.ExecuteAttack(finalHoldTime);

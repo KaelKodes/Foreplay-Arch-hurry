@@ -55,6 +55,7 @@ public partial class ArcherySystem : Node
 
 	public BuildManager BuildManager => _buildManager;
 	public ObjectPlacer ObjectPlacer => _objectPlacer;
+	public StatsService PlayerStatsService => _statsService;
 	public Stats PlayerStats => _statsService?.PlayerStats ?? new Stats { Power = 10, Control = 10, Touch = 10 };
 	public Vector3 ChestOffset => new Vector3(0, 1.3f, 0);
 	public Vector3 BallPosition
@@ -134,7 +135,14 @@ public partial class ArcherySystem : Node
         _statsService = new StatsService();
         _statsService.Name = "StatsService";
         AddChild(_statsService);
-        _statsService.LoadStats();
+
+        string heroClass = "Ranger";
+        if (GetParent() is PlayerController pc)
+        {
+            heroClass = pc.CurrentModelId;
+        }
+
+        _statsService.LoadStats(heroClass);
 
         _buildManager = new BuildManager();
         _buildManager.Name = "BuildManager";

@@ -89,13 +89,25 @@ public partial class AbilityTooltip : PanelContainer
         _costLabel.Text = $"⚡ {ability.Cost} {ability.CostType}";
         _nextLevelLabel.Text = ability.NextLevelPreview;
 
-        // Position above the slot
-        GlobalPosition = new Vector2(
+        Visible = true;
+
+        // Force update to calculate correct Size
+        ForceUpdateTransform();
+
+        // Initial position above the slot
+        Vector2 targetPos = new Vector2(
             globalPos.X - Size.X / 2f,
             globalPos.Y - Size.Y - 12f
         );
 
-        Visible = true;
+        // Clamping to screen bounds
+        var viewportRect = GetViewportRect();
+        float margin = 10f;
+
+        targetPos.X = Mathf.Clamp(targetPos.X, margin, viewportRect.Size.X - Size.X - margin);
+        targetPos.Y = Mathf.Clamp(targetPos.Y, margin, viewportRect.Size.Y - Size.Y - margin);
+
+        GlobalPosition = targetPos;
     }
 
     public void HideTooltip()
