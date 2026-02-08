@@ -63,7 +63,9 @@ public partial class MobaMinion : Monsters
         // Apply a light team color tint to all meshes
         ApplyTeamTint();
 
+#if DEBUG
         GD.Print($"[MobaMinion] {Name} spawned - Team:{Team} Type:{MinionType} HP:{Health} ATK:{AttackDamage} ARM:{Armor}");
+#endif
     }
 
     /// <summary>
@@ -173,7 +175,9 @@ public partial class MobaMinion : Monsters
         else if (target is PlayerController player)
         {
             // TODO: player damage system
+#if DEBUG
             GD.Print($"[MobaMinion] {Name} attacks player {player.Name} for {AttackDamage}");
+#endif
         }
     }
 
@@ -195,7 +199,9 @@ public partial class MobaMinion : Monsters
         AttackDamage *= multiplier;
         Armor *= multiplier;
 
+#if DEBUG
         GD.Print($"[MobaMinion] Wave scaling x{tiers} applied. HP:{Health:F0} ATK:{AttackDamage:F1} ARM:{Armor:F1}");
+#endif
     }
 
     /// <summary>
@@ -216,7 +222,9 @@ public partial class MobaMinion : Monsters
         // +20% visual scale
         Scale *= 1.2f;
 
+#if DEBUG
         GD.Print($"[MobaMinion] {Name} upgraded to SUPER CREEP!");
+#endif
     }
 
     protected override void Die()
@@ -224,7 +232,9 @@ public partial class MobaMinion : Monsters
         base.Die();
         // Thoroughly remove all collision in MOBA to prevent blocking movement
         DisableCollisionRecursive(this);
+#if DEBUG
         GD.Print($"[MobaMinion] {Name} collision completely disabled on death.");
+#endif
     }
 
     private void DisableCollisionRecursive(Node node)

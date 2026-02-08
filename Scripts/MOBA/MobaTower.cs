@@ -40,7 +40,9 @@ public partial class MobaTower : InteractableObject
         ApplyTeamColor();
 
         base._Ready();
+#if DEBUG
         GD.Print($"[MobaTower] {Name} initialized - Team: {Team}");
+#endif
     }
 
     public override void _PhysicsProcess(double delta)
@@ -147,7 +149,9 @@ public partial class MobaTower : InteractableObject
 
     private void OnDestroyed()
     {
+#if DEBUG
         GD.Print($"[MobaTower] {Name} DESTROYED!");
+#endif
         var gameManager = GetTree().GetFirstNodeInGroup("moba_game_manager") as MobaGameManager;
         gameManager?.OnTowerDestroyed(this);
         Visible = false;
