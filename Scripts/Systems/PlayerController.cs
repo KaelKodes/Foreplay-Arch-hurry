@@ -34,6 +34,20 @@ public partial class PlayerController : CharacterBody3D
     private ChargeBar3D _chargeBar;
     private bool _isGrounded = true;
 
+    // Dash / Vault State
+    [Export] public float DashSpeed = 15.0f;
+    [Export] public float DashDuration = 0.3f;
+    private float _dashTime = 0.0f;
+    private Vector3 _dashDir = Vector3.Zero;
+    /// <summary>
+    /// Stores the original collision mask to be restored after a Vault/Dash.
+    /// </summary>
+    private uint _originalMask;
+    /// <summary>
+    /// True if the player is currently performing a tactical Vault.
+    /// </summary>
+    private bool _isVaulting = false;
+
     // Multiplayer Properties
     [Export] public int PlayerIndex { get; set; } = 0;
     private int _lastPlayerIndex = -1;
@@ -155,8 +169,6 @@ public partial class PlayerController : CharacterBody3D
 
     public override void _Ready()
     {
-
-        // SetupReplication(); // Moved to Scene
 
         GD.Print($"[PlayerController] _Ready starting for {Name}. Authority: {GetMultiplayerAuthority()}, IsLocal: {IsLocal}");
 
@@ -282,6 +294,8 @@ public partial class PlayerController : CharacterBody3D
             if (ToolManager.Instance != null)
             {
                 ToolManager.Instance.ToolChanged += OnToolChanged;
+                ToolManager.Instance.HotbarModeChanged += OnHotbarModeChanged;
+                ToolManager.Instance.AbilityTriggered += OnAbilityTriggered;
             }
         }
         else
@@ -303,9 +317,6 @@ public partial class PlayerController : CharacterBody3D
             }
         }
 
-        // Find MeleeSystem for future melee support
-        // _meleeSystem = GetTree().CurrentScene.FindChild("MeleeSystem", true, false) as MeleeSystem; // Removed, handled above
-
         // Visual Sword Setup
         SetupVisualSword();
     }
@@ -316,6 +327,73 @@ public partial class PlayerController : CharacterBody3D
 
         // Sync to remote players via property
         SynchronizedTool = toolInt;
+    }
+
+    private void OnHotbarModeChanged(int modeInt)
+    {
+        if (!IsLocal) return;
+
+        var toolManager = ToolManager.Instance;
+        bool isRPG = toolManager != null && toolManager.CurrentMode == ToolManager.HotbarMode.RPG;
+
+        if (isRPG)
+        {
+            // Auto-refresh combat components when arriving in RPG mode
+            bool isRanger = CurrentModelId.ToLower() == "ranger" || CurrentModelId.ToLower() == "erika";
+            if (isRanger)
+            {
+                _archerySystem?.PrepareNextShot();
+                SetModelMode(true);
+                toolManager?.UpdateRPGAbilities("Ranger");
+            }
+        }
+    }
+
+    private void OnAbilityTriggered(int index)
+    {
+        if (!IsLocal) return;
+
+        // Ability Logic for Ranger
+        bool isRanger = CurrentModelId.ToLower() == "ranger" || CurrentModelId.ToLower() == "erika";
+        if (!isRanger) return;
+
+        switch (index)
+        {
+            case 0: // Rapid Fire
+            case 1: // Piercing Shot
+            case 2: // Rain of Arrows
+                _archerySystem?.QuickFire(0f);
+                break;
+            case 3: // Vault
+                PerformVault();
+                break;
+        }
+    }
+
+    private void PerformVault()
+    {
+        if (_isVaulting) return;
+
+        // Vault is a dash-like movement with an arc
+        _isVaulting = true;
+        _dashTime = DashDuration;
+        _dashDir = GlobalBasis.Z; // Forward (flipped from -Z based on user feedback)
+        _dashDir.Y = 0;
+        _dashDir = _dashDir.Normalized();
+
+        _originalMask = CollisionMask;
+        CollisionMask = 3; // Layers 1 and 2 (Only Environment and Terrain)
+
+        _velocity.Y = JumpForce * 0.7f; // Leap up
+        _isJumping = true;
+
+        // Trigger Jump animation as a visual for the vault
+        _modelManager?.UpdateCustomAnimations(false, false, true, false, false);
+    }
+
+    private void UpdateCustomAnimations(bool isMoving, bool sprinting, bool jumping, bool swinging, bool firing, bool overcharged = false)
+    {
+        _modelManager?.UpdateCustomAnimations(isMoving, sprinting, jumping, swinging, firing, overcharged);
     }
 
     private void ApplyToolChange(ToolType newTool)
@@ -595,6 +673,28 @@ public partial class PlayerController : CharacterBody3D
     private void HandleBodyMovement(double delta)
     {
         if (_camera == null) return;
+
+        // Apply Vault movement
+        if (_isVaulting)
+        {
+            _dashTime -= (float)delta;
+            _velocity.X = _dashDir.X * DashSpeed;
+            _velocity.Z = _dashDir.Z * DashSpeed;
+            _velocity.Y -= Gravity * (float)delta; // Natural falling arc
+
+            Velocity = _velocity;
+            MoveAndSlide();
+            _velocity = Velocity;
+
+            // End vault when time runs out OR if we hit ground after the initial leap
+            if (_dashTime <= 0 || (IsOnFloor() && _dashTime < DashDuration * 0.7f))
+            {
+                _isVaulting = false;
+                CollisionMask = _originalMask;
+                _isJumping = false;
+            }
+            return;
+        }
 
         // Gravity
         if (!IsOnFloor())
@@ -973,6 +1073,9 @@ public partial class PlayerController : CharacterBody3D
     {
         if (!IsLocal) return;
 
+        var toolManager = ToolManager.Instance;
+        bool isRPGMode = toolManager != null && toolManager.CurrentMode == ToolManager.HotbarMode.RPG;
+
         // LEGACY: Build mode toggle via V - Now handled by ToolManager
         // if (@event is InputEventKey k && k.Pressed && !k.Echo && k.Keycode == Key.V)
         // {
@@ -1067,7 +1170,20 @@ public partial class PlayerController : CharacterBody3D
         {
             if (attackBtn.Pressed)
             {
-                if ((CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher) && !_isChargingAttack)
+                // In RPG mode, LMB is basic attack. For Ranger, we allow charging like the tool.
+                bool isRangerMatch = CurrentModelId.ToLower() == "ranger" || CurrentModelId.ToLower() == "erika";
+
+                if (isRPGMode && isRangerMatch && !_isChargingAttack)
+                {
+                    _isChargingAttack = true;
+                    _attackHoldTimer = 0f;
+                    _archerySystem?.StartCharge();
+                }
+                else if (isRPGMode && !isRangerMatch && !_isChargingAttack)
+                {
+                    PerformBasicAttack();
+                }
+                else if ((CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher) && !_isChargingAttack)
                 {
                     _isChargingAttack = true;
                     _attackHoldTimer = 0f;
@@ -1086,15 +1202,25 @@ public partial class PlayerController : CharacterBody3D
                     float finalHoldTime = _attackHoldTimer;
                     _attackHoldTimer = 0f;
 
+                    bool isRangerRelease = CurrentModelId.ToLower() == "ranger" || CurrentModelId.ToLower() == "erika";
+
                     if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
                         _meleeSystem.ExecuteAttack(finalHoldTime);
-                    else if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
+                    else if ((CurrentState == PlayerState.CombatArcher || (isRPGMode && isRangerRelease)) && _archerySystem != null)
                         _archerySystem.ExecuteAttack(finalHoldTime);
 
                     GetViewport().SetInputAsHandled();
                 }
             }
         }
+    }
+
+    private void PerformBasicAttack()
+    {
+        if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
+            _meleeSystem.ExecuteAttack(0f);
+        else if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
+            _archerySystem.ExecuteAttack(0f);
     }
 
     private void HandleCombatCharge(double delta)

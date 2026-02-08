@@ -342,7 +342,10 @@ public partial class ArcherySystem : Node
         // Other peers will receive the arrow via replication (OnArrowSpawned).
         if (_currentPlayer != null && !_currentPlayer.IsLocal) return;
 
-        if (ArrowCount <= 0 && MobaGameManager.Instance == null)
+        var toolManager = ToolManager.Instance;
+        bool isRPG = toolManager != null && toolManager.CurrentMode == ToolManager.HotbarMode.RPG;
+
+        if (ArrowCount <= 0 && MobaGameManager.Instance == null && !isRPG)
         {
 			SetPrompt(true, "Out of Arrows!");
             return;
@@ -789,25 +792,50 @@ public partial class ArcherySystem : Node
 
     public void ExecuteAttack(float holdTime)
     {
+        var toolManager = ToolManager.Instance;
+        bool isRPG = toolManager != null && toolManager.CurrentMode == ToolManager.HotbarMode.RPG;
+
         if (_stage != DrawStage.Drawing) return;
 
-        // Map hold duration to power (0-200 range)
-        // < 0.75s: 50% power
-        // 0.75s - 1.5s: 100% power
-        // 1.5s - 2.5s: 150% power
-        // >= 2.5s: 200% power
-        float finalPower = 50f;
-        if (holdTime >= 2.5f) finalPower = 200f;
-        else if (holdTime >= 1.5f) finalPower = 150f;
-        else if (holdTime >= 0.75f) finalPower = 100f;
+        // Map hold duration to power (Calibrated for RPG Mode to match abilities)
+        float finalPower = isRPG ? 25f : 50f;
+        if (holdTime >= 2.5f) finalPower = isRPG ? 35f : 200f;
+        else if (holdTime >= 1.5f) finalPower = isRPG ? 32f : 150f;
+        else if (holdTime >= 0.75f) finalPower = isRPG ? 28f : 100f;
 
         _lockedPower = finalPower;
-        _lockedAccuracy = 100f; // Perfect accuracy for now in this simplified model
+        _lockedAccuracy = isRPG ? ArcheryConstants.PERFECT_ACCURACY_VALUE : 100f;
         _stage = DrawStage.Executing;
 
         EmitSignal(SignalName.ArcheryValuesUpdated, _lockedPower, _lockedPower, _lockedAccuracy);
         EmitSignal(SignalName.DrawStageChanged, (int)_stage);
 
+        ExecuteShot();
+    }
+
+    /// <summary>
+    /// Forces a shot execution without the drawing phase. Used for RPG mode quick attacks.
+    /// </summary>
+    public void QuickFire(float holdTime)
+    {
+        var toolManager = ToolManager.Instance;
+        bool isRPG = toolManager != null && toolManager.CurrentMode == ToolManager.HotbarMode.RPG;
+
+        if (ArrowCount <= 0 && MobaGameManager.Instance == null && !isRPG) return;
+
+        // Ensure we have a fresh arrow ready
+        if (_arrow == null || _arrow.HasBeenShot)
+        {
+            PrepareNextShot();
+        }
+
+        if (_arrow == null) return;
+
+        _lockedPower = 30.0f; // Calibrated for RPG mode visibility (reduced from 85)
+        _lockedAccuracy = ArcheryConstants.PERFECT_ACCURACY_VALUE; // Perfect center (fix for "firing to the right")
+        _stage = DrawStage.Executing;
+
+        EmitSignal(SignalName.DrawStageChanged, (int)_stage);
         ExecuteShot();
     }
 
@@ -838,10 +866,24 @@ public partial class ArcherySystem : Node
         {
             UpdateArrowPose();
         }
+
+        // Auto-cycle target if it dies (RPG Mode only)
+        if (_currentPlayer != null && _currentPlayer.IsLocal && _currentTarget != null)
+        {
+            bool isRPG = ToolManager.Instance != null && ToolManager.Instance.CurrentMode == ToolManager.HotbarMode.RPG;
+            if (isRPG && TargetingHelper.IsTargetDead(_currentTarget))
+            {
+                GD.Print($"[ArcherySystem] Current Target Dead. Auto-cycling...");
+                CycleTarget(false); // Cycle to next enemy
+            }
+        }
     }
 
     private void ExecuteShot()
     {
+        var toolManager = ToolManager.Instance;
+        bool isRPG = toolManager != null && toolManager.CurrentMode == ToolManager.HotbarMode.RPG;
+
         // 1. Power Calculation (Incorporate Stats + Locked Power)
         float powerFactor = _lockedPower / 100.0f;
         float powerStatMult = PlayerStats.Power / 10.0f;
@@ -873,6 +915,13 @@ public partial class ArcherySystem : Node
             accuracyError *= (1.0f + overPower * 0.15f); // 15% more error per point over perfect
         }
 
+        // --- NEW: Force Perfect for Locked Targets ---
+        if (_currentTarget != null)
+        {
+            accuracyError = 0.0f;
+            _lockedAccuracy = ArcheryConstants.PERFECT_ACCURACY_VALUE;
+        }
+
         if (_arrow != null)
         {
             Vector3 launchDir;
@@ -889,8 +938,18 @@ public partial class ArcherySystem : Node
             }
             else
             {
-                Vector3 camFwd = -_camera.GlobalBasis.Z;
-                launchDir = (_camera != null) ? new Vector3(camFwd.X, 0, camFwd.Z).Normalized() : Vector3.Forward;
+                if (isRPG && _currentPlayer != null)
+                {
+                    // In RPG mode, fire where the player is facing (matching Vault direction)
+                    launchDir = _currentPlayer.GlobalBasis.Z;
+                    launchDir.Y = 0;
+                    launchDir = launchDir.Normalized();
+                }
+                else
+                {
+                    Vector3 camFwd = -_camera.GlobalBasis.Z;
+                    launchDir = (_camera != null) ? new Vector3(camFwd.X, 0, camFwd.Z).Normalized() : Vector3.Forward;
+                }
             }
 
             // Apply Loft
@@ -963,7 +1022,8 @@ public partial class ArcherySystem : Node
         }
 
         EmitSignal(SignalName.ShotResult, _lockedPower, _lockedAccuracy);
-        if (MobaGameManager.Instance == null)
+
+        if (MobaGameManager.Instance == null && !isRPG)
         {
             ArrowCount--;
             UpdateArrowLabel();
@@ -971,11 +1031,12 @@ public partial class ArcherySystem : Node
         _stage = DrawStage.ShotComplete;
         EmitSignal(SignalName.DrawStageChanged, (int)_stage);
 
+        // Auto-prepare next shot for continuous firing (especially in RPG mode)
+        PrepareNextShot();
+
         // Start bow cooldown
         _bowCooldownRemaining = BowCooldownTime;
         EmitSignal(SignalName.BowCooldownUpdated, _bowCooldownRemaining, BowCooldownTime);
-
-        GD.Print($"[ArcherySystem] Shot Executed. Power: {_lockedPower:F1}, Accuracy: {_lockedAccuracy:F1}, Error: {accuracyError:F2}");
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer)]

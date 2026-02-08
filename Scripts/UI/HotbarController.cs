@@ -80,18 +80,44 @@ public partial class HotbarController : Control
         {
             ToolManager.Instance.ToolChanged += OnToolChanged;
             ToolManager.Instance.HotbarUpdated += RefreshSlots;
+            ToolManager.Instance.HotbarModeChanged += (m) => OnHotbarModeChanged((ToolManager.HotbarMode)m);
+
+            // Sync initial state
+            SlotCount = ToolManager.Instance.CurrentMode == ToolManager.HotbarMode.Design ? 8 : 4;
+            RebuildContainer();
         }
         else
         {
             CallDeferred(nameof(DeferredSubscribe));
         }
-
         // Enable mouse input for the background panel to allow dragging
         var bg = GetNodeOrNull<Control>("Background");
         if (bg != null)
         {
             bg.GuiInput += OnBackgroundGuiInput;
         }
+    }
+
+    private void OnHotbarModeChanged(ToolManager.HotbarMode mode)
+    {
+        SlotCount = mode == ToolManager.HotbarMode.Design ? 8 : 4;
+
+        if (mode == ToolManager.HotbarMode.RPG)
+        {
+            _currentLayout = HotbarLayout.Horizontal1x8; // Force horizontal for RPG
+            SetAnchorsPreset(LayoutPreset.CenterBottom);
+            OffsetBottom = -20;
+            OffsetTop = -100;
+        }
+        else
+        {
+            SetAnchorsPreset(LayoutPreset.CenterTop);
+            OffsetTop = 80;
+            OffsetBottom = 160;
+        }
+
+        GD.Print($"[HotbarController] Mode changed: {mode}. SlotCount: {SlotCount}");
+        RebuildContainer();
     }
 
     private void OnBackgroundGuiInput(InputEvent @event)
@@ -204,21 +230,23 @@ public partial class HotbarController : Control
         float padding = 16f; // 8px on each side
         float spacing = 4f;
 
-        int cols = 8, rows = 1;
+        int cols = SlotCount, rows = 1;
         switch (_currentLayout)
         {
             case HotbarLayout.Vertical8x1:
-                cols = 1; rows = 8;
+                cols = 1; rows = SlotCount;
                 break;
             case HotbarLayout.Grid2x4:
-                cols = 4; rows = 2;
+                cols = SlotCount / 2; rows = 2;
+                if (SlotCount % 2 != 0) cols++;
                 break;
             case HotbarLayout.Grid4x2:
-                cols = 2; rows = 4;
+                cols = 2; rows = SlotCount / 2;
+                if (SlotCount % 2 != 0) rows++;
                 break;
             case HotbarLayout.Horizontal1x8:
             default:
-                cols = 8; rows = 1;
+                cols = SlotCount; rows = 1;
                 break;
         }
 

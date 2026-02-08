@@ -86,12 +86,26 @@ public static class PlayerAnimations
 
         // 4. States & Conditions
         bool isMelee = player.CurrentState == PlayerState.CombatMelee;
+        bool isArchery = player.CurrentState == PlayerState.CombatArcher;
+
+        // RPG Mode Overlay: Show archery anim if firing/executing even in WalkMode
+        bool isRanger = player.CurrentModelId.ToLower() == "ranger" || player.CurrentModelId.ToLower() == "erika";
+        bool isRPG = ToolManager.Instance != null && ToolManager.Instance.CurrentMode == ToolManager.HotbarMode.RPG;
+
+        DrawStage stage = (DrawStage)player.SynchronizedArcheryStage;
+        bool isArcheryAction = (stage != DrawStage.Idle);
+
+        if (isRPG && isRanger && isArcheryAction)
+        {
+            isArchery = true;
+        }
+
         animTree.Set("parameters/conditions/is_on_floor", player.IsOnFloor() && !isJumping);
         animTree.Set("parameters/conditions/is_jumping", isJumping || (!player.IsOnFloor() && velocity.Y > 0));
-        animTree.Set("parameters/conditions/is_archery", player.CurrentState == PlayerState.CombatArcher);
+        animTree.Set("parameters/conditions/is_archery", isArchery);
         animTree.Set("parameters/conditions/is_melee", isMelee);
         animTree.Set("parameters/conditions/is_not_melee", !isMelee);
-        animTree.Set("parameters/conditions/is_not_archery", player.CurrentState != PlayerState.CombatArcher);
+        animTree.Set("parameters/conditions/is_not_archery", !isArchery);
 
         if (player.CurrentState == PlayerState.CombatArcher && archerySystem != null)
         {

@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://c0hbtxjib02gc" path="res://Assets/Textures/UI/WindArrow.png" id="4_wind_arrow"]
 [ext_resource type="PackedScene" path="res://Scenes/UI/Hotbar.tscn" id="5_hotbar"]
 [ext_resource type="Script" uid="uid://c4jw6mrhvrwmn" path="res://Scripts/UI/MeleeHUDController.cs" id="6_melee"]
+[ext_resource type="Script" uid="uid://c8u7q8q8q8q8" path="res://Scripts/UI/InventoryPanelController.cs" id="7_inv"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_main")
@@ -667,5 +668,44 @@ offset_top = 80.0
 offset_right = 272.0
 offset_bottom = 160.0
 grow_horizontal = 2
+
+[node name="InventoryPanel" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -160.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("7_inv")
+
+[node name="Background" type="Panel" parent="InventoryPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SlotContainer" type="GridContainer" parent="InventoryPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -98.0
+offset_top = -66.0
+offset_right = 98.0
+offset_bottom = 66.0
+grow_horizontal = 2
+grow_vertical = 2
+columns = 3
 
 

@@ -39,17 +39,29 @@ public class ToolItem
 /// </summary>
 public partial class ToolManager : Node
 {
+    public enum HotbarMode { Design, RPG }
+
     public static ToolManager Instance { get; private set; }
 
     [Export] public int HotbarSlotCount = 8;
+    [Export] public int RPGAbilityCount = 4;
 
     // Signals
     [Signal] public delegate void ToolChangedEventHandler(int toolType);
     [Signal] public delegate void HotbarUpdatedEventHandler();
+    [Signal] public delegate void HotbarModeChangedEventHandler(int newMode);
+    [Signal] public delegate void AbilityTriggeredEventHandler(int abilityIndex);
 
     // State
+    public HotbarMode CurrentMode { get; private set; } = HotbarMode.Design;
     public ToolType CurrentTool { get; private set; } = ToolType.None;
-    public ToolItem[] HotbarSlots { get; private set; }
+
+    private ToolItem[] _designSlots;
+    private ToolItem[] _rpgSlots;
+    private ToolItem[] _inventorySlots;
+
+    public ToolItem[] HotbarSlots => CurrentMode == HotbarMode.Design ? _designSlots : _rpgSlots;
+    public ToolItem[] InventorySlots => _inventorySlots;
 
     public override void _Ready()
     {
@@ -68,20 +80,75 @@ public partial class ToolManager : Node
 
     private void InitializeDefaultHotbar()
     {
-        HotbarSlots = new ToolItem[HotbarSlotCount];
+        _designSlots = new ToolItem[HotbarSlotCount];
+        _rpgSlots = new ToolItem[RPGAbilityCount];
+        _inventorySlots = new ToolItem[6]; // As requested: Separate inventory panel with 6 slots
 
-        // Default tool layout: 1: Sword, 2: Bow, 3: Hammer, 4: Shovel
-        HotbarSlots[0] = new ToolItem(ToolType.Sword, "Sword", "res://Assets/UI/Icons/icon_sword.png", "res://Scenes/Weapons/Sword.tscn");
-        HotbarSlots[1] = new ToolItem(ToolType.Bow, "Bow", "res://Assets/UI/Icons/icon_bow.png", "res://Scenes/Weapons/Bow.tscn");
-        HotbarSlots[2] = new ToolItem(ToolType.Hammer, "Hammer", "res://Assets/UI/Icons/icon_hammer.png", "");
-        HotbarSlots[3] = new ToolItem(ToolType.Shovel, "Shovel", "res://Assets/UI/Icons/icon_shovel.png", "");
+        // Default Design Mode layout
+        _designSlots[0] = new ToolItem(ToolType.Sword, "Sword", "res://Assets/UI/Icons/icon_sword.png", "res://Scenes/Weapons/Sword.tscn");
+        _designSlots[1] = new ToolItem(ToolType.Bow, "Bow", "res://Assets/UI/Icons/icon_bow.png", "res://Scenes/Weapons/Bow.tscn");
+        _designSlots[2] = new ToolItem(ToolType.Hammer, "Hammer", "res://Assets/UI/Icons/icon_hammer.png", "");
+        _designSlots[3] = new ToolItem(ToolType.Shovel, "Shovel", "res://Assets/UI/Icons/icon_shovel.png", "");
 
-        // Empty slots for future items
-        for (int i = 4; i < HotbarSlotCount; i++)
+        for (int i = 4; i < HotbarSlotCount; i++) _designSlots[i] = new ToolItem();
+
+        // Default RPG Mode slots (placeholder until class auto-populates)
+        for (int i = 0; i < RPGAbilityCount; i++) _rpgSlots[i] = new ToolItem();
+
+        // Default Inventory
+        for (int i = 0; i < 6; i++) _inventorySlots[i] = new ToolItem();
+
+        EmitSignal(SignalName.HotbarUpdated);
+    }
+
+    /// <summary>
+    /// Updates the RPG ability hotbar with icons for the specific hero class.
+    /// </summary>
+    public void UpdateRPGAbilities(string heroClass)
+    {
+        string h = heroClass.ToLower();
+        string folder = h switch
         {
-            HotbarSlots[i] = new ToolItem(ToolType.None, "", "", "");
+            "warrior" => "Warrior",
+            "ranger" => "Ranger",
+            "necromancer" => "Necro",
+            "cleric" => "Cleric",
+            _ => "Warrior"
+        };
+
+        string[][] abilityMap = new string[][] {
+            new string[] { "ShieldSlam", "Intercept", "DemoralizingShout", "AvatarOfWar" }, // Warrior
+            new string[] { "RapidFire", "PiercingShot", "RainOfArrows", "Vault" }, // Ranger
+            new string[] { "Lifetap", "PlagueOfDarkness", "SummonSkeleton", "LichForm" }, // Necro
+            new string[] { "HighRemedy", "CelestialBuff", "Judgement", "DivineIntervention" } // Cleric
+        };
+
+        int classIdx = h switch
+        {
+            "warrior" => 0,
+            "ranger" => 1,
+            "necromancer" => 2,
+            "cleric" => 3,
+            _ => 0
+        };
+
+        string[] abilities = abilityMap[classIdx];
+
+        for (int i = 0; i < RPGAbilityCount && i < abilities.Length; i++)
+        {
+            string iconPath = $"res://Assets/ui/HeroeSpells/{folder}/{abilities[i]}.png";
+            _rpgSlots[i] = new ToolItem(ToolType.None, abilities[i], iconPath, "");
         }
 
+        GD.Print($"[ToolManager] Updated RPG Abilities for Hero: {h}");
+        EmitSignal(SignalName.HotbarUpdated);
+    }
+
+    public void ToggleHotbarMode()
+    {
+        CurrentMode = CurrentMode == HotbarMode.Design ? HotbarMode.RPG : HotbarMode.Design;
+        GD.Print($"[ToolManager] Mode toggled to: {CurrentMode}");
+        EmitSignal(SignalName.HotbarModeChanged, (int)CurrentMode);
         EmitSignal(SignalName.HotbarUpdated);
     }
 
@@ -90,75 +157,72 @@ public partial class ToolManager : Node
     /// </summary>
     public void SwapSlots(int index1, int index2)
     {
-        if (index1 < 0 || index1 >= HotbarSlotCount || index2 < 0 || index2 >= HotbarSlotCount) return;
+        var slots = HotbarSlots;
+        if (index1 < 0 || index1 >= slots.Length || index2 < 0 || index2 >= slots.Length) return;
 
-        ToolItem temp = HotbarSlots[index1];
-        HotbarSlots[index1] = HotbarSlots[index2];
-        HotbarSlots[index2] = temp;
+        ToolItem temp = slots[index1];
+        slots[index1] = slots[index2];
+        slots[index2] = temp;
 
         EmitSignal(SignalName.HotbarUpdated);
-        GD.Print($"[ToolManager] Swapped slot {index1} with {index2}");
     }
 
     /// <summary>
-    /// Select a tool by slot index (0-7 for hotbar slots 1-8).
+    /// Select a tool by slot index.
     /// </summary>
     public void SelectSlot(int slotIndex)
     {
-        if (slotIndex < 0 || slotIndex >= HotbarSlotCount) return;
-        if (HotbarSlots[slotIndex] == null) return;
+        var slots = HotbarSlots;
+        if (slotIndex < 0 || slotIndex >= slots.Length) return;
+        if (slots[slotIndex] == null) return;
 
-        SelectTool(HotbarSlots[slotIndex].Type);
-    }
-
-    /// <summary>
-    /// Select a tool by type. If the same tool is selected, deselect it.
-    /// </summary>
-    public void SelectTool(ToolType tool)
-    {
-        if (CurrentTool == tool)
+        if (CurrentMode == HotbarMode.Design)
         {
-            // Toggle off
-            CurrentTool = ToolType.None;
+            SelectTool(slots[slotIndex].Type);
         }
         else
         {
-            CurrentTool = tool;
+            // RPG Ability trigger logic
+            GD.Print($"[ToolManager] RPG Ability {slotIndex + 1} Triggered");
+            EmitSignal(SignalName.AbilityTriggered, slotIndex);
         }
+    }
 
-        GD.Print($"[ToolManager] Tool changed to: {CurrentTool}");
+    public void SelectTool(ToolType tool)
+    {
+        CurrentTool = (CurrentTool == tool) ? ToolType.None : tool;
         EmitSignal(SignalName.ToolChanged, (int)CurrentTool);
     }
 
-    /// <summary>
-    /// Check if a specific tool is currently active.
-    /// </summary>
     public bool IsToolActive(ToolType tool) => CurrentTool == tool;
 
-    /// <summary>
-    /// Get the ToolItem for a specific slot.
-    /// </summary>
     public ToolItem GetSlotItem(int slotIndex)
     {
-        if (slotIndex < 0 || slotIndex >= HotbarSlotCount) return null;
-        return HotbarSlots[slotIndex];
+        var slots = HotbarSlots;
+        if (slotIndex < 0 || slotIndex >= slots.Length) return null;
+        return slots[slotIndex];
     }
 
-    /// <summary>
-    /// Swap an item into a hotbar slot.
-    /// </summary>
     public void SetSlotItem(int slotIndex, ToolItem item)
     {
-        if (slotIndex < 0 || slotIndex >= HotbarSlotCount) return;
-        HotbarSlots[slotIndex] = item ?? new ToolItem();
+        var slots = HotbarSlots;
+        if (slotIndex < 0 || slotIndex >= slots.Length) return;
+        slots[slotIndex] = item ?? new ToolItem();
         EmitSignal(SignalName.HotbarUpdated);
     }
 
     public override void _Input(InputEvent @event)
     {
-        // Handle number key shortcuts (1-8)
         if (@event is InputEventKey key && key.Pressed && !key.Echo)
         {
+            // Shift + B Toggle
+            if (key.Keycode == Key.B && key.ShiftPressed)
+            {
+                ToggleHotbarMode();
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+
             int slotIndex = -1;
             switch (key.Keycode)
             {
@@ -174,6 +238,9 @@ public partial class ToolManager : Node
 
             if (slotIndex >= 0)
             {
+                // In RPG mode, only 1-4 are valid for abilities
+                if (CurrentMode == HotbarMode.RPG && slotIndex >= RPGAbilityCount) return;
+
                 SelectSlot(slotIndex);
             }
         }

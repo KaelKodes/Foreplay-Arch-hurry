@@ -45,7 +45,7 @@ public static class TargetingHelper
                 targetTeam = pc.Team;
             }
 
-            if (isTargetable)
+            if (isTargetable && !IsTargetDead(targetNode))
             {
                 bool isEnemy = TeamSystem.AreEnemies(attackerTeam, targetTeam);
 
@@ -118,5 +118,26 @@ public static class TargetingHelper
             case 7: c = Colors.Teal; break;
         }
         return c;
+    }
+
+    /// <summary>
+    /// Checks if a target node is dead or destroyed.
+    /// </summary>
+    public static bool IsTargetDead(Node3D target)
+    {
+        if (target == null || !GodotObject.IsInstanceValid(target)) return true;
+
+        if (target is Monsters monster) return monster.Health <= 0;
+        if (target is MobaTower tower) return tower.IsDestroyed;
+        if (target is MobaNexus nexus) return nexus.IsDestroyed;
+        if (target is PlayerController pc)
+        {
+            // Assuming PlayerController has stats with CurrentHealth
+            return false;
+        }
+
+        if (target is InteractableObject io && !io.IsTargetable) return true;
+
+        return false;
     }
 }

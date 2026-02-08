@@ -43,7 +43,7 @@ public partial class CharacterModelManager : Node
     private AnimationPlayer _customAnimPlayer;
     private string _lastPlayedAnim = "";
     private Mesh _cachedBowMesh;
-    private string _currentModelId = "erika";
+    private string _currentModelId = "Ranger";
 
     public string CurrentModelId => _currentModelId;
 
@@ -724,8 +724,8 @@ public partial class CharacterModelManager : Node
 
         string target = "Idle";
 
-        if (jumping) target = "Jump";
-        else if (swinging)
+        // Prioritize Attack/Action -> Movement -> Idle
+        if (swinging)
         {
             if (overcharged) target = "MeleeAttack4";
             else
@@ -737,11 +737,13 @@ public partial class CharacterModelManager : Node
             }
         }
         else if (firing) target = "BowAttack";
+        else if (jumping) target = "Jump";
         else if (isMoving) target = sprinting ? "Run" : "Walk";
 
-        if (target != _lastPlayedAnim)
+        // If target is found in AnimationPlayer or has a valid fallback, play it
+        if (target != _lastPlayedAnim || !_customAnimPlayer.IsPlaying())
         {
-            GD.Print($"[AnimationDebug] Custom Model playing character animation: {target}");
+            GD.Print($"[AnimationDebug] Custom Model ({_currentModelId}) state transition: {_lastPlayedAnim} -> {target}");
             PlayAnimation(target);
             _lastPlayedAnim = target;
         }
@@ -928,7 +930,8 @@ public partial class CharacterModelManager : Node
     public void SetupStandaloneBow(Node3D targetModel)
     {
         if (targetModel == null) return;
-        if (_currentModelId == "erika") return;
+        // Ranger uses the standalone bow attachment in RPG mode instead of a full rig swap
+        // to preserve hidden part visibility and stable animations.
 
         var skeleton = targetModel.GetNodeOrNull<Skeleton3D>("Skeleton3D");
         if (skeleton == null) return;
@@ -996,57 +999,36 @@ public partial class CharacterModelManager : Node
             if (_currentCustomModel != null) _currentCustomModel.Visible = true;
             if (_animTree != null) _animTree.Active = false;
 
-            if (isArcheryMode) SetupStandaloneBow(_currentCustomModel);
-            else
-            {
-                RemoveStandaloneBow(_currentCustomModel);
-
-                // Only show sword if we are actually in melee combat
-                if (_player.CurrentState == PlayerState.CombatMelee)
-                {
-                    SetupStandaloneSword(_currentCustomModel);
-                }
-                else
-                {
-                    RemoveStandaloneSword(_currentCustomModel);
-                }
-                // Hide original sword to avoid double-visuals
-                var swordNode = _player.GetNodeOrNull("Erika/Skeleton3D/RightHandAttachment/Sword");
-                if (swordNode is Node3D sNode)
-                {
-                    // Hide Erika's sword if we are in Walk mode OR if we have a custom rig
-                    // (The custom rig logic below handles showing the standalone one)
-                    sNode.Visible = false;
-                }
-            }
-
             // Apply Dynamic Visibility (Custom Mesh Weapons)
             UpdateCustomWeaponVisibility(isArcheryMode);
             return;
         }
 
+        // --- Shared Skeleton Logic (Ranger, Warrior, Cleric) ---
+        bool isRanger = _currentModelId.ToLower() == "ranger" || _currentModelId.ToLower() == "erika";
+
+        // Check for RPG mode persistent bow
+        bool forceBow = isRanger && ToolManager.Instance != null && ToolManager.Instance.CurrentMode == ToolManager.HotbarMode.RPG;
+
         if (_meleeModel != null) _meleeModel.Visible = !isArcheryMode;
         if (_archeryModel != null) _archeryModel.Visible = isArcheryMode;
         if (_currentCustomModel != null) _currentCustomModel.Visible = false;
 
-        // Restore original sword visibility
-        var origSword = _player.GetNodeOrNull("Erika/Skeleton3D/RightHandAttachment/Sword");
-        if (origSword is Node3D origS3d)
+        if (isArcheryMode || forceBow)
         {
-            // Only show if we would normally have it visible
-            origS3d.Visible = !isArcheryMode;
-        }
-
-        if (isArcheryMode)
-        {
-            if (_animTree != null && _archeryAnimPlayer != null)
+            if (isArcheryMode && _animTree != null && _archeryAnimPlayer != null)
             {
                 _animTree.Active = true;
                 _animTree.RootNode = _animTree.GetPathTo(_archeryModel);
                 _animTree.SetAnimationPlayer(_archeryAnimPlayer.GetPath());
             }
 
-            if (_currentModelId != "erika")
+            // If we are in Melee but forced to show bow (RPG mode), attach to Melee model
+            if (forceBow && !isArcheryMode)
+            {
+                SetupStandaloneBow(_meleeModel);
+            }
+            else if (isArcheryMode && !isRanger)
             {
                 SetupStandaloneBow(_archeryModel);
             }
@@ -1060,6 +1042,7 @@ public partial class CharacterModelManager : Node
                 _animTree.SetAnimationPlayer(_meleeAnimPlayer.GetPath());
             }
 
+            RemoveStandaloneBow(_meleeModel);
             RemoveStandaloneBow(_archeryModel);
         }
     }
