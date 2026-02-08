@@ -97,8 +97,11 @@ Team = 2
 [node name="LevelInitializer" type="Node" parent="."]
 script = ExtResource("7_init")
 
-[node name="SpawnPoint" type="Node3D" parent="."]
+[node name="SpawnPoint_Blue" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 300)
+
+[node name="SpawnPoint_Red" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -300)
 
 [node name="HUD" parent="." instance=ExtResource("8_hud")]
 PlayerPath = NodePath("")
