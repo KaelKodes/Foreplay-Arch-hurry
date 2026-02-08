@@ -21,6 +21,7 @@ public partial class MobaTower : InteractableObject
     public bool IsDestroyed => Health <= 0;
 
     private Node3D _currentTarget;
+    private Node _lastAttacker;
     private float _attackTimer = 0f;
     private float _hpBarTimer = 0f;
     private MeshInstance3D _teamColorMesh;
@@ -65,6 +66,7 @@ public partial class MobaTower : InteractableObject
 
     public override void OnHit(float damage, Vector3 hitPosition, Vector3 hitNormal, Node attacker = null)
     {
+        if (attacker != null) _lastAttacker = attacker;
         TakeDamage(damage);
     }
 
@@ -152,6 +154,23 @@ public partial class MobaTower : InteractableObject
 #if DEBUG
         GD.Print($"[MobaTower] {Name} DESTROYED!");
 #endif
+        // Award Last Hit Bonus if the attacker was a player
+        if (_lastAttacker is PlayerController pc)
+        {
+            var archerySystem = pc.GetNodeOrNull<ArcherySystem>("ArcherySystem")
+                             ?? pc.FindChild("ArcherySystem", true, false) as ArcherySystem;
+            var stats = archerySystem?.GetNodeOrNull<StatsService>("StatsService");
+
+            if (stats != null)
+            {
+                int goldBonus = (Type == TowerType.Outer) ? 200 : 300;
+                int xpBonus = (Type == TowerType.Outer) ? 200 : 300;
+                stats.AddGold(goldBonus);
+                stats.AddExperience(xpBonus);
+                GD.Print($"[MobaTower] {pc.Name} got LAST HIT bonus on {Name}!");
+            }
+        }
+
         var gameManager = GetTree().GetFirstNodeInGroup("moba_game_manager") as MobaGameManager;
         gameManager?.OnTowerDestroyed(this);
         Visible = false;

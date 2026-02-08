@@ -142,7 +142,8 @@ public partial class MenuPhysicsHelper : Node
     private void FindControls(Node node, List<Control> list)
     {
         if (node is Button btn) list.Add(btn);
-        else if (node is Label lbl && lbl.Name.ToString().Contains("Title")) list.Add(lbl);
+        // Skip title labels - they're not interactive and block falling arrows
+        // else if (node is Label lbl && lbl.Name.ToString().Contains("Title")) list.Add(lbl);
 
         foreach (Node child in node.GetChildren())
         {
@@ -203,16 +204,33 @@ public partial class MenuPhysicsHelper : Node
         // Random X position at top of screen
         float startX = (float)(_random.NextDouble() * viewWidth - (viewWidth / 2.0f));
 
-        // Use ball radius to ensure it's fully on screen at top
-        ball.GlobalPosition = new Vector3(startX, StageCamera.Size / 2.0f + 0.2f, 0);
+        // Spawn arrows just above the screen top
+        // Move Z forward to 2.0f to ensure they participate in front of the background
+        ball.GlobalPosition = new Vector3(startX, StageCamera.Size / 2.0f + 0.5f, 2.0f);
+
+        // Ensure physics are active
+        ball.Sleeping = false;
+        ball.Freeze = false;
+
+        // Debug log to confirm spawn
+        // GD.Print($"[MenuPhysics] Spawned arrow at {ball.GlobalPosition}");
+
+        // Set arrow to vertical orientation (point down, fletching up)
+        // Arrow model faces forward by default, so rotate -90 degrees around X to point down
+        ball.Rotation = new Vector3(Mathf.DegToRad(-90), 0, 0);
 
         // Nudge towards center slightly
         float nudge = -startX * 0.5f;
         ball.LinearVelocity = new Vector3((float)(_random.NextDouble() * 1.5 - 0.75) + nudge, -1.0f, 0);
 
-        // Lock to 2D plane
+        // Add a small spin for visual interest
+        ball.AngularVelocity = new Vector3(0, 0, (float)(_random.NextDouble() * 2.0 - 1.0));
+
+        // Lock to 2D plane (position only, allow rotation around Z)
+        // Z is handling depth, we want them to stay at Z=2.0f
         ball.AxisLockLinearZ = true;
-        ball.AxisLockAngularX = true;
-        ball.AxisLockAngularY = true;
+        // Remove angular locks so arrows can rotate and tumble as they fall
+        ball.AxisLockAngularX = false;
+        ball.AxisLockAngularY = false;
     }
 }

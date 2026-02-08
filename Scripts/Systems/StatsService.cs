@@ -108,9 +108,98 @@ public partial class StatsService : Node
         _playerStats.Experience += amount;
         GD.Print($"[StatsService] {amount} XP added. Total: {_playerStats.Experience}");
 
-        // TODO: Implement Level-up checking here later
+        CheckLevelUp();
     }
 
+    private void CheckLevelUp()
+    {
+        while (true)
+        {
+            int requiredXp = GetRequiredXpForNextLevel();
+            if (_playerStats.Experience >= requiredXp)
+            {
+                _playerStats.Experience -= requiredXp;
+                _playerStats.Level++;
+                ApplyLevelUpBonuses();
+                GD.Print($"[StatsService] LEVEL UP! Now Level {_playerStats.Level}");
+                EmitSignal(SignalName.LevelUp, _playerStats.Level);
+            }
+            else break;
+        }
+    }
+
+    private int GetRequiredXpForNextLevel()
+    {
+        // Doubled scale: Lvl 2: 480, Lvl 3: 960, Lvl 4: 1600, Lvl 5: 2400, Lvl 6: 3600
+        // Formula: 100 * Level * (Level + 1) * 0.8 (approximately matches user request curve)
+        // Manual override for specific early levels to ensure exact match with chart
+        switch (_playerStats.Level)
+        {
+            case 1: return 480;
+            case 2: return 960;
+            case 3: return 1600;
+            case 4: return 2400;
+            case 5: return 3600;
+            default: return 1000 * _playerStats.Level; // Fallback for very high levels
+        }
+    }
+
+    private void ApplyLevelUpBonuses()
+    {
+        // Simple scaling: +10% HP, +5% Resource pools, +2 to primary stats
+        _playerStats.MaxHealth += (int)(_playerStats.MaxHealth * 0.10f);
+        _playerStats.CurrentHealth = _playerStats.MaxHealth; // Full heal
+
+        _playerStats.Strength += 2;
+        _playerStats.Agility += 2;
+        _playerStats.Dexterity += 2;
+        _playerStats.Vitality += 2;
+        _playerStats.Intelligence += 2;
+
+        _playerStats.MaxStamina += (int)(_playerStats.MaxStamina * 0.05f);
+        _playerStats.CurrentStamina = _playerStats.MaxStamina;
+
+        _playerStats.MaxMana += (int)(_playerStats.MaxMana * 0.05f);
+        _playerStats.CurrentMana = _playerStats.MaxMana;
+
+        // Step 4: Grant points
+        _playerStats.AbilityPoints += 1;
+        _playerStats.AttributePoints += 5;
+
+        GD.Print($"[StatsService] Points granted! Ability: {_playerStats.AbilityPoints}, Attribute: {_playerStats.AttributePoints}");
+    }
+
+    [Signal] public delegate void LevelUpEventHandler(int newLevel);
+    [Signal] public delegate void ExperienceGainedEventHandler(int current, int total);
+    [Signal] public delegate void AbilityUpgradedEventHandler(int slot, int newLevel, bool perkTriggered);
+    [Signal] public delegate void PerkSelectedEventHandler(string perkId);
+
+    public void UpgradeAbility(int slot)
+    {
+        if (slot < 0 || slot >= 4) return;
+        if (_playerStats.AbilityPoints <= 0) return;
+        if (_playerStats.AbilityLevels[slot] >= 6) return;
+
+        _playerStats.AbilityPoints--;
+        _playerStats.AbilityLevels[slot]++;
+
+        int newLevel = _playerStats.AbilityLevels[slot];
+        bool perkTriggered = (newLevel % 2 == 0);
+
+        GD.Print($"[StatsService] Ability {slot + 1} upgraded to Level {newLevel}. Points left: {_playerStats.AbilityPoints}");
+        EmitSignal(SignalName.AbilityUpgraded, slot, newLevel, perkTriggered);
+    }
+
+    public void SelectPerk(string perkId)
+    {
+        if (!_playerStats.SelectedPerks.Contains(perkId))
+        {
+            _playerStats.SelectedPerks.Add(perkId);
+            GD.Print($"[StatsService] Perk selected: {perkId}");
+            EmitSignal(SignalName.PerkSelected, perkId);
+        }
+    }
+    // Riverside logic for objective kills.
     public void AddGold(int amount)
     {
         if (amount <= 0) return;

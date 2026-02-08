@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 namespace Archery;
 
@@ -90,6 +91,7 @@ public partial class PlayerController : CharacterBody3D
     private MeleeSystem _meleeSystem;
     private AnimationTree _animTree;
     private AnimationPlayer _animPlayer; // Current
+    private Dictionary<int, HeroAbilityBase> _abilities = new();
     private AnimationPlayer _meleeAnimPlayer;
     private AnimationPlayer _archeryAnimPlayer;
     private Node3D _meleeModel;
@@ -229,8 +231,17 @@ public partial class PlayerController : CharacterBody3D
 
         _modelManager.Initialize(this, _meleeModel, _archeryModel, _animTree, _meleeAnimPlayer, _archeryAnimPlayer);
 
+        // Initialize Abilities
+        InitializeAbilities(_currentModelId);
+
         // Apply current/synced model
         _modelManager.SetCharacterModel(_currentModelId);
+
+        if (IsLocal)
+        {
+            AddToGroup("local_player");
+            GD.Print("[PlayerController] Initialized Local Player.");
+        }
 
         // Default to Melee
         _animPlayer = _meleeAnimPlayer;
@@ -291,12 +302,20 @@ public partial class PlayerController : CharacterBody3D
             }
 
             // Subscribe to ToolManager for mode switching
+            if (MobaGameManager.Instance != null)
+            {
+                InitializeAbilities(CurrentModelId);
+            }
+
             if (ToolManager.Instance != null)
             {
                 ToolManager.Instance.ToolChanged += OnToolChanged;
                 ToolManager.Instance.HotbarModeChanged += OnHotbarModeChanged;
                 ToolManager.Instance.AbilityTriggered += OnAbilityTriggered;
             }
+
+            // Subscribe to Perk application
+            _archerySystem?.PlayerStatsService?.Connect("PerkSelected", new Callable(this, nameof(OnPerkSelected)));
         }
         else
         {
@@ -319,6 +338,22 @@ public partial class PlayerController : CharacterBody3D
 
         // Visual Sword Setup
         SetupVisualSword();
+    }
+
+    private void OnPerkSelected(string perkId)
+    {
+        GD.Print($"[PlayerController] Perk Selected: {perkId}. Applying effects...");
+
+        // Find which ability this perk belongs to or apply globally
+        // This is where we wire numerical bonuses from PerkRegistry to the HeroAbilityBase instances
+        foreach (var ability in _abilities.Values)
+        {
+            // Simple mapping: if perkId starts with ability's class/id prefix, apply it
+            // In a real system, we'd look up the AbilityPerk object in PerkRegistry
+            if (perkId.Contains("dmg")) ability.DamageMultiplier *= 1.2f;
+            if (perkId.Contains("cdr")) ability.CooldownReduction += 0.5f;
+            if (perkId.Contains("radius")) ability.RadiusBonus += 1.0f;
+        }
     }
 
     private void OnToolChanged(int toolInt)
@@ -358,28 +393,33 @@ public partial class PlayerController : CharacterBody3D
         }
     }
 
-    private void OnAbilityTriggered(int index)
+    private void InitializeAbilities(string classId)
     {
-        if (!IsLocal) return;
+        // Cleanup old
+        foreach (var ability in _abilities.Values) ability.QueueFree();
+        _abilities.Clear();
 
-        // Ability Logic for Ranger
-        bool isRanger = CurrentModelId.ToLower() == "ranger";
-        if (!isRanger) return;
-
-        switch (index)
+        // For now, let's auto-populate with a generic ability that maps to old logic
+        // We will eventually replace these with specific class-based ability scenes/scripts
+        for (int i = 0; i < 4; i++)
         {
-            case 0: // Rapid Fire
-            case 1: // Piercing Shot
-            case 2: // Rain of Arrows
-                _archerySystem?.QuickFire(0f);
-                break;
-            case 3: // Vault
-                PerformVault();
-                break;
+            var placeholder = new GenericHeroAbility();
+            placeholder.AbilitySlot = i;
+            AddChild(placeholder);
+            _abilities[i] = placeholder;
         }
     }
 
-    private void PerformVault()
+    private void OnAbilityTriggered(int index)
+    {
+        if (!IsLocal) return;
+        if (_abilities.ContainsKey(index))
+        {
+            _abilities[index].Execute(this);
+        }
+    }
+
+    public void PerformVault()
     {
         if (_isVaulting) return;
 
@@ -1064,6 +1104,12 @@ public partial class PlayerController : CharacterBody3D
 
     private InteractableObject CheckInteractableRaycast()
     {
+        Node3D hit = CheckUnitRaycast();
+        return hit as InteractableObject;
+    }
+
+    private Node3D CheckUnitRaycast()
+    {
         if (_camera == null) return null;
 
         var mousePos = GetViewport().GetMousePosition();
@@ -1072,22 +1118,30 @@ public partial class PlayerController : CharacterBody3D
 
         var spaceState = GetWorld3D().DirectSpaceState;
         var query = PhysicsRayQueryParameters3D.Create(from, to);
+        // Exclude the caster
+        query.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
 
         var result = spaceState.IntersectRay(query);
         if (result.Count > 0)
         {
             var collider = (Node)result["collider"];
-            var interactable = collider.GetNodeOrNull<InteractableObject>(".") ?? collider.GetParentOrNull<InteractableObject>();
+
+            // 1. Check for InteractableObject
+            var interactable = collider.GetNodeOrNull<InteractableObject>(".")
+                             ?? collider.GetParentOrNull<InteractableObject>();
             if (interactable == null && collider.GetParent() != null)
-            {
                 interactable = collider.GetParent().GetParentOrNull<InteractableObject>();
-            }
-            return interactable;
+
+            if (interactable != null) return interactable;
+
+            // 2. Check for other targetables (Remote Players)
+            if (collider is PlayerController pc && !pc.IsLocal) return pc;
+            if (collider.GetParent() is PlayerController pc2 && !pc2.IsLocal) return pc2;
         }
         return null;
     }
 
-    public override void _Input(InputEvent @event)
+    public override void _UnhandledInput(InputEvent @event)
     {
         if (!IsLocal) return;
 
@@ -1125,6 +1179,13 @@ public partial class PlayerController : CharacterBody3D
         if (@event is InputEventKey modelKey && modelKey.Pressed && !modelKey.Echo && modelKey.Keycode == Key.M)
         {
             CycleCharacterModel();
+        }
+
+        // X key: Clear Target
+        if (isRPGMode && @event is InputEventKey xKey && xKey.Pressed && !xKey.Echo && xKey.Keycode == Key.X)
+        {
+            _archerySystem?.ClearTarget();
+            GetViewport().SetInputAsHandled();
         }
         // Selection logic in Build Mode
         if (CurrentState == PlayerState.BuildMode)
@@ -1229,6 +1290,17 @@ public partial class PlayerController : CharacterBody3D
 
                     GetViewport().SetInputAsHandled();
                 }
+            }
+        }
+
+        // Right Click: Set Target (RPG Mode)
+        if (isRPGMode && @event is InputEventMouseButton rightBtn && rightBtn.ButtonIndex == MouseButton.Right && rightBtn.Pressed)
+        {
+            Node3D unit = CheckUnitRaycast();
+            if (unit != null)
+            {
+                _archerySystem?.SetTarget(unit);
+                GetViewport().SetInputAsHandled();
             }
         }
     }

@@ -265,6 +265,12 @@ public partial class MobaGameManager : Node
 #endif
             }
         }
+
+        // Award team-wide bounty (Global Reward)
+        MobaTeam killerTeam = TeamSystem.GetEnemyTeam(tower.Team);
+        int globalXp = (tower.Type == TowerType.Outer) ? 400 : 600;
+        int globalGold = (tower.Type == TowerType.Outer) ? 150 : 250;
+        GrantTeamReward(killerTeam, globalGold, globalXp);
     }
 
     /// <summary>
@@ -285,7 +291,32 @@ public partial class MobaGameManager : Node
         // Stop spawning
         _spawningEnabled = false;
 
+        // Award massive team bounty
+        GrantTeamReward(Winner, 1000, 2500);
+
         // TODO: Show victory/defeat UI
+    }
+
+    /// <summary>
+    /// Grant Gold and XP to all heroes on a specific team.
+    /// </summary>
+    public void GrantTeamReward(MobaTeam team, int gold, int xp)
+    {
+        foreach (var node in GetTree().GetNodesInGroup("player"))
+        {
+            if (node is PlayerController pc && pc.Team == team)
+            {
+                var archerySystem = pc.GetNodeOrNull<ArcherySystem>("ArcherySystem")
+                                 ?? pc.FindChild("ArcherySystem", true, false) as ArcherySystem;
+                var stats = archerySystem?.GetNodeOrNull<StatsService>("StatsService");
+
+                if (stats != null)
+                {
+                    stats.AddGold(gold);
+                    stats.AddExperience(xp);
+                }
+            }
+        }
     }
 
     /// <summary>

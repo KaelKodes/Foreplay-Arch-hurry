@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 
 namespace Archery;
 
@@ -29,6 +30,14 @@ public partial class MobaHUD : CanvasLayer
 	private Label _goldLabel;
 	private Label _levelLabel;
 
+	// Perk Choice UI
+	private Panel _perkChoicePanel;
+	private HBoxContainer _perkContainer;
+	private StatsService _subscribedStatsService;
+	private List<AbilityPerk> _currentPerks = new List<AbilityPerk>();
+
+	public bool IsSelectingPerk => _perkChoicePanel?.Visible ?? false;
+
 	// Tower score
 	private Label _redTowerLabel;
 	private Label _blueTowerLabel;
@@ -44,6 +53,7 @@ public partial class MobaHUD : CanvasLayer
 	{
 		Layer = 10;
 		BuildUI();
+		BuildPerkUI();
 		CallDeferred(nameof(FindGameManager));
 		ConnectModeSignal();
 	}
@@ -221,6 +231,103 @@ public partial class MobaHUD : CanvasLayer
 		UpdateSecondaryBarStyle();
 	}
 
+	private void BuildPerkUI()
+	{
+		_perkChoicePanel = MobaTheme.CreatePanel();
+		_perkChoicePanel.SetAnchorsPreset(Control.LayoutPreset.Center);
+		_perkChoicePanel.OffsetLeft = -300;
+		_perkChoicePanel.OffsetRight = 300;
+		_perkChoicePanel.OffsetTop = -150;
+		_perkChoicePanel.OffsetBottom = 150;
+		_perkChoicePanel.Visible = false;
+		_perkChoicePanel.MouseFilter = Control.MouseFilterEnum.Stop;
+
+		// Background to ensure buttons are clickable
+		var bgNode = new ColorRect();
+		bgNode.Color = new Color(0, 0, 0, 0.4f);
+		bgNode.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+		bgNode.MouseFilter = Control.MouseFilterEnum.Stop;
+		_perkChoicePanel.AddChild(bgNode);
+
+		AddChild(_perkChoicePanel);
+
+		var vbox = new VBoxContainer();
+		vbox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+		vbox.Alignment = BoxContainer.AlignmentMode.Center;
+		_perkChoicePanel.AddChild(vbox);
+
+		var title = MobaTheme.CreateHeadingLabel("CHOOSE A PERK", MobaTheme.AccentGold);
+		title.HorizontalAlignment = HorizontalAlignment.Center;
+		vbox.AddChild(title);
+
+		_perkContainer = new HBoxContainer();
+		_perkContainer.Alignment = BoxContainer.AlignmentMode.Center;
+		_perkContainer.AddThemeConstantOverride("separation", 20);
+		vbox.AddChild(_perkContainer);
+	}
+
+	public void OnAbilityUpgraded(int slot, int level, bool perkTriggered)
+	{
+		if (perkTriggered)
+		{
+			ShowPerkOptions(slot);
+		}
+	}
+
+	private void ShowPerkOptions(int slot)
+	{
+		// Clear old
+		foreach (Node child in _perkContainer.GetChildren()) child.QueueFree();
+		_currentPerks.Clear();
+
+		_currentPerks = PerkRegistry.GetRandomPerks(_heroClass, "", 3);
+		for (int i = 0; i < _currentPerks.Count; i++)
+		{
+			var perk = _currentPerks[i];
+			var btn = new Button();
+			btn.Name = perk.Id;
+			btn.CustomMinimumSize = new Vector2(180, 220);
+			btn.MouseFilter = Control.MouseFilterEnum.Stop;
+
+			var cardVBox = new VBoxContainer();
+			cardVBox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+			cardVBox.Alignment = BoxContainer.AlignmentMode.Center;
+			cardVBox.MouseFilter = Control.MouseFilterEnum.Ignore;
+			btn.AddChild(cardVBox);
+
+			var pIndex = MobaTheme.CreateHeroLabel($"{i + 1}", MobaTheme.TextMuted);
+			pIndex.HorizontalAlignment = HorizontalAlignment.Center;
+			pIndex.AddThemeFontSizeOverride("font_size", 40);
+			cardVBox.AddChild(pIndex);
+
+			var pName = MobaTheme.CreateHeadingLabel(perk.Name, MobaTheme.TextPrimary);
+			pName.HorizontalAlignment = HorizontalAlignment.Center;
+			pName.MouseFilter = Control.MouseFilterEnum.Ignore;
+			cardVBox.AddChild(pName);
+
+			var pDesc = MobaTheme.CreateBodyLabel(perk.Description, MobaTheme.TextSecondary);
+			pDesc.HorizontalAlignment = HorizontalAlignment.Center;
+			pDesc.AutowrapMode = TextServer.AutowrapMode.Word;
+			pDesc.MouseFilter = Control.MouseFilterEnum.Ignore;
+			cardVBox.AddChild(pDesc);
+
+			btn.Pressed += () => SelectPerk(perk);
+			_perkContainer.AddChild(btn);
+		}
+
+		_perkChoicePanel.Visible = true;
+	}
+	private void SelectPerk(AbilityPerk perk)
+	{
+		GD.Print($"[PerkUI] Selected: {perk.Name}");
+		_perkChoicePanel.Visible = false;
+
+		if (_subscribedStatsService != null)
+		{
+			_subscribedStatsService.SelectPerk(perk.Id);
+		}
+	}
+
 	public override void _Process(double delta)
 	{
 		if (_gameManager == null)
@@ -264,7 +371,7 @@ public partial class MobaHUD : CanvasLayer
         _blueTowerLabel.Text = $"{blueTowers} 🔵";
     }
 
-    // ── Public update methods (called by PlayerController or game systems) ──
+    // ── Public update methods ──
 
     public void UpdateHp(float current, float max)
     {
@@ -301,25 +408,47 @@ public partial class MobaHUD : CanvasLayer
         if (_levelLabel != null) _levelLabel.Text = $"LVL {level}";
     }
 
-    // ── Live Stats Polling ──────────────────────────────────
+    // ── Live Stats Polling ──
 
     private Stats _cachedStats;
+    private ArcherySystem _cachedArcherySystem;
     private bool _statsSearched = false;
 
     private void PollPlayerStats()
     {
         if (!_isRpgMode) return;
 
-        // Lazy-find the ArcherySystem once
-        if (_cachedStats == null && !_statsSearched)
+        // Reliable lookup via local_player group
+        if (_cachedStats == null)
         {
-            _statsSearched = true;
-            var archerySystem = GetTree().Root.FindChild("ArcherySystem", true, false) as ArcherySystem;
+            var player = GetTree().GetFirstNodeInGroup("local_player") as Node;
+            var archerySystem = player?.FindChild("ArcherySystem", true, false) as ArcherySystem;
+
+            if (archerySystem == null && player != null)
+            {
+                // Fallback: search by type if name check fails
+                foreach (var child in player.GetChildren())
+                {
+                    if (child is ArcherySystem asys)
+                    {
+                        archerySystem = asys;
+                        break;
+                    }
+                }
+            }
+
             if (archerySystem != null)
             {
                 _cachedStats = archerySystem.PlayerStats;
+                _subscribedStatsService = archerySystem.PlayerStatsService;
+                if (_subscribedStatsService != null)
+                {
+                    // Avoid double sub
+                    _subscribedStatsService.AbilityUpgraded -= OnAbilityUpgraded;
+                    _subscribedStatsService.AbilityUpgraded += OnAbilityUpgraded;
+                }
+                GD.Print("[MobaHUD] Linked to local player stats.");
 
-                // Also detect hero class from ToolManager
                 if (ToolManager.Instance != null)
                 {
                     var heroClass = ToolManager.Instance.CurrentHeroClass;
@@ -331,7 +460,6 @@ public partial class MobaHUD : CanvasLayer
 
         if (_cachedStats == null) return;
 
-        // Push live values to the bars
         UpdateHp(_cachedStats.CurrentHealth, _cachedStats.MaxHealth);
         UpdateStamina(_cachedStats.CurrentStamina, _cachedStats.MaxStamina);
 
@@ -344,8 +472,20 @@ public partial class MobaHUD : CanvasLayer
         UpdateLevel(_cachedStats.Level);
         UpdateGold(_cachedStats.Gold);
 
-        // XP bar: show progress toward next level (simple: 100 * level)
-        int xpForNext = _cachedStats.Level * 100;
+        int xpForNext = GetRequiredXpForCurrentLevel(_cachedStats.Level);
         UpdateXp(_cachedStats.Experience, xpForNext);
+    }
+
+    private int GetRequiredXpForCurrentLevel(int level)
+    {
+        switch (level)
+        {
+            case 1: return 480;
+            case 2: return 960;
+            case 3: return 1600;
+            case 4: return 2400;
+            case 5: return 3600;
+            default: return 1000 * level;
+        }
     }
 }

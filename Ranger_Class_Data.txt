@@ -1,0 +1,245 @@
+═══════════════════════════════════════════════════════════════════════════════
+                            RANGER CLASS DATA
+                            (Arch Hurry Game)
+                         Exported: 2026-02-08
+═══════════════════════════════════════════════════════════════════════════════
+
+CLASS IDENTITY
+──────────────────────────────────────────────────────────────────────────────
+ID:                 Ranger
+Display Name:       Ranger (formerly "Archer", "Erika")
+Archetype:          Windrunner Archer
+Primary Role:       Ranged DPS / High Mobility
+Skeleton Type:      Shared Skeleton (compatible with Warrior, Cleric)
+
+
+BASE STATS (LEVEL 1)
+──────────────────────────────────────────────────────────────────────────────
+Strength:           21
+Agility:            35  ★ (Primary)
+Dexterity:          42  ★★ (Primary)
+Vitality:           20
+Intelligence:       18
+
+Max HP:             400  (Formula: 20 × Vitality)
+Current HP:         400
+Max Stamina:        275  (Formula: 100 + 5 × Agility)
+Current Stamina:    275
+Max Mana:           270  (Formula: 15 × Intelligence)
+Current Mana:       270
+Max Fury:           100  (Unused - Warrior resource)
+Current Fury:       0
+
+Resource Type:      Stamina + Mana hybrid
+
+
+STAT GROWTH CURVE
+──────────────────────────────────────────────────────────────────────────────
+Level Up Bonuses (Applied per level):
+  • Max HP:         +10% of current Max HP
+  • Max Stamina:    +5% of current Max Stamina
+  • Max Mana:       +5% of current Max Mana
+  • All Stats:      +2 to each (STR, AGI, DEX, VIT, INT)
+  • Ability Points: +1
+  • Attribute Pts:  +5
+  • Full heal/resource restore on level up
+
+Experience Requirements:
+  Level 1 → 2:      480 XP
+  Level 2 → 3:      960 XP
+  Level 3 → 4:      1,600 XP
+  Level 4 → 5:      2,400 XP
+  Level 5 → 6:      3,600 XP
+  Level 6+:         1,000 × Level (Fallback formula)
+
+Base Formula: 100 × Level × (Level + 1) × 0.8
+
+
+ABILITIES (4 Core Skills)
+──────────────────────────────────────────────────────────────────────────────
+
+1. RAPID FIRE
+   ─────────────────────────────────────────────────────
+   Description:     Channel a barrage of arrows for 5s with +50% attack speed.
+                    "A flurry of arrows that turns the battlefield into a pincushion."
+
+   Cooldown:        16s
+   Cost:            10 Stamina/sec (50 total)
+   Cost Type:       Stamina
+
+   Base Effect:     +50% Attack Speed for 5 seconds
+
+   Level-Up Bonus:  +1s duration
+                    +10% attack speed
+
+   Animation Path:  res://Assets/ErikaBow/standing draw arrow.fbx
+
+   Upgrade Branches (6 Perks):
+     • Volley
+     • Fleet Footwork
+     • Searing Tips
+     • Relentless
+     • Static Link
+     • Focus Pulse
+
+   ─────────────────────────────────────────────────────
+
+2. PIERCING SHOT
+   ─────────────────────────────────────────────────────
+   Description:     Fire a powerful arrow dealing 120% AD that passes through enemies.
+                    "Charges a powerful shot that passes through all enemies in its path."
+
+   Cooldown:        10s
+   Cost:            40 Mana
+   Cost Type:       Mana
+
+   Base Effect:     120% Attack Damage (AD)
+                    Pierces through all enemies
+
+   Level-Up Bonus:  +30% AD scaling
+                    +5u range
+
+   Animation Path:  res://Assets/ErikaBow/standing draw arrow.fbx
+
+   Upgrade Branches (6 Perks):
+     • Long-Range Bore
+     • Shattering Point
+     • Serrated Edge
+     • Split Arrow
+     • Resourceful
+     • Gravity Core
+
+   ─────────────────────────────────────────────────────
+
+3. RAIN OF ARROWS
+   ─────────────────────────────────────────────────────
+   Description:     Rain arrows on a 5u area dealing 20% AD every 0.5s for 3s.
+                    "Command the sky to rain destruction on your foes."
+
+   Cooldown:        18s
+   Cost:            60 Mana
+   Cost Type:       Mana
+
+   Base Effect:     5u radius AoE
+                    20% AD per tick
+                    0.5s tick rate
+                    3s duration (6 total ticks)
+
+   Level-Up Bonus:  +1s duration (2 more ticks)
+                    +1u radius
+
+   Animation Path:  res://Assets/ErikaBow/standing draw arrow.fbx
+
+   Upgrade Branches (6 Perks):
+     • Arctic Wind
+     • Corrosive Rain
+     • Heavy Impact
+     • Scorched Earth
+     • Lingering Gale
+     • Marked for Death
+
+   ─────────────────────────────────────────────────────
+
+4. VAULT
+   ─────────────────────────────────────────────────────
+   Description:     Dash 8u forward, becoming untargetable briefly. Leaves a decoy behind.
+                    "Graceful evasion that leaves your enemies chasing ghosts."
+
+   Cooldown:        12s
+   Cost:            30 Stamina
+   Cost Type:       Stamina
+
+   Base Effect:     8u forward dash
+                    Brief untargetable window
+                    Spawns decoy at starting position
+
+   Level-Up Bonus:  -2s cooldown
+                    Decoy gains 10% player HP
+
+   Animation Path:  res://Assets/Erika/sword and shield jump (2).fbx
+
+   Upgrade Branches (6 Perks):
+     • Aerial Shot
+     • Smoke Screen
+     • Explosive Exit
+     • Wind Spirit
+     • Second Wind
+     • Mirage
+
+
+PERK POOL (Available Ability Upgrades)
+──────────────────────────────────────────────────────────────────────────────
+Every 2 levels in an ability, player chooses 1 of 3 random perks from pool:
+
+  • Sharp Points        (+20% Damage)
+  • Quick Draw          (-0.5s Cooldown)
+  • Broad Heads         (+1.0 Impact Radius)
+  • Heavy Shafts        (+40% Damage)
+  • Rapid Re-arm        (-1.0s Cooldown)
+
+
+ANIMATIONS
+──────────────────────────────────────────────────────────────────────────────
+Idle:               "standing idle 01"
+                    res://Assets/Erika/standing idle 01.fbx
+
+Walk:               "standing walk forward"
+                    res://Assets/Erika/standing walk forward.fbx
+
+Run:                "standing run forward"
+                    res://Assets/Erika/standing run forward.fbx
+
+
+MODEL PATHS
+──────────────────────────────────────────────────────────────────────────────
+Melee Scene:        res://Assets/Erika/Erika Archer.fbx
+Archery Scene:      res://Assets/ErikaBow/Erika Archer With Bow Arrow.fbx
+
+Skeleton:           Shared skeleton (not custom)
+                    Binary-compatible with Warrior and Cleric models
+
+
+GAMEPLAY MECHANICS
+──────────────────────────────────────────────────────────────────────────────
+Combat Style:       Ranged bow combat (primary)
+                    Can use melee weapons in RPG mode
+
+Attack Charging:    In RPG mode, LMB charges bow attack (like tool mode)
+                    Charge system: draw → aim → release
+
+Archery System:     Standalone bow attachment in RPG mode
+                    Bow rig swap when entering archery mode
+                    Arrow visuals sync across multiplayer
+
+Movement Speed:     Standard base speed
+                    Modified by Stamina resource
+
+Special Features:   • Tab targeting for enemies
+                    • Shift+Tab for ally targeting
+                    • Crouch support (Ctrl)
+
+
+DEFAULT ASSOCIATIONS
+──────────────────────────────────────────────────────────────────────────────
+Default Class:      Yes (Fallback for all systems)
+Database ID:        1 (Primary character record)
+Default Hero Name:  "Ranger"
+Gold on Start:      0
+Experience:         0
+Level:              1
+Is Right-Handed:    true
+
+
+LEGACY NOTES
+──────────────────────────────────────────────────────────────────────────────
+Former Names:       "Archer", "Erika"
+Migration Status:   All legacy references updated to "Ranger"
+                    Database migrations ensure "Archer" and "Erika" map to "Ranger"
+
+Compatibility:      Shares skeleton with Warrior (Paladin.fbx) and Cleric (Warrior.fbx)
+                    Guardian, Monk, Pale Knight removed due to skeleton incompatibility
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                              END OF RANGER DATA
+═══════════════════════════════════════════════════════════════════════════════

@@ -408,7 +408,9 @@ public partial class ArcherySystem : Node
         _lockedAccuracy = -1.0f;
 
 
-        if (_camera != null) { _camera.SetTarget(_currentPlayer, true); _camera.SetFollowing(false); _camera.SetFreeLook(false); }
+
+        if (_camera != null) { _camera.SetTarget(_currentPlayer, false); _camera.SetFollowing(false); _camera.SetFreeLook(false); }
+
         EmitSignal(SignalName.DrawStageChanged, (int)_stage);
         EmitSignal(SignalName.ArcheryValuesUpdated, 0, -1, -1);
 
@@ -755,20 +757,38 @@ public partial class ArcherySystem : Node
         TargetingHelper.FindTargetablesRecursive(node, results, team, alliesOnly);
     }
 
-    public void ClearTarget()
+    public void SetTarget(Node3D target)
     {
-        if (_currentTarget == null) return;
-        GD.Print("[ArcherySystem] Target Cleared");
+        if (_currentPlayer == null) return;
+        if (target == _currentTarget) return;
 
-        if (_currentTarget is InteractableObject io) io.SetSelected(false);
+        // Deselect old target
+        if (_currentTarget is InteractableObject oldIO) oldIO.SetSelected(false);
 
-        _currentTarget = null;
-        EmitSignal(SignalName.TargetChanged, null);
+        _currentTarget = target;
+
+        if (_currentTarget != null)
+        {
+            GD.Print($"[ArcherySystem] Target Locked: {_currentTarget.Name}");
+            // Select new target
+            if (_currentTarget is InteractableObject newIO) newIO.SetSelected(true);
+        }
+        else
+        {
+            GD.Print("[ArcherySystem] Target Cleared");
+        }
+
+        EmitSignal(SignalName.TargetChanged, _currentTarget);
 
         if (_camera != null && _camera is CameraController camCtrl)
         {
-            camCtrl.SetLockedTarget(null);
+            camCtrl.SetLockedTarget(_currentTarget);
         }
+    }
+
+    public void ClearTarget()
+    {
+        SetTarget(null);
     }
 
     private void OnArrowSettled(float distance)

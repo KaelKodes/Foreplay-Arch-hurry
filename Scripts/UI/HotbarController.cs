@@ -44,6 +44,8 @@ public partial class HotbarController : Control
         new Color(0.3f, 0.3f, 0.3f),
     };
 
+    private StatsService _cachedStatsService;
+
     public override void _Ready()
     {
         // Find or create slot container
@@ -229,6 +231,7 @@ public partial class HotbarController : Control
 
         CreateSlots();
         RefreshSlots();
+        RefreshUpgradeVisibility();
 
         // Defer resize to next frame so container has calculated its size
         CallDeferred(nameof(ResizeToFitContainer));
@@ -391,6 +394,48 @@ public partial class HotbarController : Control
             slot.MouseEntered += () => OnSlotMouseEntered(slotIndex);
             slot.MouseExited += () => OnSlotMouseExited();
 
+            // Add Upgrade Button (+)
+            var upgradeBtn = new Button();
+            upgradeBtn.Name = "UpgradeButton";
+            upgradeBtn.Text = "+";
+            upgradeBtn.CustomMinimumSize = new Vector2(24, 24);
+            upgradeBtn.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+            upgradeBtn.OffsetLeft = -24;
+            upgradeBtn.OffsetBottom = 24;
+            upgradeBtn.Visible = false; // Hidden by default
+            upgradeBtn.AddThemeFontSizeOverride("font_size", 14);
+            upgradeBtn.AddThemeColorOverride("font_color", MobaTheme.AccentGold);
+
+            // Styled button
+            var btnStyle = new StyleBoxFlat();
+            btnStyle.BgColor = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+            btnStyle.BorderWidthBottom = 2;
+            btnStyle.BorderColor = MobaTheme.AccentGold;
+            upgradeBtn.AddThemeStyleboxOverride("normal", btnStyle);
+
+            upgradeBtn.Pressed += () => OnUpgradePressed(slotIndex);
+            slot.AddChild(upgradeBtn);
+
+            // Re-center Upgrade Button over icon
+            upgradeBtn.SetAnchorsPreset(Control.LayoutPreset.CenterTop);
+            upgradeBtn.OffsetLeft = -12;
+            upgradeBtn.OffsetTop = -12;
+            upgradeBtn.OffsetRight = 12;
+            upgradeBtn.OffsetBottom = 12;
+            // Add Level Label - Moved to top
+            var lvlLabel = new Label();
+            lvlLabel.Name = "LevelLabel";
+            lvlLabel.Text = "Lvl 1";
+            lvlLabel.HorizontalAlignment = HorizontalAlignment.Right;
+            lvlLabel.VerticalAlignment = VerticalAlignment.Top;
+            lvlLabel.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            lvlLabel.OffsetRight = -4;
+            lvlLabel.OffsetTop = 2; // Positioned at top
+            lvlLabel.AddThemeFontSizeOverride("font_size", 9);
+            lvlLabel.AddThemeColorOverride("font_color", MobaTheme.AccentGold);
+            lvlLabel.MouseFilter = MouseFilterEnum.Ignore;
+            slot.AddChild(lvlLabel);
+
             // DRAG AND DROP SETUP
             slot.SetDragForwarding(new Godot.Callable(this, nameof(GetSlotDragData)), new Godot.Callable(this, nameof(CanDropOnSlot)), new Godot.Callable(this, nameof(DropOnSlot)));
 
@@ -505,6 +550,110 @@ public partial class HotbarController : Control
 
         // Ensure highlight is correct after refresh
         OnToolChanged((int)(ToolManager.Instance?.CurrentTool ?? ToolType.None));
+        RefreshUpgradeVisibility();
+    }
+
+    private void RefreshUpgradeVisibility()
+    {
+        if (ToolManager.Instance == null || ToolManager.Instance.CurrentMode != ToolManager.HotbarMode.RPG)
+        {
+            HideAllUpgrades();
+            return;
+        }
+
+        // Reliable lookup via local_player group
+        if (_cachedStatsService == null)
+        {
+            var player = GetTree().GetFirstNodeInGroup("local_player") as Node;
+            var arch = player?.FindChild("ArcherySystem", true, false) as ArcherySystem;
+            _cachedStatsService = arch?.GetNodeOrNull<StatsService>("StatsService");
+
+            if (_cachedStatsService != null)
+            {
+                // Unsub first to be safe
+                _cachedStatsService.AbilityUpgraded -= (s, l, p) => RefreshUpgradeVisibility();
+                _cachedStatsService.AbilityUpgraded += (s, l, p) => RefreshUpgradeVisibility();
+                _cachedStatsService.LevelUp -= (l) => RefreshUpgradeVisibility();
+                _cachedStatsService.LevelUp += (l) => RefreshUpgradeVisibility();
+            }
+        }
+
+        if (_cachedStatsService == null) return;
+
+        bool hasPoints = _cachedStatsService.PlayerStats.AbilityPoints > 0;
+
+        for (int i = 0; i < _slots.Length; i++)
+        {
+            var upgradeBtn = _slots[i].GetNodeOrNull<Button>("UpgradeButton");
+            var lvlLabel = _slots[i].GetNodeOrNull<Label>("LevelLabel");
+
+            if (upgradeBtn != null)
+            {
+                int lvl = _cachedStatsService.PlayerStats.AbilityLevels[i];
+                // Only show if we have points, it's one of the first 4 slots, AND level < 6
+                upgradeBtn.Visible = hasPoints && i < 4 && lvl < 6;
+            }
+
+            if (lvlLabel != null)
+            {
+                int lvl = _cachedStatsService.PlayerStats.AbilityLevels[i];
+                lvlLabel.Text = $"Lvl {lvl}";
+                lvlLabel.Visible = true;
+            }
+        }
+    }
+
+    private void HideAllUpgrades()
+    {
+        foreach (var slot in _slots)
+        {
+            if (slot == null) continue;
+            var upgradeBtn = slot.GetNodeOrNull<Button>("UpgradeButton");
+            var lvlLabel = slot.GetNodeOrNull<Label>("LevelLabel");
+            if (upgradeBtn != null) upgradeBtn.Visible = false;
+            if (lvlLabel != null) lvlLabel.Visible = false;
+        }
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (!Visible || ToolManager.Instance?.CurrentMode != ToolManager.HotbarMode.RPG) return;
+
+        // Priority to Perk Selection hotkeys
+        var mobaHud = GetTree().Root.FindChild("MobaHUD", true, false) as MobaHUD;
+        if (mobaHud != null && mobaHud.IsSelectingPerk) return;
+
+        if (@event is InputEventKey keyEvent && keyEvent.Pressed && keyEvent.AltPressed)
+        {
+            int slot = -1;
+            switch (keyEvent.Keycode)
+            {
+                case Key.Key1: slot = 0; break;
+                case Key.Key2: slot = 1; break;
+                case Key.Key3: slot = 2; break;
+                case Key.Key4: slot = 3; break;
+            }
+
+            if (slot != -1)
+            {
+                OnUpgradePressed(slot);
+                GetViewport().SetInputAsHandled();
+            }
+        }
+    }
+
+    private void OnUpgradePressed(int slotIndex)
+    {
+        GD.Print($"[Hotbar] Attempting Upgrade for Slot {slotIndex + 1}");
+        if (_cachedStatsService != null)
+        {
+            _cachedStatsService.UpgradeAbility(slotIndex);
+            RefreshUpgradeVisibility();
+        }
+        else
+        {
+            GD.PrintErr("[Hotbar] Cannot upgrade: StatsService not found!");
+        }
     }
 
     private void OnSlotPressed(int slotIndex)

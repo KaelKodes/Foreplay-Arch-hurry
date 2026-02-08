@@ -1,5 +1,8 @@
 using Godot;
 using System;
+using System.Collections.Generic;
+
+namespace Archery;
 
 public class Stats
 {
@@ -15,6 +18,10 @@ public class Stats
     public int Level { get; set; } = 1;
     public int Experience { get; set; } = 0;
     public int Gold { get; set; } = 0;
+    public int AbilityPoints { get; set; } = 0;   // For upgrading skills
+    public int AttributePoints { get; set; } = 0; // For core stats
+    public int[] AbilityLevels { get; set; } = new int[4] { 1, 1, 1, 1 };
+    public List<string> SelectedPerks { get; set; } = new List<string>();
 
     // Vitals
     public int MaxHealth { get; set; } = 100;
