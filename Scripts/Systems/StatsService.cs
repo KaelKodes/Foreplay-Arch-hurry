@@ -102,6 +102,22 @@ public partial class StatsService : Node
         }
     }
 
+    public void AddExperience(int amount)
+    {
+        if (amount <= 0) return;
+        _playerStats.Experience += amount;
+        GD.Print($"[StatsService] {amount} XP added. Total: {_playerStats.Experience}");
+
+        // TODO: Implement Level-up checking here later
+    }
+
+    public void AddGold(int amount)
+    {
+        if (amount <= 0) return;
+        _playerStats.Gold += amount;
+        GD.Print($"[StatsService] {amount} Gold added. Total: {_playerStats.Gold}");
+    }
+
     public void UpdateAnger(float accuracyError)
     {
         // Legacy anger mechanic from golf era - disabled for Arch Hurry

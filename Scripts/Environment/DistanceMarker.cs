@@ -119,7 +119,7 @@ public partial class DistanceMarker : InteractableObject
     private bool _hasGrit = true; // Allows surviving the first fatal hit if it's part of a combo
     private Timer _gritTimer;
 
-    public override void OnHit(float damage, Vector3 hitPosition, Vector3 hitDirection)
+    public override void OnHit(float damage, Vector3 hitPosition, Vector3 hitDirection, Node attacker = null)
     {
         if (_isDestroyed) return;
 

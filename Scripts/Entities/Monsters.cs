@@ -36,6 +36,7 @@ public partial class Monsters : InteractableObject
 	private double _lastShuffleTime = 0;
 	private HealthBar3D _healthBar;
 	private MonsterAI _ai;
+	protected Node _lastAttacker;
 
 	public override void _Ready()
 	{
@@ -164,6 +165,10 @@ public partial class Monsters : InteractableObject
                         {
                             // Duplicate and add to our library
                             var animCopy = (Animation)srcAnim.Duplicate();
+
+                            // Remove root motion (rubberbanding fix)
+                            RemoveRootMotion(animCopy);
+
 							// Idle/Walk/Run/Crawl loop, Hit/Attack/Death don't loop
 							bool shouldLoop = animName == "Idle" || animName == "Walk" || animName == "Run" || animName == "Crawl";
 							animCopy.LoopMode = shouldLoop ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
@@ -209,23 +214,27 @@ public partial class Monsters : InteractableObject
 			if (lowerName.Contains("idle") && !lib.HasAnimation("Idle"))
 			{
 				var copy = (Animation)anim.Duplicate();
+				RemoveRootMotion(copy);
 				copy.LoopMode = Animation.LoopModeEnum.Linear;
 				lib.AddAnimation("Idle", copy);
 			}
 			else if (lowerName.Contains("walk") && !lib.HasAnimation("Walk"))
 			{
 				var copy = (Animation)anim.Duplicate();
+				RemoveRootMotion(copy);
 				copy.LoopMode = Animation.LoopModeEnum.Linear;
 				lib.AddAnimation("Walk", copy);
 			}
 			else if (lowerName.Contains("attack") && !lib.HasAnimation("Attack"))
 			{
 				var copy = (Animation)anim.Duplicate();
+				RemoveRootMotion(copy);
 				lib.AddAnimation("Attack", copy);
 			}
 			else if (lowerName.Contains("death") && !lib.HasAnimation("Death"))
 			{
 				var copy = (Animation)anim.Duplicate();
+				RemoveRootMotion(copy);
 				lib.AddAnimation("Death", copy);
 			}
 		}
@@ -237,6 +246,7 @@ public partial class Monsters : InteractableObject
 			if (firstAnim != null)
 			{
 				var copy = (Animation)firstAnim.Duplicate();
+				RemoveRootMotion(copy);
 				copy.LoopMode = Animation.LoopModeEnum.Linear;
 				lib.AddAnimation("Idle", copy);
 				// GD.Print($"[Monsters] Created Idle from first animation: {animList[0]}");
@@ -277,6 +287,7 @@ public partial class Monsters : InteractableObject
 						if (srcAnim != null)
 						{
 							var animCopy = (Animation)srcAnim.Duplicate();
+							RemoveRootMotion(animCopy);
 							bool shouldLoop = animName == "Idle" || animName == "Walk" || animName == "Run" || animName == "Crawl";
 							animCopy.LoopMode = shouldLoop ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
 
@@ -312,303 +323,343 @@ public partial class Monsters : InteractableObject
 			var animRef = _animPlayer.GetAnimation(fallback);
 			if (animRef != null)
 			{
-				animRef.LoopMode = Animation.LoopModeEnum.Linear;
-			}
+				// We don't RemoveRootMotion on fallbacks because they might be shared refs
+                // Better to rely on the library versions being cleaned.
+                animRef.LoopMode = Animation.LoopModeEnum.Linear;
+            }
 
-			_animPlayer.Play(fallback);
-		}
-	}
+            _animPlayer.Play(fallback);
+        }
+    }
 
-	/// <summary>
-	/// Public method for AI to set animation state.
-	/// </summary>
-	public virtual void SetAnimation(string animName)
-	{
-		PlayAnimationRobust(animName);
-	}
+    /// <summary>
+    /// Public method for AI to set animation state.
+    /// </summary>
+    public virtual void SetAnimation(string animName)
+    {
+        PlayAnimationRobust(animName);
+    }
 
-	/// <summary>
-	/// Apply movement velocity. Since Monsters extends Node3D (via InteractableObject)
-	/// but is attached to a CharacterBody3D node, we access movement via the native node.
-	/// </summary>
-	public virtual void ApplyMovement(Vector3 velocity, float delta)
-	{
-		// Apply horizontal movement
-		Vector3 newPos = GlobalPosition;
-		newPos.X += velocity.X * delta;
-		newPos.Z += velocity.Z * delta;
+    /// <summary>
+    /// Apply movement velocity. Since Monsters extends Node3D (via InteractableObject)
+    /// but is attached to a CharacterBody3D node, we access movement via the native node.
+    /// </summary>
+    public virtual void ApplyMovement(Vector3 velocity, float delta)
+    {
+        // Apply horizontal movement
+        Vector3 newPos = GlobalPosition;
+        newPos.X += velocity.X * delta;
+        newPos.Z += velocity.Z * delta;
 
-		// Raycast down to find ground
-		var spaceState = GetWorld3D().DirectSpaceState;
-		var query = PhysicsRayQueryParameters3D.Create(
-			newPos + Vector3.Up * 2.0f,  // Start above
-			newPos + Vector3.Down * 5.0f  // End below
-		);
-		query.CollisionMask = 2; // Terrain layer
+        // Raycast down to find ground
+        var spaceState = GetWorld3D().DirectSpaceState;
+        var query = PhysicsRayQueryParameters3D.Create(
+            newPos + Vector3.Up * 2.0f,  // Start above
+            newPos + Vector3.Down * 5.0f  // End below
+        );
+        query.CollisionMask = 2; // Terrain layer
 
-		var result = spaceState.IntersectRay(query);
-		if (result.Count > 0)
-		{
-			// Snap to ground
-			newPos.Y = ((Vector3)result["position"]).Y;
-		}
+        var result = spaceState.IntersectRay(query);
+        if (result.Count > 0)
+        {
+            // Snap to ground
+            newPos.Y = ((Vector3)result["position"]).Y;
+        }
 
-		GlobalPosition = newPos;
-	}
+        GlobalPosition = newPos;
+    }
 
-	private void UpdateSpeciesVisuals()
-	{
-		MonsterVisuals.UpdateSpeciesVisuals(this, Species, _animPlayer, UpdateCollisionShape);
-	}
+    private void UpdateSpeciesVisuals()
+    {
+        MonsterVisuals.UpdateSpeciesVisuals(this, Species, _animPlayer, UpdateCollisionShape);
+    }
 
-	private void UpdateCollisionShape()
-	{
-		MonsterVisuals.UpdateCollisionShape(this);
-	}
+    private void UpdateCollisionShape()
+    {
+        MonsterVisuals.UpdateCollisionShape(this);
+    }
 
-	private AnimationPlayer FindAnimationPlayerRecursive(Node node)
-	{
-		if (node is AnimationPlayer ap) return ap;
-		foreach (Node child in node.GetChildren())
-		{
-			var found = FindAnimationPlayerRecursive(child);
-			if (found != null) return found;
-		}
-		return null;
-	}
+    private AnimationPlayer FindAnimationPlayerRecursive(Node node)
+    {
+        if (node is AnimationPlayer ap) return ap;
+        foreach (Node child in node.GetChildren())
+        {
+            var found = FindAnimationPlayerRecursive(child);
+            if (found != null) return found;
+        }
+        return null;
+    }
 
-	private AnimationPlayer FindPopulatedAnimationPlayerRecursive(Node node)
-	{
-		if (node is AnimationPlayer ap && ap.GetAnimationList().Length > 0) return ap;
-		foreach (Node child in node.GetChildren())
-		{
-			var found = FindPopulatedAnimationPlayerRecursive(child);
-			if (found != null) return found;
-		}
-		return null;
-	}
+    private AnimationPlayer FindPopulatedAnimationPlayerRecursive(Node node)
+    {
+        if (node is AnimationPlayer ap && ap.GetAnimationList().Length > 0) return ap;
+        foreach (Node child in node.GetChildren())
+        {
+            var found = FindPopulatedAnimationPlayerRecursive(child);
+            if (found != null) return found;
+        }
+        return null;
+    }
 
-	public override void OnHit(float damage, Vector3 hitPosition, Vector3 hitDirection)
-	{
-		if (_isDead) return;
+    public override void OnHit(float damage, Vector3 hitPosition, Vector3 hitNormal, Node attacker = null)
+    {
+        if (_isDead) return;
 
-		// Broadcast hit to all clients for synced visuals
-		Rpc(nameof(NetOnHit), damage, hitPosition);
-	}
+        _lastAttacker = attacker;
 
-	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
-	public void NetOnHit(float damage, Vector3 hitPosition)
-	{
-		if (_isDead) return;
+        // Broadcast hit to all clients for synced visuals
+        if (Multiplayer.IsServer())
+        {
+            Rpc(nameof(NetOnHit), damage, hitPosition, hitNormal);
+        }
 
-		Health -= damage;
+        ProcessHit(damage, hitPosition, hitNormal);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+    public void NetOnHit(float damage, Vector3 hitPosition, Vector3 hitNormal)
+    {
+        if (_isDead) return;
+        if (Multiplayer.IsServer()) return; // Already processed locally
+
+        ProcessHit(damage, hitPosition, hitNormal);
+    }
+
+    private void ProcessHit(float damage, Vector3 hitPosition, Vector3 hitNormal)
+    {
+        Health -= damage;
+
 #if DEBUG
-		//		GD.Print($"[Monsters] {ObjectName} took {damage} damage. Health: {Health}");
+        // GD.Print($"[Monsters] {ObjectName} took {damage} damage. Health: {Health}");
 #endif
 
-		// Spawn floating damage number
-		SpawnDamageNumber(damage, hitPosition);
+        // Spawn floating damage number
+        SpawnDamageNumber(damage, hitPosition);
 
-		// Update or create health bar
-		UpdateHealthBar();
+        // Update or create health bar
+        UpdateHealthBar();
 
-		if (Health <= 0)
-		{
-			Die();
-		}
-		else
-		{
-			PlayHitReaction();
-		}
-	}
-
-	private void SpawnDamageNumber(float damage, Vector3 hitPosition)
-	{
-		if (!GameSettings.ShowDamageNumbers) return;
-
-		var scene = GD.Load<PackedScene>("res://Scenes/VFX/DamageNumber.tscn");
-		if (scene != null)
-		{
-			var dmgNum = scene.Instantiate<Node3D>();
-			GetTree().CurrentScene.AddChild(dmgNum);
-			dmgNum.GlobalPosition = hitPosition + new Vector3(0, 0.5f, 0);
-
-			if (dmgNum is DamageNumber dn)
-			{
-				dn.SetDamage(damage);
-			}
-		}
-	}
-
-	private void UpdateHealthBar()
-	{
-		if (!GameSettings.ShowEnemyHealthBars) return;
-
-		// Create health bar if it doesn't exist
-        if (_healthBar == null)
+        if (Health <= 0)
         {
-            var scene = GD.Load<PackedScene>("res://Scenes/UI/Combat/HealthBar3D.tscn");
-            if (scene != null)
+            Die();
+        }
+        else
+        {
+            PlayHitReaction();
+        }
+    }
+
+    private void SpawnDamageNumber(float damage, Vector3 hitPosition)
+    {
+        if (!GameSettings.ShowDamageNumbers) return;
+
+        var scene = GD.Load<PackedScene>("res://Scenes/VFX/DamageNumber.tscn");
+        if (scene != null)
+        {
+            var dmgNum = scene.Instantiate<Node3D>();
+            GetTree().CurrentScene.AddChild(dmgNum);
+            dmgNum.GlobalPosition = hitPosition + new Vector3(0, 0.5f, 0);
+
+            if (dmgNum is DamageNumber dn)
             {
-                _healthBar = scene.Instantiate<HealthBar3D>();
-                AddChild(_healthBar);
+                dn.SetDamage(damage);
             }
         }
-
-        if (_healthBar != null)
-        {
-            // Position based on user preference
-            float yPos = GameSettings.HealthBarsAboveEnemy ? 2.5f : 0.15f;
-            _healthBar.Position = new Vector3(0, yPos, 0);
-
-            _healthBar.UpdateHealth(Health, MaxHealth);
-        }
     }
 
-    private void PlayHitReaction()
+    private void UpdateHealthBar()
     {
-        PlayAnimationRobust("Hit");
+        if (!GameSettings.ShowEnemyHealthBars) return;
 
-        if (_animPlayer != null && !_animPlayer.HasAnimation("Hit"))
-        {
-            _animPlayer.SpeedScale = 2.0f;
-            SceneTreeTimer timer = GetTree().CreateTimer(0.5f);
-            timer.Timeout += () =>
-            {
-                if (_animPlayer != null) _animPlayer.SpeedScale = 1.0f;
-            };
-        }
-    }
+		// Create health bar if it doesn't exist
+		if (_healthBar == null)
+		{
+			var scene = GD.Load<PackedScene>("res://Scenes/UI/Combat/HealthBar3D.tscn");
+			if (scene != null)
+			{
+				_healthBar = scene.Instantiate<HealthBar3D>();
+				AddChild(_healthBar);
+			}
+		}
 
-    protected virtual void Die()
-    {
-        _isDead = true;
-        GD.Print($"[Monsters] {ObjectName} died!");
-
-        PlayAnimationRobust("Death");
-
-		// Corpse remains - don't auto-delete
-		// Disable collision so player can walk through corpse
-		var colShape = GetNodeOrNull<CollisionShape3D>("CollisionShape3D");
-		if (colShape != null) colShape.SetDeferred("disabled", true);
-
-		// Remove health bar after a short delay
 		if (_healthBar != null)
 		{
-			SceneTreeTimer timer = GetTree().CreateTimer(1.0f);
+			// Position based on user preference
+			float yPos = GameSettings.HealthBarsAboveEnemy ? 2.5f : 0.15f;
+			_healthBar.Position = new Vector3(0, yPos, 0);
+
+			_healthBar.UpdateHealth(Health, MaxHealth);
+		}
+	}
+
+	private void PlayHitReaction()
+	{
+		PlayAnimationRobust("Hit");
+
+		if (_animPlayer != null && !_animPlayer.HasAnimation("Hit"))
+		{
+			_animPlayer.SpeedScale = 2.0f;
+			SceneTreeTimer timer = GetTree().CreateTimer(0.5f);
 			timer.Timeout += () =>
 			{
-				if (_healthBar != null && IsInstanceValid(_healthBar))
-				{
-					_healthBar.QueueFree();
-					_healthBar = null;
-				}
+				if (_animPlayer != null) _animPlayer.SpeedScale = 1.0f;
 			};
 		}
 	}
 
-	public override void _Process(double delta)
+	protected virtual void Die()
 	{
+		_isDead = true;
+		GD.Print($"[Monsters] {ObjectName} died!");
+
+		PlayAnimationRobust("Death");
+
+		// Corpse remains - don't auto-delete
+        // Disable collision so player can walk through corpse
+        var colShape = GetNodeOrNull<CollisionShape3D>("CollisionShape3D");
+        if (colShape != null) colShape.SetDeferred("disabled", true);
+
+        // Remove health bar after a short delay
+        if (_healthBar != null)
+        {
+            SceneTreeTimer timer = GetTree().CreateTimer(1.0f);
+            timer.Timeout += () =>
+            {
+                if (_healthBar != null && IsInstanceValid(_healthBar))
+                {
+                    _healthBar.QueueFree();
+                    _healthBar = null;
+                }
+            };
+        }
+    }
+
+    public override void _Process(double delta)
+    {
 #if DEBUG
-		if (Input.IsKeyPressed(Key.T))
-		{
-			DebugShuffleAnimation();
-		}
+        if (Input.IsKeyPressed(Key.T))
+        {
+            DebugShuffleAnimation();
+        }
 #endif
-	}
+    }
 
-	private void DebugShuffleAnimation()
-	{
-		double now = Time.GetTicksMsec() / 1000.0;
-		if (now - _lastShuffleTime < 0.2) return;
-		_lastShuffleTime = now;
+    private void DebugShuffleAnimation()
+    {
+        double now = Time.GetTicksMsec() / 1000.0;
+        if (now - _lastShuffleTime < 0.2) return;
+        _lastShuffleTime = now;
 
-		if (_animPlayer == null) return;
+        if (_animPlayer == null) return;
 
-		string dirPath = "res://Assets/Animations/Monsters/";
-		var dir = DirAccess.Open(dirPath);
-		if (dir != null)
-		{
-			dir.ListDirBegin();
-			List<string> files = new List<string>();
-			string file = dir.GetNext();
-			while (file != "")
-			{
-				if (file.EndsWith(".res") || file.EndsWith(".tres")) files.Add(file);
-				file = dir.GetNext();
-			}
+        string dirPath = "res://Assets/Animations/Monsters/";
+        var dir = DirAccess.Open(dirPath);
+        if (dir != null)
+        {
+            dir.ListDirBegin();
+            List<string> files = new List<string>();
+            string file = dir.GetNext();
+            while (file != "")
+            {
+                if (file.EndsWith(".res") || file.EndsWith(".tres")) files.Add(file);
+                file = dir.GetNext();
+            }
 
-			if (files.Count > 0)
-			{
-				var rnd = new RandomNumberGenerator();
-				rnd.Randomize();
-				string chosen = files[rnd.RandiRange(0, files.Count - 1)];
-				GD.Print($"[Monsters] Debug Shuffle: Playing {chosen} on {Species}");
+            if (files.Count > 0)
+            {
+                var rnd = new RandomNumberGenerator();
+                rnd.Randomize();
+                string chosen = files[rnd.RandiRange(0, files.Count - 1)];
+                GD.Print($"[Monsters] Debug Shuffle: Playing {chosen} on {Species}");
 
-				var scene = GetNodeOrNull("Visuals/scene");
-				var skel = scene != null ? MonsterVisuals.FindVisibleSkeleton(scene) : null;
-				if (skel != null)
-				{
-					MonsterVisuals.PlaySharedAnimation(dirPath + chosen, _animPlayer, skel);
-				}
-			}
-		}
-	}
+                var scene = GetNodeOrNull("Visuals/scene");
+                var skel = scene != null ? MonsterVisuals.FindVisibleSkeleton(scene) : null;
+                if (skel != null)
+                {
+                    MonsterVisuals.PlaySharedAnimation(dirPath + chosen, _animPlayer, skel);
+                }
+            }
+        }
+    }
 
-	private void AliasEmbeddedAnimations()
-	{
-		if (_animPlayer == null) return;
-		var animList = _animPlayer.GetAnimationList();
-		var lib = _animPlayer.GetAnimationLibrary("");
-		if (lib == null) return;
+    private void AliasEmbeddedAnimations()
+    {
+        if (_animPlayer == null) return;
+        var animList = _animPlayer.GetAnimationList();
+        var lib = _animPlayer.GetAnimationLibrary("");
+        if (lib == null) return;
 
-		foreach (var animName in animList)
-		{
-			string lowerName = animName.ToLower();
-			Animation anim = _animPlayer.GetAnimation(animName);
-			if (anim == null) continue;
+        foreach (var animName in animList)
+        {
+            string lowerName = animName.ToLower();
+            Animation anim = _animPlayer.GetAnimation(animName);
+            if (anim == null) continue;
 
-			// Map any animation containing "idle" to "Idle"
-			if (lowerName.Contains("idle") && !lib.HasAnimation("Idle"))
-			{
-				var copy = (Animation)anim.Duplicate();
-				copy.LoopMode = Animation.LoopModeEnum.Linear;
-				lib.AddAnimation("Idle", copy);
-			}
-			// Map any animation containing "walk" to "Walk"
-			else if (lowerName.Contains("walk") && !lib.HasAnimation("Walk"))
-			{
-				var copy = (Animation)anim.Duplicate();
-				copy.LoopMode = Animation.LoopModeEnum.Linear;
-				lib.AddAnimation("Walk", copy);
-			}
-			// Map "run" and "fast" to "Run"
-			else if ((lowerName.Contains("run") || lowerName.Contains("fast")) && !lib.HasAnimation("Run"))
-			{
-				var copy = (Animation)anim.Duplicate();
-				copy.LoopMode = Animation.LoopModeEnum.Linear;
-				lib.AddAnimation("Run", copy);
-			}
-			// Map "attack" to "Attack"
-			else if (lowerName.Contains("attack") && !lib.HasAnimation("Attack"))
-			{
-				var copy = (Animation)anim.Duplicate();
-				lib.AddAnimation("Attack", copy);
-			}
-			// Map "death" or "die" to "Death"
-			else if ((lowerName.Contains("death") || lowerName.Contains("die")) && !lib.HasAnimation("Death"))
-			{
-				var copy = (Animation)anim.Duplicate();
-				lib.AddAnimation("Death", copy);
-			}
-		}
+            // Map any animation containing "idle" to "Idle"
+            if (lowerName.Contains("idle") && !lib.HasAnimation("Idle"))
+            {
+                var copy = (Animation)anim.Duplicate();
+                RemoveRootMotion(copy);
+                copy.LoopMode = Animation.LoopModeEnum.Linear;
+                lib.AddAnimation("Idle", copy);
+            }
+            // Map any animation containing "walk" to "Walk"
+            else if (lowerName.Contains("walk") && !lib.HasAnimation("Walk"))
+            {
+                var copy = (Animation)anim.Duplicate();
+                RemoveRootMotion(copy);
+                copy.LoopMode = Animation.LoopModeEnum.Linear;
+                lib.AddAnimation("Walk", copy);
+            }
+            // Map "run" and "fast" to "Run"
+            else if ((lowerName.Contains("run") || lowerName.Contains("fast")) && !lib.HasAnimation("Run"))
+            {
+                var copy = (Animation)anim.Duplicate();
+                RemoveRootMotion(copy);
+                copy.LoopMode = Animation.LoopModeEnum.Linear;
+                lib.AddAnimation("Run", copy);
+            }
+            // Map "attack" to "Attack"
+            else if (lowerName.Contains("attack") && !lib.HasAnimation("Attack"))
+            {
+                var copy = (Animation)anim.Duplicate();
+                lib.AddAnimation("Attack", copy);
+            }
+            // Map "death" or "die" to "Death"
+            else if ((lowerName.Contains("death") || lowerName.Contains("die")) && !lib.HasAnimation("Death"))
+            {
+                var copy = (Animation)anim.Duplicate();
+                RemoveRootMotion(copy);
+                lib.AddAnimation("Death", copy);
+            }
+        }
 
-		// Fallback: If no Idle, use first one
-		if (!lib.HasAnimation("Idle") && animList.Length > 0)
-		{
-			var copy = (Animation)_animPlayer.GetAnimation(animList[0]).Duplicate();
-			copy.LoopMode = Animation.LoopModeEnum.Linear;
-			lib.AddAnimation("Idle", copy);
-		}
-	}
+        // Fallback: If no Idle, use first one
+        if (!lib.HasAnimation("Idle") && animList.Length > 0)
+        {
+            var copy = (Animation)_animPlayer.GetAnimation(animList[0]).Duplicate();
+            RemoveRootMotion(copy);
+            copy.LoopMode = Animation.LoopModeEnum.Linear;
+            lib.AddAnimation("Idle", copy);
+        }
+    }
+
+    /// <summary>
+    /// Removes root motion by stripping position tracks from the root/hips bone.
+    /// This makes monsters play "in place" so MonsterAI handles movement.
+    /// </summary>
+    private void RemoveRootMotion(Animation anim)
+    {
+        int trackCount = anim.GetTrackCount();
+        for (int i = trackCount - 1; i >= 0; i--)
+        {
+            string trackPath = anim.TrackGetPath(i).ToString();
+            // Mixamo uses "mixamorig_Hips", some others use "Hips" or "Root"
+            if ((trackPath.Contains("Hips") || trackPath.Contains("Root")) &&
+                anim.TrackGetType(i) == Animation.TrackType.Position3D)
+            {
+                anim.RemoveTrack(i);
+            }
+        }
+    }
 }

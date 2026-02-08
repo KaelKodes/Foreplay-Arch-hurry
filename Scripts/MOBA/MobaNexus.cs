@@ -27,7 +27,7 @@ public partial class MobaNexus : InteractableObject
 #endif
 	}
 
-	public override void OnHit(float damage, Vector3 hitPosition, Vector3 hitNormal)
+	public override void OnHit(float damage, Vector3 hitPosition, Vector3 hitNormal, Node attacker = null)
 	{
 		TakeDamage(damage);
 	}

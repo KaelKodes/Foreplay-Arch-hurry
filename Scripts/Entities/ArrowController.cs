@@ -209,7 +209,7 @@ public partial class ArrowController : RigidBody3D
             if (TeamSystem.AreEnemies(Team, otherTeam) || Team == MobaTeam.None)
             {
                 float damage = LinearVelocity.Length() * 0.5f; // damage scales with speed
-                interactable.OnHit(damage, GlobalPosition, LinearVelocity.Normalized());
+                interactable.OnHit(damage, GlobalPosition, LinearVelocity.Normalized(), _playerException);
             }
             else
             {
@@ -236,7 +236,7 @@ public partial class ArrowController : RigidBody3D
         {
             // Fallback for hitboxes that are children of the InteractableObject
             float damage = LinearVelocity.Length() * 0.5f;
-            parentInteractable.OnHit(damage, GlobalPosition, LinearVelocity.Normalized());
+            parentInteractable.OnHit(damage, GlobalPosition, LinearVelocity.Normalized(), _playerException);
         }
 
         StickToTarget(body);
@@ -280,6 +280,22 @@ public partial class ArrowController : RigidBody3D
 
         var trail = GetNodeOrNull<GpuParticles3D>("Trail");
         if (trail != null) trail.Emitting = false;
+
+        // Cleanup timer for MOBA mode: Dissolve/Remove arrow after 2s of being idle
+        if (MobaGameManager.Instance != null)
+        {
+            GD.Print($"Arrow {Name}: MOBA mode detected. Scheduling destruction in 2s.");
+            var timer = GetTree().CreateTimer(2.0f);
+            timer.Timeout += () =>
+            {
+                if (IsInstanceValid(this))
+                {
+                    // Call networked destruction
+                    if (Multiplayer.IsServer()) RequestDestroyArrow();
+                    else RpcId(1, nameof(RequestDestroyArrow));
+                }
+            };
+        }
     }
 
     public void SetWind(Vector3 wind) => _windVelocity = wind;

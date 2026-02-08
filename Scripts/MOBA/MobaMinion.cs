@@ -148,11 +148,11 @@ public partial class MobaMinion : Monsters
     }
 
     // ── Damage with Armor ────────────────────────────────────
-    public override void OnHit(float rawDamage, Vector3 hitPosition, Vector3 hitDirection)
+    public override void OnHit(float rawDamage, Vector3 hitPosition, Vector3 hitNormal, Node attacker = null)
     {
         // Armor reduces damage: effectiveDmg = raw * (100 / (100 + armor))
         float effectiveDamage = rawDamage * (100f / (100f + Armor));
-        base.OnHit(effectiveDamage, hitPosition, hitDirection);
+        base.OnHit(effectiveDamage, hitPosition, hitNormal, attacker);
     }
 
     /// <summary>
@@ -162,7 +162,7 @@ public partial class MobaMinion : Monsters
     {
         if (target is MobaMinion enemyMinion)
         {
-            enemyMinion.OnHit(AttackDamage, enemyMinion.GlobalPosition, Vector3.Up);
+            enemyMinion.OnHit(AttackDamage, enemyMinion.GlobalPosition, Vector3.Up, this);
         }
         else if (target is MobaTower tower)
         {
@@ -229,12 +229,65 @@ public partial class MobaMinion : Monsters
 
     protected override void Die()
     {
+        if (Multiplayer.IsServer())
+        {
+            DistributeRewards();
+        }
+
         base.Die();
         // Thoroughly remove all collision in MOBA to prevent blocking movement
         DisableCollisionRecursive(this);
 #if DEBUG
         // GD.Print($"[MobaMinion] {Name} collision completely disabled on death.");
 #endif
+    }
+
+    private void DistributeRewards()
+    {
+        // 1. Proximity Rewards
+        float proximityRadius = 20f;
+        MobaTeam enemyTeam = TeamSystem.GetEnemyTeam(Team);
+        var enemyHeros = new System.Collections.Generic.List<PlayerController>();
+
+        // Find all enemy players within radius
+        foreach (var node in GetTree().GetNodesInGroup("player"))
+        {
+            if (node is PlayerController pc && pc.Team == enemyTeam)
+            {
+                if (GlobalPosition.DistanceTo(pc.GlobalPosition) <= proximityRadius)
+                {
+                    enemyHeros.Add(pc);
+                }
+            }
+        }
+
+        foreach (var hero in enemyHeros)
+        {
+            var archerySystem = hero.GetNodeOrNull<ArcherySystem>("ArcherySystem")
+                             ?? hero.FindChild("ArcherySystem", true, false) as ArcherySystem;
+            var stats = archerySystem?.GetNodeOrNull<StatsService>("StatsService");
+
+            if (stats != null)
+            {
+                stats.AddGold((int)GoldOnProximity);
+                stats.AddExperience((int)XpOnProximity);
+            }
+        }
+
+        // 2. Last Hit Bonus
+        if (_lastAttacker is PlayerController killer && killer.Team == enemyTeam)
+        {
+            var archerySystem = killer.GetNodeOrNull<ArcherySystem>("ArcherySystem")
+                             ?? killer.FindChild("ArcherySystem", true, false) as ArcherySystem;
+            var stats = archerySystem?.GetNodeOrNull<StatsService>("StatsService");
+
+            if (stats != null)
+            {
+                stats.AddGold((int)GoldOnLastHit);
+                stats.AddExperience((int)XpOnLastHit);
+                GD.Print($"[MobaMinion] {killer.Name} got LAST HIT on {Name}! Bonus Gold/XP awarded.");
+            }
+        }
     }
 
     private void DisableCollisionRecursive(Node node)

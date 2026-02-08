@@ -277,7 +277,7 @@ public partial class MeleeSystem : Node
 				Vector3 hitPos = ((Node3D)collider).GlobalPosition;
 				Vector3 dir = (hitPos - center).Normalized();
 
-				if (interactable != null) interactable.OnHit(damage, hitPos, dir);
+				if (interactable != null) interactable.OnHit(damage, hitPos, dir, _currentPlayer);
 				else if (tower != null) tower.TakeDamage(damage);
 				else if (nexus != null) nexus.TakeDamage(damage);
 			}
@@ -327,7 +327,7 @@ public partial class MeleeSystem : Node
 					hitPos = ((Node3D)collider).GlobalPosition;
 				}
 
-				if (interactable != null) interactable.OnHit(damage, hitPos, forward);
+				if (interactable != null) interactable.OnHit(damage, hitPos, forward, _currentPlayer);
 				else if (tower != null) tower.TakeDamage(damage);
 				else if (nexus != null) nexus.TakeDamage(damage);
 			}

@@ -21,7 +21,7 @@ public partial class InteractableObject : Node3D
 
     public virtual void OnInteract(PlayerController player) { }
     public virtual string GetInteractionPrompt() { return ""; }
-    public virtual void OnHit(float damage, Vector3 hitPosition, Vector3 hitNormal) { }
+    public virtual void OnHit(float damage, Vector3 hitPosition, Vector3 hitNormal, Node attacker = null) { }
 
     public override void _Ready()
     {
