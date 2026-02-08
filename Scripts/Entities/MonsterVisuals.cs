@@ -23,7 +23,7 @@ public static class MonsterVisuals
             return;
         }
 
-        GD.Print($"[MonsterVisuals] --- Filtering visuals for Species: '{species}' ---");
+        // GD.Print($"[MonsterVisuals] --- Filtering visuals for Species: '{species}' ---");
 
         // Reset scene transform before processing
         if (scene is Node3D scene3D) scene3D.Transform = Transform3D.Identity;
@@ -37,7 +37,7 @@ public static class MonsterVisuals
 
         if (found)
         {
-            GD.Print($"[MonsterVisuals] Successfully isolated Species: {species}");
+            // GD.Print($"[MonsterVisuals] Successfully isolated Species: {species}");
             CenterAndGroundVisuals(scene, species);
             onCollisionUpdate?.Invoke();
         }
@@ -71,7 +71,7 @@ public static class MonsterVisuals
 
         scene3D.Position += centerOffset;
         scene3D.ForceUpdateTransform();
-        GD.Print($"[MonsterVisuals] Grounding offset applied: {centerOffset}");
+        // GD.Print($"[MonsterVisuals] Grounding offset applied: {centerOffset}");
     }
 
     /// <summary>
@@ -147,7 +147,7 @@ public static class MonsterVisuals
             colShape.Position = finalAabb.GetCenter();
         }
 
-        GD.Print($"[MonsterVisuals] Collision adjusted to Size: {finalAabb.Size}");
+        // GD.Print($"[MonsterVisuals] Collision adjusted to Size: {finalAabb.Size}");
     }
 
     public static void HideAllRecursive(Node node)
@@ -176,7 +176,7 @@ public static class MonsterVisuals
 
             if (isMatch)
             {
-                if (!found) GD.Print($"  [MonsterVisuals] MATCH FOUND: {name} for {species} (Bypass: {bypassFilter})");
+                // if (!found) GD.Print($"  [MonsterVisuals] MATCH FOUND: {name} for {species} (Bypass: {bypassFilter})");
                 found = true;
                 ShowAncestors(child);
                 ShowAllRecursive(child);
@@ -257,7 +257,7 @@ public static class MonsterVisuals
     public static void SetupSharedAnimations(Node matchNode, string species, AnimationPlayer animPlayer, MonsterBodyType? typeOverride = null)
     {
         MonsterBodyType type = typeOverride ?? GetBodyType(species);
-        GD.Print($"[MonsterVisuals] SetupSharedAnimations: Species '{species}' classified as '{type}'");
+        // GD.Print($"[MonsterVisuals] SetupSharedAnimations: Species '{species}' classified as '{type}'");
 
         string animFile = type switch
         {
@@ -357,7 +357,7 @@ public static class MonsterVisuals
 
         lib.AddAnimation("Shared", uniqueAnim);
         animPlayer.Play("Shared");
-        GD.Print($"[MonsterVisuals] Playing Shared Anim: {path.GetFile()} on {targetSkeleton.Name} (Suffix: {suffix})");
+        // GD.Print($"[MonsterVisuals] Playing Shared Anim: {path.GetFile()} on {targetSkeleton.Name} (Suffix: {suffix})");
     }
 
     public static Skeleton3D FindSkeletonRecursive(Node node)

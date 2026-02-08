@@ -73,10 +73,11 @@ public static class PlayerAnimations
                 animTree.Set("parameters/MeleeAttack/WindupSpeed/scale", 1.0f);
 
                 string attackType = "Normal";
-                if (meleeSystem.IsPowerSlam) attackType = "Power";
+                if (meleeSystem.IsTripleSwing) attackType = "Triple";
                 else if (meleeSystem.IsPerfectSlam) attackType = "Perfect";
 
                 animTree.Set("parameters/MeleeAttack/AttackType/transition_request", attackType);
+                GD.Print($"[AnimationDebug] Erika attacking with type: {attackType}");
             }
         }
 
@@ -115,7 +116,8 @@ public static class PlayerAnimations
                                 ((DrawStage)player.SynchronizedArcheryStage == DrawStage.Executing ||
                                  (DrawStage)player.SynchronizedArcheryStage == DrawStage.ShotComplete));
 
-                modelManager.UpdateCustomAnimations(speed > 0.1f, currentlySprinting, isJumping, isSwinging, isFiring);
+                bool overcharged = (meleeSystem != null && meleeSystem.IsTripleSwing);
+                modelManager.UpdateCustomAnimations(speed > 0.1f, currentlySprinting, isJumping, isSwinging, isFiring, overcharged);
             }
         }
     }

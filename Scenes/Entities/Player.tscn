@@ -93,6 +93,10 @@ input_2/name = "Power"
 input_2/auto_advance = false
 input_2/break_loop_at_end = false
 input_2/reset = true
+input_3/name = "Triple"
+input_3/auto_advance = false
+input_3/break_loop_at_end = false
+input_3/reset = true
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_MeleeAttackNormal"]
 animation = &"melee attack"
@@ -102,6 +106,9 @@ animation = &"melee perfect attack"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_MeleeAttackPower"]
 animation = &"melee power attack"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_MeleeAttackTriple"]
+animation = &"melee triple attack"
 
 [sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_WindupSpeed"]
 
@@ -114,11 +121,13 @@ nodes/Perfect/node = SubResource("AnimationNodeAnimation_MeleeAttackPerfect")
 nodes/Perfect/position = Vector2(-580, 160)
 nodes/Power/node = SubResource("AnimationNodeAnimation_MeleeAttackPower")
 nodes/Power/position = Vector2(-580, 280)
+nodes/Triple/node = SubResource("AnimationNodeAnimation_MeleeAttackTriple")
+nodes/Triple/position = Vector2(-580, 400)
 nodes/AttackType/node = SubResource("AnimationNodeTransition_AttackType")
 nodes/AttackType/position = Vector2(-340, 140)
 nodes/WindupSpeed/node = SubResource("AnimationNodeTimeScale_WindupSpeed")
 nodes/WindupSpeed/position = Vector2(-140, 140)
-node_connections = [&"output", 0, &"WindupSpeed", &"AttackType", 0, &"Normal", &"AttackType", 1, &"Perfect", &"AttackType", 2, &"Power", &"WindupSpeed", 0, &"AttackType"]
+node_connections = [&"output", 0, &"WindupSpeed", &"AttackType", 0, &"Normal", &"AttackType", 1, &"Perfect", &"AttackType", 2, &"Power", &"AttackType", 3, &"Triple", &"WindupSpeed", 0, &"AttackType"]
 
 [sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_MeleeIdle"]
 animation = &"melee idle"

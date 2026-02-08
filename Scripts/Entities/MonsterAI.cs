@@ -48,7 +48,7 @@ public partial class MonsterAI : Node
         float angle = _rng.RandfRange(0, Mathf.Tau);
         _moveDirection = new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
 
-        GD.Print($"[MonsterAI] Initialized for {_monster.ObjectName}");
+        // GD.Print($"[MonsterAI] Initialized for {_monster.ObjectName}");
     }
 
     public override void _PhysicsProcess(double delta)

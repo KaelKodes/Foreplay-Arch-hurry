@@ -46,209 +46,205 @@ public partial class ArcheryHUDController : Control
 		_modeLabel = GetNodeOrNull<Label>("StatsPanel/ClubLabel"); // Reusing "ClubLabel" for Mode
 
 		// Initialize WindSystem and connect its signals here, as it's not player-specific
-		_windSystem = GetNodeOrNull<WindSystem>(WindSystemPath);
-		if (_windSystem == null) _windSystem = GetTree().CurrentScene.FindChild("WindSystem", true, false) as WindSystem;
+        _windSystem = GetNodeOrNull<WindSystem>(WindSystemPath);
+        if (_windSystem == null) _windSystem = GetTree().CurrentScene.FindChild("WindSystem", true, false) as WindSystem;
 
-		if (_windSystem != null)
-		{
-			_windSystem.WindChanged += OnWindChanged;
-			OnWindChanged(_windSystem.WindDirection, _windSystem.WindSpeedMph);
+        if (_windSystem != null)
+        {
+            _windSystem.WindChanged += OnWindChanged;
+            OnWindChanged(_windSystem.WindDirection, _windSystem.WindSpeedMph);
 
-			if (_toggleWindBtn != null)
-			{
-				_toggleWindBtn.Pressed += OnToggleWindPressed;
-				UpdateWindToggleBtnText();
-			}
-			if (_windSpeedSpin != null)
-			{
-				_windSpeedSpin.ValueChanged += (val) => _windSystem.SetWindSpeed((float)val);
-			}
+            if (_toggleWindBtn != null)
+            {
+                _toggleWindBtn.Pressed += OnToggleWindPressed;
+                UpdateWindToggleBtnText();
+            }
+            if (_windSpeedSpin != null)
+            {
+                _windSpeedSpin.ValueChanged += (val) => _windSystem.SetWindSpeed((float)val);
+            }
 
-			// Connect Direction Grid
-			var grid = GetNodeOrNull<GridContainer>("WindContainer/WindDirGrid");
-			if (grid != null)
-			{
-				foreach (Node child in grid.GetChildren())
-				{
-					if (child is Button btn)
-					{
-						btn.Pressed += () => OnWindDirButtonPressed(btn.Text);
-					}
-				}
-			}
-		}
+            // Connect Direction Grid
+            var grid = GetNodeOrNull<GridContainer>("WindContainer/WindDirGrid");
+            if (grid != null)
+            {
+                foreach (Node child in grid.GetChildren())
+                {
+                    if (child is Button btn)
+                    {
+                        btn.Pressed += () => OnWindDirButtonPressed(btn.Text);
+                    }
+                }
+            }
+        }
 
-		var resetBtn = GetNodeOrNull<Button>("StatsPanel/ResetBtn");
-		if (resetBtn != null) resetBtn.Pressed += () => _archerySystem?.ResetMatch();
+        var resetBtn = GetNodeOrNull<Button>("StatsPanel/ResetBtn");
+        if (resetBtn != null) resetBtn.Pressed += () => _archerySystem?.ResetMatch();
 
-		var exitBtn = GetNodeOrNull<Button>("StatsPanel/ExitGolfBtn");
-		if (exitBtn != null) exitBtn.Pressed += () => _archerySystem?.ExitCombatMode();
-	}
+        var exitBtn = GetNodeOrNull<Button>("StatsPanel/ExitGolfBtn");
+        if (exitBtn != null) exitBtn.Pressed += () => _archerySystem?.ExitCombatMode();
 
-	public void RegisterPlayer(PlayerController player)
-	{
-		_player = player;
+        // Phase 2: Hide main swing bar (moving to 3D mini bar)
+        var swingContainer = GetNodeOrNull<Control>("SwingContainer");
+        if (swingContainer != null) swingContainer.Visible = false;
+    }
 
-		DisconnectFromSystem();
-		_archerySystem = _player.GetNodeOrNull<ArcherySystem>("ArcherySystem");
+    public void RegisterPlayer(PlayerController player)
+    {
+        _player = player;
 
-		if (_archerySystem != null)
-		{
-			_archerySystem.Connect(ArcherySystem.SignalName.ArcheryValuesUpdated, new Callable(this, MethodName.OnArcheryValuesUpdated));
-			_archerySystem.Connect(ArcherySystem.SignalName.ShotResult, new Callable(this, MethodName.OnShotResult));
-			_archerySystem.Connect(ArcherySystem.SignalName.ShotModeChanged, new Callable(this, MethodName.OnShotModeChanged));
-			_archerySystem.Connect(ArcherySystem.SignalName.ModeChanged, new Callable(this, MethodName.OnModeChanged));
+        DisconnectFromSystem();
+        _archerySystem = _player.GetNodeOrNull<ArcherySystem>("ArcherySystem");
 
-			// Update initial mode display
-			OnShotModeChanged((int)_archerySystem.CurrentMode);
-		}
-	}
+        if (_archerySystem != null)
+        {
+            _archerySystem.Connect(ArcherySystem.SignalName.ArcheryValuesUpdated, new Callable(this, MethodName.OnArcheryValuesUpdated));
+            _archerySystem.Connect(ArcherySystem.SignalName.ShotResult, new Callable(this, MethodName.OnShotResult));
+            _archerySystem.Connect(ArcherySystem.SignalName.ShotModeChanged, new Callable(this, MethodName.OnShotModeChanged));
+            _archerySystem.Connect(ArcherySystem.SignalName.ModeChanged, new Callable(this, MethodName.OnModeChanged));
 
-	private void DisconnectFromSystem()
-	{
-		if (_archerySystem != null)
-		{
-			_archerySystem.Disconnect(ArcherySystem.SignalName.ArcheryValuesUpdated, new Callable(this, MethodName.OnArcheryValuesUpdated));
-			_archerySystem.Disconnect(ArcherySystem.SignalName.ShotResult, new Callable(this, MethodName.OnShotResult));
-			_archerySystem.Disconnect(ArcherySystem.SignalName.ShotModeChanged, new Callable(this, MethodName.OnShotModeChanged));
-			_archerySystem.Disconnect(ArcherySystem.SignalName.ModeChanged, new Callable(this, MethodName.OnModeChanged));
-			_archerySystem = null;
-		}
-	}
+            // Update initial mode display
+            OnShotModeChanged((int)_archerySystem.CurrentMode);
+        }
+    }
 
-	public override void _ExitTree()
-	{
-		DisconnectFromSystem();
-	}
+    private void DisconnectFromSystem()
+    {
+        if (_archerySystem != null)
+        {
+            _archerySystem.Disconnect(ArcherySystem.SignalName.ArcheryValuesUpdated, new Callable(this, MethodName.OnArcheryValuesUpdated));
+            _archerySystem.Disconnect(ArcherySystem.SignalName.ShotResult, new Callable(this, MethodName.OnShotResult));
+            _archerySystem.Disconnect(ArcherySystem.SignalName.ShotModeChanged, new Callable(this, MethodName.OnShotModeChanged));
+            _archerySystem.Disconnect(ArcherySystem.SignalName.ModeChanged, new Callable(this, MethodName.OnModeChanged));
+            _archerySystem = null;
+        }
+    }
 
-	private void OnModeChanged(bool inCombatMode)
-	{
-		// Auto-hide elements in MOBA
-		if (MobaGameManager.Instance != null)
-		{
-			var statsPanel = GetNodeOrNull<Control>("StatsPanel");
-			if (statsPanel != null) statsPanel.Visible = false;
+    public override void _ExitTree()
+    {
+        DisconnectFromSystem();
+    }
 
-			var windContainer = GetNodeOrNull<Control>("WindContainer");
-			if (windContainer != null) windContainer.Visible = false;
-		}
+    private void OnModeChanged(bool inCombatMode)
+    {
+        // Auto-hide elements in MOBA
+        if (MobaGameManager.Instance != null)
+        {
+            var statsPanel = GetNodeOrNull<Control>("StatsPanel");
+            if (statsPanel != null) statsPanel.Visible = false;
 
-		// Only show if specifically in Archer state to prevent overlap with Melee
-		if (_player != null)
-		{
-			Visible = inCombatMode && _player.CurrentState == PlayerState.CombatArcher;
-		}
-		else
-		{
-			Visible = inCombatMode;
-		}
-	}
+            var windContainer = GetNodeOrNull<Control>("WindContainer");
+            if (windContainer != null) windContainer.Visible = false;
+        }
 
-	private void OnToggleWindPressed()
-	{
-		if (_windSystem == null) return;
-		_windSystem.ToggleWind();
-		UpdateWindToggleBtnText();
-	}
+        // Only show if specifically in Archer state to prevent overlap with Melee
+        if (_player != null)
+        {
+            Visible = inCombatMode && _player.CurrentState == PlayerState.CombatArcher;
+        }
+        else
+        {
+            Visible = inCombatMode;
+        }
+    }
 
-	private void UpdateWindToggleBtnText()
-	{
-		if (_toggleWindBtn != null && _windSystem != null)
-		{
-			_toggleWindBtn.Text = $"Wind: {(_windSystem.IsWindEnabled ? "ON" : "OFF")}";
-		}
-	}
+    private void OnToggleWindPressed()
+    {
+        if (_windSystem == null) return;
+        _windSystem.ToggleWind();
+        UpdateWindToggleBtnText();
+    }
 
-	private void OnWindDirButtonPressed(string dirName)
-	{
-		if (_windSystem == null) return;
-		Vector3 dir = Vector3.Forward;
-		switch (dirName)
-		{
-			case "N": dir = Vector3.Back; break; // Reversed from Forward to match user INTENT (North Wind = FROM North)
-			case "S": dir = Vector3.Forward; break;
-			case "E": dir = Vector3.Left; break; // East Wind = FROM East
-			case "W": dir = Vector3.Right; break;
-			case "NW": dir = (Vector3.Back + Vector3.Right).Normalized(); break;
-			case "NE": dir = (Vector3.Back + Vector3.Left).Normalized(); break;
-			case "SW": dir = (Vector3.Forward + Vector3.Right).Normalized(); break;
-			case "SE": dir = (Vector3.Forward + Vector3.Left).Normalized(); break;
-		}
-		_windSystem.SetWindDirection(dir);
-	}
+    private void UpdateWindToggleBtnText()
+    {
+        if (_toggleWindBtn != null && _windSystem != null)
+        {
+            _toggleWindBtn.Text = $"Wind: {(_windSystem.IsWindEnabled ? "ON" : "OFF")}";
+        }
+    }
 
-	public override void _Input(InputEvent @event)
-	{
-		if (!Visible) return;
+    private void OnWindDirButtonPressed(string dirName)
+    {
+        if (_windSystem == null) return;
+        Vector3 dir = Vector3.Forward;
+        switch (dirName)
+        {
+            case "N": dir = Vector3.Back; break; // Reversed from Forward to match user INTENT (North Wind = FROM North)
+            case "S": dir = Vector3.Forward; break;
+            case "E": dir = Vector3.Left; break; // East Wind = FROM East
+            case "W": dir = Vector3.Right; break;
+            case "NW": dir = (Vector3.Back + Vector3.Right).Normalized(); break;
+            case "NE": dir = (Vector3.Back + Vector3.Left).Normalized(); break;
+            case "SW": dir = (Vector3.Forward + Vector3.Right).Normalized(); break;
+            case "SE": dir = (Vector3.Forward + Vector3.Left).Normalized(); break;
+        }
+        _windSystem.SetWindDirection(dir);
+    }
 
-		if (@event is InputEventMouseButton mouseBtn && mouseBtn.Pressed)
-		{
-			if (mouseBtn.ButtonIndex == MouseButton.Left)
-			{
-				// Check if click is on UI
-				if (IsPointOnInteractionUI(mouseBtn.Position)) return;
+    public override void _Input(InputEvent @event)
+    {
+        if (!Visible) return;
 
-				_archerySystem?.HandleInput();
-				GetViewport().SetInputAsHandled();
-			}
-			else if (mouseBtn.ButtonIndex == MouseButton.Right)
-			{
-				_archerySystem?.CancelDraw();
-				GetViewport().SetInputAsHandled();
-			}
-		}
-	}
+        if (@event is InputEventMouseButton mouseBtn && mouseBtn.Pressed)
+        {
+            if (mouseBtn.ButtonIndex == MouseButton.Right)
+            {
+                _archerySystem?.CancelDraw();
+                GetViewport().SetInputAsHandled();
+            }
+        }
+    }
 
-	private bool IsPointOnInteractionUI(Vector2 pos)
-	{
-		var statsPanel = GetNodeOrNull<Control>("StatsPanel");
-		if (statsPanel != null && statsPanel.GetGlobalRect().HasPoint(pos)) return true;
+    private bool IsPointOnInteractionUI(Vector2 pos)
+    {
+        var statsPanel = GetNodeOrNull<Control>("StatsPanel");
+        if (statsPanel != null && statsPanel.GetGlobalRect().HasPoint(pos)) return true;
 
-		var windContainer = GetNodeOrNull<Control>("WindContainer");
-		if (windContainer != null && windContainer.GetGlobalRect().HasPoint(pos)) return true;
+        var windContainer = GetNodeOrNull<Control>("WindContainer");
+        if (windContainer != null && windContainer.GetGlobalRect().HasPoint(pos)) return true;
 
-		return false;
-	}
+        return false;
+    }
 
 
-	private void OnWindChanged(Vector3 direction, float speedMph)
-	{
-		if (_windSystem == null) return;
+    private void OnWindChanged(Vector3 direction, float speedMph)
+    {
+        if (_windSystem == null) return;
 
-		if (_windLabel != null)
-		{
-			_windLabel.Text = _windSystem.IsWindEnabled ? $"{speedMph:F0} mph" : "OFF";
-			_windLabel.Modulate = _windSystem.IsWindEnabled ? Colors.White : new Color(1, 1, 1, 0.5f);
-		}
+        if (_windLabel != null)
+        {
+            _windLabel.Text = _windSystem.IsWindEnabled ? $"{speedMph:F0} mph" : "OFF";
+            _windLabel.Modulate = _windSystem.IsWindEnabled ? Colors.White : new Color(1, 1, 1, 0.5f);
+        }
 
-		if (_windArrow != null)
-		{
-			_windArrow.Visible = _windSystem.IsWindEnabled;
-			_windArrow.Rotation = Mathf.Atan2(-direction.X, direction.Z);
-		}
-	}
+        if (_windArrow != null)
+        {
+            _windArrow.Visible = _windSystem.IsWindEnabled;
+            _windArrow.Rotation = Mathf.Atan2(-direction.X, direction.Z);
+        }
+    }
 
-	private void OnShotResult(float power, float accuracy)
-	{
-		GD.Print($"ArcheryHUD: Result Power={power}, Acc={accuracy}");
-	}
+    private void OnShotResult(float power, float accuracy)
+    {
+        GD.Print($"ArcheryHUD: Result Power={power}, Acc={accuracy}");
+    }
 
-	private void OnShotModeChanged(int newModeIndex)
-	{
-		if (_modeLabel != null)
-		{
-			ArcheryShotMode mode = (ArcheryShotMode)newModeIndex;
-			_modeLabel.Text = $"Mode: {mode}";
-		}
-	}
+    private void OnShotModeChanged(int newModeIndex)
+    {
+        if (_modeLabel != null)
+        {
+            ArcheryShotMode mode = (ArcheryShotMode)newModeIndex;
+            _modeLabel.Text = $"Mode: {mode}";
+        }
+    }
 
-	private void OnArrowInitialized(ArrowController arrow)
-	{
-		if (arrow == null) return;
+    private void OnArrowInitialized(ArrowController arrow)
+    {
+        if (arrow == null) return;
 
-		// Reset stats for new arrow
-		if (_distanceLabel != null) _distanceLabel.Text = "Carry: 0.0y";
-		if (_speedLabel != null) _speedLabel.Text = "Speed: 0.0 m/s";
+        // Reset stats for new arrow
+        if (_distanceLabel != null) _distanceLabel.Text = "Carry: 0.0y";
+        if (_speedLabel != null) _speedLabel.Text = "Speed: 0.0 m/s";
 
 		// Connect to the specific arrow's signals
 		if (!arrow.IsConnected(ArrowController.SignalName.ArrowCarried, new Callable(this, MethodName.OnArrowCarried)))
@@ -299,11 +295,12 @@ public partial class ArcheryHUDController : Control
 				// Thicken the line
 				_lockedPowerLine.Size = new Vector2(4, _lockedPowerLine.Size.Y);
 
-				float ratio = lockedPower / 100.0f;
+				float ratio = Mathf.Min(lockedPower / 100.0f, 1.0f);
 				_lockedPowerLine.Position = new Vector2(ratio * parentWidth - (_lockedPowerLine.Size.X / 2.0f), _lockedPowerLine.Position.Y);
 
-				bool isPerfectPower = Mathf.Abs(lockedPower - ArcheryConstants.PERFECT_POWER_VALUE) <= ArcheryConstants.TOLERANCE_POWER;
-				_lockedPowerLine.Modulate = isPerfectPower ? Colors.Green : Colors.White;
+				bool isOvercharge = lockedPower >= 149f;
+				bool isFull = lockedPower >= 99f;
+				_lockedPowerLine.Modulate = isOvercharge ? Colors.Orange : (isFull ? Colors.Green : Colors.White);
 			}
 		}
 

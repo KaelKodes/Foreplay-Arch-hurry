@@ -38,8 +38,8 @@ public partial class AnimationLoader : Node
 
         // Melee Attack animations
         { "melee attack", "res://Assets/Erika/sword and shield slash.fbx" },
-        { "melee perfect attack", "res://Assets/Erika/sword and shield slash (2).fbx" },
-        { "melee power attack", "res://Assets/Erika/sword and shield slash (4).fbx" },
+        { "melee perfect attack", "res://Assets/Erika/sword and shield attack (3).fbx" },
+        { "melee triple attack", "res://Assets/Erika/sword and shield slash (2).fbx" },
 
         // Archery Animations
         { "archery draw", "res://Assets/ErikaBow/standing draw arrow.fbx" },

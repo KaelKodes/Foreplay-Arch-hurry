@@ -65,7 +65,7 @@ public partial class MobaGameManager : Node
         CallDeferred(nameof(RegisterStructures));
 
 #if DEBUG
-        GD.Print("[MobaGameManager] Initialized");
+        // GD.Print("[MobaGameManager] Initialized");
 #endif
     }
 
@@ -107,9 +107,9 @@ public partial class MobaGameManager : Node
         GetTree().CurrentScene.AddChild(_minionContainer);
 
 #if DEBUG
-        GD.Print($"[MobaGameManager] Registered - Red Towers: {_redTowers.Count}, Blue Towers: {_blueTowers.Count}");
-        GD.Print($"[MobaGameManager] Red Nexus: {_redNexus != null}, Blue Nexus: {_blueNexus != null}");
-        GD.Print($"[MobaGameManager] Red Spawn: {RedSpawnPos}, Blue Spawn: {BlueSpawnPos}");
+        // GD.Print($"[MobaGameManager] Registered - Red Towers: {_redTowers.Count}, Blue Towers: {_blueTowers.Count}");
+        // GD.Print($"[MobaGameManager] Red Nexus: {_redNexus != null}, Blue Nexus: {_blueNexus != null}");
+        // GD.Print($"[MobaGameManager] Red Spawn: {RedSpawnPos}, Blue Spawn: {BlueSpawnPos}");
 #endif
 
         // Enable spawning after a short delay (let everything settle)
@@ -147,7 +147,7 @@ public partial class MobaGameManager : Node
     public void SpawnMinionWave()
     {
 #if DEBUG
-        GD.Print($"[MobaGameManager] ═══ WAVE {_waveCount} ═══");
+        // GD.Print($"[MobaGameManager] ═══ WAVE {_waveCount} ═══");
 #endif
 
         SpawnTeamWave(MobaTeam.Red, RedSpawnPos, _redInnerDestroyed);
@@ -182,7 +182,7 @@ public partial class MobaGameManager : Node
         }
 
 #if DEBUG
-        GD.Print($"[MobaGameManager] Spawned wave for {team}: {ZombiesPerWave} Zombies + {CrawlersPerWave} Crawlers");
+        // GD.Print($"[MobaGameManager] Spawned wave for {team}: {ZombiesPerWave} Zombies + {CrawlersPerWave} Crawlers");
 #endif
     }
 
@@ -243,7 +243,7 @@ public partial class MobaGameManager : Node
     public void OnTowerDestroyed(MobaTower tower)
     {
 #if DEBUG
-        GD.Print($"[MobaGameManager] Tower destroyed: {tower.Name} (Team: {tower.Team}, Type: {tower.Type})");
+        // GD.Print($"[MobaGameManager] Tower destroyed: {tower.Name} (Team: {tower.Team}, Type: {tower.Type})");
 #endif
         EmitSignal(SignalName.TowerDestroyed, tower);
 
@@ -254,14 +254,14 @@ public partial class MobaGameManager : Node
             {
                 _redInnerDestroyed = true;
 #if DEBUG
-                GD.Print("[MobaGameManager] RED Inner Tower destroyed! Blue minions now spawn 15% slower, but Blue gets SUPER CREEPS against Red!");
+                // GD.Print("[MobaGameManager] RED Inner Tower destroyed! Blue minions now spawn 15% slower, but Blue gets SUPER CREEPS against Red!");
 #endif
             }
             else if (tower.Team == MobaTeam.Blue)
             {
                 _blueInnerDestroyed = true;
 #if DEBUG
-                GD.Print("[MobaGameManager] BLUE Inner Tower destroyed! Red minions now spawn 15% slower, but Red gets SUPER CREEPS against Blue!");
+                // GD.Print("[MobaGameManager] BLUE Inner Tower destroyed! Red minions now spawn 15% slower, but Red gets SUPER CREEPS against Blue!");
 #endif
             }
         }
@@ -278,7 +278,7 @@ public partial class MobaGameManager : Node
         Winner = TeamSystem.GetEnemyTeam(nexus.Team);
 
 #if DEBUG
-        GD.Print($"[MobaGameManager] GAME OVER! Winner: {Winner}");
+        // GD.Print($"[MobaGameManager] GAME OVER! Winner: {Winner}");
 #endif
         EmitSignal(SignalName.GameEnded, (int)Winner);
 

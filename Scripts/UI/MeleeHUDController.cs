@@ -30,6 +30,10 @@ public partial class MeleeHUDController : Control
         if (_accuracyMarker != null) _accuracyMarker.Visible = false;
         if (_cooldownLabel != null) _cooldownLabel.Visible = false;
         if (_damageLabel != null) _damageLabel.Visible = false;
+
+        // Hide main swing bar (moving to 3D mini bar)
+        var swingContainer = GetNodeOrNull<Control>("SwingContainer");
+        if (swingContainer != null) swingContainer.Visible = false;
     }
 
     public override void _ExitTree()
@@ -83,12 +87,7 @@ public partial class MeleeHUDController : Control
 
         if (@event is InputEventMouseButton mouseBtn && mouseBtn.Pressed)
         {
-            if (mouseBtn.ButtonIndex == MouseButton.Left)
-            {
-                _meleeSystem?.HandleInput();
-                GetViewport().SetInputAsHandled();
-            }
-            else if (mouseBtn.ButtonIndex == MouseButton.Right)
+            if (mouseBtn.ButtonIndex == MouseButton.Right)
             {
                 _meleeSystem?.CancelSwing();
                 GetViewport().SetInputAsHandled();
@@ -120,8 +119,12 @@ public partial class MeleeHUDController : Control
             if (isLocked && _swingBar != null)
             {
                 float barWidth = _swingBar.Size.X;
-                float markerX = (power / 100f) * barWidth;
+                float ratio = Mathf.Min(power / 100f, 1.0f); // Cap visuals at 100%
+                float markerX = ratio * barWidth;
                 _lockedPowerLine.Position = new Vector2(markerX - 2, _lockedPowerLine.Position.Y);
+
+                // Color indicator for overcharge
+                _lockedPowerLine.Modulate = (power >= 149f) ? Colors.Orange : (power >= 99f ? Colors.Green : Colors.White);
             }
         }
     }

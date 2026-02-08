@@ -29,6 +29,9 @@ public partial class PlayerController : CharacterBody3D
 
     // Physics State
     private Vector3 _velocity = Vector3.Zero;
+    private float _attackHoldTimer = 0f;
+    private bool _isChargingAttack = false;
+    private ChargeBar3D _chargeBar;
     private bool _isGrounded = true;
 
     // Multiplayer Properties
@@ -196,8 +199,22 @@ public partial class PlayerController : CharacterBody3D
         _archeryAnimPlayer = GetNodeOrNull<AnimationPlayer>("ErikaBow/AnimationPlayer");
 
         // Initialize CharacterModelManager
-        _modelManager = new CharacterModelManager();
-        AddChild(_modelManager);
+        if (_modelManager == null)
+            _modelManager = GetNodeOrNull<CharacterModelManager>("ModelManager");
+        if (_modelManager == null)
+            _modelManager = GetNodeOrNull<CharacterModelManager>("Erika/ModelManager");
+        if (_modelManager == null)
+        {
+            _modelManager = new CharacterModelManager();
+            AddChild(_modelManager);
+        }
+
+        // Mini Charge Bar (3D)
+        _chargeBar = new ChargeBar3D();
+        _chargeBar.Name = "ChargeBar3D";
+        AddChild(_chargeBar);
+        _chargeBar.Position = new Vector3(0, 0.15f, 0); // Position underfoot
+
         _modelManager.Initialize(this, _meleeModel, _archeryModel, _animTree, _meleeAnimPlayer, _archeryAnimPlayer);
 
         // Apply current/synced model
@@ -464,6 +481,8 @@ public partial class PlayerController : CharacterBody3D
             return;
         }
 
+        HandleCombatCharge(delta);
+
         // Update Sync Properties (State -> Property)
         if (_camera != null)
         {
@@ -557,7 +576,8 @@ public partial class PlayerController : CharacterBody3D
             if (_inputCooldown <= 0)
             {
                 _inputCooldown = 0.2f;
-                _archerySystem.CycleTarget();
+                bool alliesOnly = Input.IsKeyPressed(Key.Shift);
+                _archerySystem.CycleTarget(alliesOnly);
             }
         }
 
@@ -1042,20 +1062,61 @@ public partial class PlayerController : CharacterBody3D
             }
         }
 
-        // Combat Input Handling (Left Click)
-        if (@event is InputEventMouseButton attackBtn && attackBtn.Pressed && attackBtn.ButtonIndex == MouseButton.Left)
+        // Combat Input Handling (Hold to Charge, Release to Shoot/Swing)
+        if (@event is InputEventMouseButton attackBtn && attackBtn.ButtonIndex == MouseButton.Left)
         {
-            if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
+            if (attackBtn.Pressed)
             {
-                _meleeSystem.HandleInput();
-                GetViewport().SetInputAsHandled();
+                if ((CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher) && !_isChargingAttack)
+                {
+                    _isChargingAttack = true;
+                    _attackHoldTimer = 0f;
+
+                    if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
+                        _meleeSystem.StartCharge();
+                    else if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
+                        _archerySystem.StartCharge();
+                }
             }
-            else if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
+            else // Released
             {
-                _archerySystem.HandleInput();
-                GetViewport().SetInputAsHandled();
+                if (_isChargingAttack)
+                {
+                    _isChargingAttack = false;
+                    float finalHoldTime = _attackHoldTimer;
+                    _attackHoldTimer = 0f;
+
+                    if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
+                        _meleeSystem.ExecuteAttack(finalHoldTime);
+                    else if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
+                        _archerySystem.ExecuteAttack(finalHoldTime);
+
+                    GetViewport().SetInputAsHandled();
+                }
             }
         }
+    }
+
+    private void HandleCombatCharge(double delta)
+    {
+        if (!_isChargingAttack)
+        {
+            _chargeBar?.Reset();
+            return;
+        }
+
+        _attackHoldTimer += (float)delta;
+
+        // Update 3D bar
+        _chargeBar?.UpdateValue(_attackHoldTimer);
+
+        // Cap visual at 1.5s for the SYSTEM percent (which signals events)
+        float chargePercent = Mathf.Clamp(_attackHoldTimer / 1.5f, 0f, 1f) * 100f;
+
+        if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
+            _meleeSystem.UpdateChargeProgress(chargePercent);
+        else if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
+            _archerySystem.UpdateChargeProgress(chargePercent);
     }
 
     private void OnPowerSlamTriggered(Vector3 position, int playerIndex)

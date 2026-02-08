@@ -32,7 +32,7 @@ public partial class MobaMinionAI : Node
         // Blue team pushes toward -Z (Red base), Red pushes toward +Z (Blue base)
         _laneDirection = _minion.Team == MobaTeam.Blue ? -1f : 1f;
 
-        GD.Print($"[MobaMinionAI] Ready - Minion: {_minion.Name}, Team: {_minion.Team}, Direction: {_laneDirection}");
+        // GD.Print($"[MobaMinionAI] Ready - Minion: {_minion.Name}, Team: {_minion.Team}, Direction: {_laneDirection}");
     }
 
     public override void _PhysicsProcess(double delta)
@@ -44,7 +44,7 @@ public partial class MobaMinionAI : Node
 
         // Find or validate target
         bool needsRescan = _currentTarget == null || !IsValidTarget(_currentTarget);
-        
+
         // If targeting a structure, check if a minion is now in range
         if (!needsRescan && (_currentTarget is MobaTower || _currentTarget is MobaNexus))
         {

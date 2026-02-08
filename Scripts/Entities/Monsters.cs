@@ -89,7 +89,7 @@ public partial class Monsters : InteractableObject
             int animCount = _animPlayer.GetAnimationList().Length;
             if (animCount > 0)
             {
-                GD.Print($"[Monsters] Using AnimationPlayer: {_animPlayer.GetPath()} ({animCount} animations)");
+                // GD.Print($"[Monsters] Using AnimationPlayer: {_animPlayer.GetPath()} ({animCount} animations)");
                 PlayAnimationRobust("Idle");
             }
             else
@@ -109,7 +109,7 @@ public partial class Monsters : InteractableObject
             _ai = new MonsterAI();
             _ai.Name = "MonsterAI";
             AddChild(_ai);
-            GD.Print($"[Monsters] Added MonsterAI to {ObjectName}");
+            // GD.Print($"[Monsters] Added MonsterAI to {ObjectName}");
         }
     }
 
@@ -172,7 +172,7 @@ public partial class Monsters : InteractableObject
 								lib.RemoveAnimation(animName);
 							lib.AddAnimation(animName, animCopy);
 
-							GD.Print($"[Monsters] Loaded zombie animation: {animName}");
+							// GD.Print($"[Monsters] Loaded zombie animation: {animName}");
 						}
 					}
 				}
@@ -193,7 +193,7 @@ public partial class Monsters : InteractableObject
 		if (_animPlayer == null) return;
 
 		var animList = _animPlayer.GetAnimationList();
-		GD.Print($"[Monsters] Crawler embedded animations: {string.Join(", ", animList)}");
+		// GD.Print($"[Monsters] Crawler embedded animations: {string.Join(", ", animList)}");
 
 		// Find and alias animations to standard names
 		var lib = _animPlayer.GetAnimationLibrary("");
@@ -239,7 +239,7 @@ public partial class Monsters : InteractableObject
 				var copy = (Animation)firstAnim.Duplicate();
 				copy.LoopMode = Animation.LoopModeEnum.Linear;
 				lib.AddAnimation("Idle", copy);
-				GD.Print($"[Monsters] Created Idle from first animation: {animList[0]}");
+				// GD.Print($"[Monsters] Created Idle from first animation: {animList[0]}");
 			}
 		}
 	}
@@ -403,7 +403,7 @@ public partial class Monsters : InteractableObject
 
 		Health -= damage;
 #if DEBUG
-		GD.Print($"[Monsters] {ObjectName} took {damage} damage. Health: {Health}");
+		//		GD.Print($"[Monsters] {ObjectName} took {damage} damage. Health: {Health}");
 #endif
 
 		// Spawn floating damage number

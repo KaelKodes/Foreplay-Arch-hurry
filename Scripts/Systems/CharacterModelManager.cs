@@ -27,8 +27,8 @@ public partial class CharacterModelManager : Node
         { "standing run right", "res://Assets/Erika/standing run right.fbx" },
         { "standing jump", "res://Assets/Erika/sword and shield jump (2).fbx" },
         { "melee attack", "res://Assets/Erika/sword and shield slash.fbx" },
-        { "melee perfect attack", "res://Assets/Erika/sword and shield slash (2).fbx" },
-        { "melee power attack", "res://Assets/Erika/sword and shield slash (4).fbx" },
+        { "melee perfect attack", "res://Assets/Erika/sword and shield attack (3).fbx" },
+        { "melee triple attack", "res://Assets/Erika/sword and shield slash (2).fbx" },
         { "archery draw", "res://Assets/ErikaBow/standing draw arrow.fbx" },
         { "archery aim idle", "res://Assets/ErikaBow/standing aim overdraw.fbx" },
         { "archery recoil", "res://Assets/ErikaBow/standing aim recoil.fbx" },
@@ -218,7 +218,7 @@ public partial class CharacterModelManager : Node
             { "Jump", "standing jump" },
             { "MeleeAttack1", "melee attack" },
             { "MeleeAttack2", "melee perfect attack" },
-            { "MeleeAttack3", "melee power attack" },
+            { "MeleeAttack3", "melee triple attack" },
             { "ArcheryIdle", "archery idle normal" },
             { "ArcheryDraw", "archery draw" },
             { "ArcheryFire", "archery recoil" },
@@ -718,7 +718,7 @@ public partial class CharacterModelManager : Node
     /// Direct animation update for custom skeletons.
     /// Logic mirrors Erika's AnimationTree but via direct Play() calls.
     /// </summary>
-    public void UpdateCustomAnimations(bool isMoving, bool sprinting, bool jumping, bool swinging, bool firing)
+    public void UpdateCustomAnimations(bool isMoving, bool sprinting, bool jumping, bool swinging, bool firing, bool overcharged = false)
     {
         if (_customAnimPlayer == null) return;
 
@@ -727,16 +727,21 @@ public partial class CharacterModelManager : Node
         if (jumping) target = "Jump";
         else if (swinging)
         {
-            // Simple cycle: MeleeAttack1 -> MeleeAttack2 -> MeleeAttack3
-            if (_lastPlayedAnim == "MeleeAttack1") target = "MeleeAttack2";
-            else if (_lastPlayedAnim == "MeleeAttack2") target = "MeleeAttack3";
-            else target = "MeleeAttack1";
+            if (overcharged) target = "MeleeAttack4";
+            else
+            {
+                // Simple cycle: MeleeAttack1 -> MeleeAttack2 -> MeleeAttack3
+                if (_lastPlayedAnim == "MeleeAttack1") target = "MeleeAttack2";
+                else if (_lastPlayedAnim == "MeleeAttack2") target = "MeleeAttack3";
+                else target = "MeleeAttack1";
+            }
         }
         else if (firing) target = "BowAttack";
         else if (isMoving) target = sprinting ? "Run" : "Walk";
 
         if (target != _lastPlayedAnim)
         {
+            GD.Print($"[AnimationDebug] Custom Model playing character animation: {target}");
             PlayAnimation(target);
             _lastPlayedAnim = target;
         }

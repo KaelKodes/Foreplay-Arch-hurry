@@ -29,9 +29,9 @@ public partial class MeleeSystem : Node
 	public float PowerSlamDelay = 1.0f;   // Big slam timing
 
 	// Attack Type Helpers (Source of truth for both Logic and Animations)
-	public bool IsPowerSlam => LockedPower >= 99.9f;
-	public bool IsPerfectSlam => LockedPower >= PerfectPowerLine && LockedPower < 99.9f;
-	public bool IsAnySlam => LockedPower >= PerfectPowerLine;
+	public bool IsTripleSwing => LockedPower >= 199f;
+	public bool IsPerfectSlam => LockedPower >= 99f && LockedPower < 199f;
+	public bool IsAnySlam => LockedPower >= 99f;
 	private const float OverpowerPenaltyPerPoint = 0.1f; // Extra cooldown per % over perfect
 	private const float SwingSpeed = 150f;        // Faster bar fill
 	private const float ExecuteSpeed = 300f;      // Very fast bar depletion for swing
@@ -73,9 +73,7 @@ public partial class MeleeSystem : Node
 				break;
 
 			case SwingState.Drawing:
-				VisualBarValue += SwingSpeed * (float)delta;
-				if (VisualBarValue >= 100f) VisualBarValue = 100f;
-				EmitSignal(SignalName.SwingValuesUpdated, VisualBarValue, 0f, (int)CurrentState);
+				// Visual bar update handled by PlayerController calling UpdateChargeProgress
 				break;
 
 			case SwingState.Finishing:
@@ -119,28 +117,49 @@ public partial class MeleeSystem : Node
 		_currentPlayer = player;
 	}
 
-	/// <summary>
-	/// Handle input click - advances through swing states.
-	/// </summary>
-	public void HandleInput()
+	public void StartCharge()
 	{
 		if (CurrentState == SwingState.Cooling || CurrentState == SwingState.Finishing || CurrentState == SwingState.Executing) return;
 
-		switch (CurrentState)
-		{
-			case SwingState.Idle:
-				StartSwing();
-				break;
-			case SwingState.Drawing:
-				LockPower();
-				break;
-		}
-	}
-
-	private void StartSwing()
-	{
 		if (Multiplayer.IsServer()) Rpc(nameof(NetStartSwing));
 		else RpcId(1, nameof(RequestStartSwing));
+	}
+
+	public void UpdateChargeProgress(float percent)
+	{
+		VisualBarValue = percent;
+		EmitSignal(SignalName.SwingValuesUpdated, VisualBarValue, 0f, (int)CurrentState);
+	}
+
+	public void ExecuteAttack(float holdTime)
+	{
+		if (CurrentState != SwingState.Drawing) return;
+
+		// Map hold duration to 3 tiers:
+		// < 1.5s: 50% power (Weak)
+		// 1.5s - 2.5s: 100% power (Perfect)
+		// >= 2.5s: 200% power (Overcharge)
+		float finalPower = 50f;
+		if (holdTime >= 2.5f) finalPower = 200f;
+		else if (holdTime >= 1.5f) finalPower = 100f;
+
+		if (Multiplayer.IsServer()) Rpc(nameof(NetExecuteAttack), finalPower);
+		else RpcId(1, nameof(RequestExecuteAttack), finalPower);
+	}
+
+	[Rpc(MultiplayerApi.RpcMode.AnyPeer)]
+	private void RequestExecuteAttack(float power)
+	{
+		if (!Multiplayer.IsServer()) return;
+		Rpc(nameof(NetExecuteAttack), power);
+	}
+
+	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+	private void NetExecuteAttack(float power)
+	{
+		LockedPower = power;
+		CurrentState = SwingState.Finishing;
+		GD.Print($"[MeleeSystem] Executing attack with {LockedPower:F1}% power (Hold Time Attack)");
 	}
 
 	[Rpc(MultiplayerApi.RpcMode.AnyPeer)]
@@ -161,26 +180,6 @@ public partial class MeleeSystem : Node
 		GD.Print("[MeleeSystem] Swing started (2-Click Mode)");
 	}
 
-	private void LockPower()
-	{
-		if (Multiplayer.IsServer()) Rpc(nameof(NetLockPower), VisualBarValue);
-		else RpcId(1, nameof(RequestLockPower), VisualBarValue);
-	}
-
-	[Rpc(MultiplayerApi.RpcMode.AnyPeer)]
-	private void RequestLockPower(float power)
-	{
-		if (!Multiplayer.IsServer()) return;
-		Rpc(nameof(NetLockPower), power);
-	}
-
-	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
-	private void NetLockPower(float power)
-	{
-		LockedPower = power;
-		CurrentState = SwingState.Finishing;
-		GD.Print($"[MeleeSystem] Power locked at {LockedPower:F1}%");
-	}
 
 	private void LockAccuracy()
 	{
@@ -216,8 +215,12 @@ public partial class MeleeSystem : Node
 			if (IsAnySlam)
 			{
 				// Delay the slam to match animation timing
-				float delay = IsPerfectSlam ? PerfectSlamDelay : PowerSlamDelay;
-				float slamDamage = damage * 1.5f;
+				// Perfect (100%) now uses Triple Flurry (2.1s)
+				// Triple (200%) now uses Spinning Slash (0.5s)
+				float delay = IsTripleSwing ? 0.5f : PerfectSlamDelay;
+				float slamDamage = damage * 2.0f; // Extra damage for slams
+				if (IsTripleSwing) slamDamage = damage * 3.0f; // Triple damage for triple swing
+
 				Vector3 slamPos = _currentPlayer.GlobalPosition;
 				int playerIndex = _currentPlayer.PlayerIndex;
 

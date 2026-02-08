@@ -64,7 +64,7 @@ public partial class MobaMinion : Monsters
         ApplyTeamTint();
 
 #if DEBUG
-        GD.Print($"[MobaMinion] {Name} spawned - Team:{Team} Type:{MinionType} HP:{Health} ATK:{AttackDamage} ARM:{Armor}");
+        // GD.Print($"[MobaMinion] {Name} spawned - Team:{Team} Type:{MinionType} HP:{Health} ATK:{AttackDamage} ARM:{Armor}");
 #endif
     }
 
@@ -176,7 +176,7 @@ public partial class MobaMinion : Monsters
         {
             // TODO: player damage system
 #if DEBUG
-            GD.Print($"[MobaMinion] {Name} attacks player {player.Name} for {AttackDamage}");
+            // GD.Print($"[MobaMinion] {Name} attacks player {player.Name} for {AttackDamage}");
 #endif
         }
     }
@@ -200,7 +200,7 @@ public partial class MobaMinion : Monsters
         Armor *= multiplier;
 
 #if DEBUG
-        GD.Print($"[MobaMinion] Wave scaling x{tiers} applied. HP:{Health:F0} ATK:{AttackDamage:F1} ARM:{Armor:F1}");
+        // GD.Print($"[MobaMinion] Wave scaling x{tiers} applied. HP:{Health:F0} ATK:{AttackDamage:F1} ARM:{Armor:F1}");
 #endif
     }
 
@@ -223,7 +223,7 @@ public partial class MobaMinion : Monsters
         Scale *= 1.2f;
 
 #if DEBUG
-        GD.Print($"[MobaMinion] {Name} upgraded to SUPER CREEP!");
+        // GD.Print($"[MobaMinion] {Name} upgraded to SUPER CREEP!");
 #endif
     }
 
@@ -233,7 +233,7 @@ public partial class MobaMinion : Monsters
         // Thoroughly remove all collision in MOBA to prevent blocking movement
         DisableCollisionRecursive(this);
 #if DEBUG
-        GD.Print($"[MobaMinion] {Name} collision completely disabled on death.");
+        // GD.Print($"[MobaMinion] {Name} collision completely disabled on death.");
 #endif
     }
 
