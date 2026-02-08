@@ -252,7 +252,7 @@ public partial class PlayerController : CharacterBody3D
             if (_camera != null)
             {
                 GD.Print("[PlayerController] Activating Camera... Current: " + _camera.Current);
-                _camera.SetTarget(this, true); // Snap initially
+                _camera.SnapBehind(this); // Snap orientation correctly
                 _camera.MakeCurrent();
                 GD.Print("[PlayerController] Camera set to Current: " + _camera.Current);
             }
