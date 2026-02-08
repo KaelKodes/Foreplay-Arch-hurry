@@ -6,232 +6,295 @@ namespace Archery;
 /// MOBA-specific HUD overlay. Shows:
 ///   - Center-top: Wave timer + wave count
 ///   - Tower score flanking the timer
-///   - Bottom-left: Player stats (HP bar, level, gold)
-/// The existing Hotbar handles item slots (Sword/Bow/Hammer/Shovel).
+///   - Bottom-left: Player stats (HP, Stamina, Mana/Fury, XP, Level, Gold)
+/// All styling uses MobaTheme for visual consistency.
+/// Hero Status panel is visible only in RPG mode.
 /// </summary>
 public partial class MobaHUD : CanvasLayer
 {
-	// Wave timer
-	private Label _waveTimerLabel;
-	private Label _waveCountLabel;
-	private Panel _timerPanel;
+    // Wave timer
+    private Label _waveTimerLabel;
+    private Label _waveCountLabel;
+    private Panel _timerPanel;
 
-	// Player stats
-	private ProgressBar _playerHpBar;
-	private Label _playerHpLabel;
-	private Label _goldLabel;
-	private Label _levelLabel;
+    // Player stats
+    private Panel _statsPanel;
+    private ProgressBar _playerHpBar;
+    private Label _playerHpLabel;
+    private ProgressBar _staminaBar;
+    private Label _staminaLabel;
+    private ProgressBar _secondaryBar;  // Mana or Fury
+    private Label _secondaryLabel;
+    private ProgressBar _xpBar;
+    private Label _goldLabel;
+    private Label _levelLabel;
 
-	// Tower score
-	private Label _redTowerLabel;
-	private Label _blueTowerLabel;
+    // Tower score
+    private Label _redTowerLabel;
+    private Label _blueTowerLabel;
 
-	// References
-	private MobaGameManager _gameManager;
+    // References
+    private MobaGameManager _gameManager;
 
-	public override void _Ready()
-	{
-		Layer = 10; // Above other UI
-		BuildUI();
-		CallDeferred(nameof(FindGameManager));
-	}
+    // State
+    private string _heroClass = "Ranger";  // Default; updated externally
+    private bool _isRpgMode = false;
 
-	private void FindGameManager()
-	{
-		_gameManager = GetTree().GetFirstNodeInGroup("moba_game_manager") as MobaGameManager;
-	}
+    public override void _Ready()
+    {
+        Layer = 10;
+        BuildUI();
+        CallDeferred(nameof(FindGameManager));
+        ConnectModeSignal();
+    }
 
-	private void BuildUI()
-	{
-		// ╔══════════════════════════════════════════════════╗
-		// ║  CENTER TOP: Wave Timer                          ║
-		// ╚══════════════════════════════════════════════════╝
+    private void FindGameManager()
+    {
+        _gameManager = GetTree().GetFirstNodeInGroup("moba_game_manager") as MobaGameManager;
+    }
 
-		_timerPanel = new Panel();
-		_timerPanel.AnchorLeft = 0.5f;
-		_timerPanel.AnchorRight = 0.5f;
-		_timerPanel.AnchorTop = 0f;
-		_timerPanel.AnchorBottom = 0f;
-		_timerPanel.OffsetLeft = -120;
-		_timerPanel.OffsetRight = 120;
-		_timerPanel.OffsetTop = 10;
-		_timerPanel.OffsetBottom = 70;
-		_timerPanel.MouseFilter = Control.MouseFilterEnum.Ignore;
+    private void ConnectModeSignal()
+    {
+        if (ToolManager.Instance != null)
+        {
+            ToolManager.Instance.HotbarModeChanged += OnHotbarModeChanged;
+            // Sync initial state
+            _isRpgMode = ToolManager.Instance.CurrentMode == ToolManager.HotbarMode.RPG;
+            UpdateStatsVisibility();
+        }
+    }
 
-		var timerStyle = new StyleBoxFlat();
-		timerStyle.BgColor = new Color(0.08f, 0.08f, 0.12f, 0.85f);
-		timerStyle.CornerRadiusBottomLeft = 12;
-		timerStyle.CornerRadiusBottomRight = 12;
-		timerStyle.CornerRadiusTopLeft = 12;
-		timerStyle.CornerRadiusTopRight = 12;
-		timerStyle.BorderWidthBottom = 2;
-		timerStyle.BorderWidthTop = 2;
-		timerStyle.BorderWidthLeft = 2;
-		timerStyle.BorderWidthRight = 2;
-		timerStyle.BorderColor = new Color(0.4f, 0.5f, 0.7f, 0.6f);
-		_timerPanel.AddThemeStyleboxOverride("panel", timerStyle);
-		AddChild(_timerPanel);
+    private void OnHotbarModeChanged(int newMode)
+    {
+        _isRpgMode = (ToolManager.HotbarMode)newMode == ToolManager.HotbarMode.RPG;
+        UpdateStatsVisibility();
+    }
 
-		var timerVBox = new VBoxContainer();
-		timerVBox.AnchorRight = 1f;
-		timerVBox.AnchorBottom = 1f;
-		timerVBox.Alignment = BoxContainer.AlignmentMode.Center;
-		timerVBox.MouseFilter = Control.MouseFilterEnum.Ignore;
-		_timerPanel.AddChild(timerVBox);
+    private void UpdateStatsVisibility()
+    {
+        if (_statsPanel != null) _statsPanel.Visible = _isRpgMode;
+    }
 
-		_waveTimerLabel = new Label();
-		_waveTimerLabel.HorizontalAlignment = HorizontalAlignment.Center;
-		_waveTimerLabel.AddThemeFontSizeOverride("font_size", 24);
-		_waveTimerLabel.AddThemeColorOverride("font_color", new Color(1f, 0.9f, 0.6f));
-		_waveTimerLabel.Text = "0:30";
-		_waveTimerLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
-		timerVBox.AddChild(_waveTimerLabel);
+    /// <summary>Set the current hero class to determine which secondary resource bar to show.</summary>
+    public void SetHeroClass(string heroClass)
+    {
+        _heroClass = heroClass?.ToLower() ?? "ranger";
+        UpdateSecondaryBarStyle();
+    }
 
-		_waveCountLabel = new Label();
-		_waveCountLabel.HorizontalAlignment = HorizontalAlignment.Center;
-		_waveCountLabel.AddThemeFontSizeOverride("font_size", 12);
-		_waveCountLabel.AddThemeColorOverride("font_color", new Color(0.7f, 0.7f, 0.8f));
-		_waveCountLabel.Text = "WAVE 0";
-		_waveCountLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
-		timerVBox.AddChild(_waveCountLabel);
+    private void UpdateSecondaryBarStyle()
+    {
+        if (_secondaryBar == null || _secondaryLabel == null) return;
 
-		// Tower score flanking the timer
-		_redTowerLabel = new Label();
-		_redTowerLabel.AnchorLeft = 0.5f;
-		_redTowerLabel.AnchorRight = 0.5f;
-		_redTowerLabel.OffsetLeft = -200;
-		_redTowerLabel.OffsetRight = -130;
-		_redTowerLabel.OffsetTop = 20;
-		_redTowerLabel.OffsetBottom = 50;
-		_redTowerLabel.HorizontalAlignment = HorizontalAlignment.Right;
-		_redTowerLabel.AddThemeFontSizeOverride("font_size", 20);
-		_redTowerLabel.AddThemeColorOverride("font_color", new Color(1f, 0.3f, 0.3f));
-		_redTowerLabel.Text = "🔴 2";
-		_redTowerLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
-		AddChild(_redTowerLabel);
+        bool isFury = _heroClass == "warrior";
+        _secondaryBar.AddThemeStyleboxOverride("fill",
+            MobaTheme.CreateBarFill(isFury ? MobaTheme.FuryFill : MobaTheme.ManaFill));
+        _secondaryBar.AddThemeStyleboxOverride("background",
+            MobaTheme.CreateBarBg(isFury ? MobaTheme.FuryBg : MobaTheme.ManaBg));
+        _secondaryLabel.Text = isFury ? "0 / 100 Fury" : "100 / 100 MP";
+    }
 
-		_blueTowerLabel = new Label();
-		_blueTowerLabel.AnchorLeft = 0.5f;
-		_blueTowerLabel.AnchorRight = 0.5f;
-		_blueTowerLabel.OffsetLeft = 130;
-		_blueTowerLabel.OffsetRight = 200;
-		_blueTowerLabel.OffsetTop = 20;
-		_blueTowerLabel.OffsetBottom = 50;
-		_blueTowerLabel.HorizontalAlignment = HorizontalAlignment.Left;
-		_blueTowerLabel.AddThemeFontSizeOverride("font_size", 20);
-		_blueTowerLabel.AddThemeColorOverride("font_color", new Color(0.3f, 0.5f, 1f));
-		_blueTowerLabel.Text = "2 🔵";
-		_blueTowerLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
-		AddChild(_blueTowerLabel);
+    private void BuildUI()
+    {
+        // ╔══════════════════════════════════════════════════════╗
+        // ║  CENTER TOP: Wave Timer                              ║
+        // ╚══════════════════════════════════════════════════════╝
 
-		// ╔══════════════════════════════════════════════════╗
-		// ║  BOTTOM LEFT: Player Stats                       ║
-		// ╚══════════════════════════════════════════════════╝
+        _timerPanel = MobaTheme.CreatePanel();
+        _timerPanel.AnchorLeft = 0.5f;
+        _timerPanel.AnchorRight = 0.5f;
+        _timerPanel.AnchorTop = 0f;
+        _timerPanel.AnchorBottom = 0f;
+        _timerPanel.OffsetLeft = -120;
+        _timerPanel.OffsetRight = 120;
+        _timerPanel.OffsetTop = 10;
+        _timerPanel.OffsetBottom = 70;
+        AddChild(_timerPanel);
 
-		var statsPanel = new Panel();
-		statsPanel.AnchorLeft = 0f;
-		statsPanel.AnchorTop = 1f;
-		statsPanel.AnchorBottom = 1f;
-		statsPanel.OffsetLeft = 10;
-		statsPanel.OffsetRight = 200;
-		statsPanel.OffsetTop = -130;
-		statsPanel.OffsetBottom = -10;
-		statsPanel.MouseFilter = Control.MouseFilterEnum.Ignore;
+        var timerVBox = new VBoxContainer();
+        timerVBox.AnchorRight = 1f;
+        timerVBox.AnchorBottom = 1f;
+        timerVBox.Alignment = BoxContainer.AlignmentMode.Center;
+        timerVBox.MouseFilter = Control.MouseFilterEnum.Ignore;
+        _timerPanel.AddChild(timerVBox);
 
-		var statsStyle = new StyleBoxFlat();
-		statsStyle.BgColor = new Color(0.08f, 0.08f, 0.12f, 0.8f);
-		statsStyle.CornerRadiusBottomLeft = 8;
-		statsStyle.CornerRadiusBottomRight = 8;
-		statsStyle.CornerRadiusTopLeft = 8;
-		statsStyle.CornerRadiusTopRight = 8;
-		statsPanel.AddThemeStyleboxOverride("panel", statsStyle);
-		AddChild(statsPanel);
+        _waveTimerLabel = MobaTheme.CreateHeroLabel("0:30", MobaTheme.AccentGold);
+        _waveTimerLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        timerVBox.AddChild(_waveTimerLabel);
 
-		var statsVBox = new VBoxContainer();
-		statsVBox.AnchorRight = 1f;
-		statsVBox.AnchorBottom = 1f;
-		statsVBox.OffsetLeft = 10;
-		statsVBox.OffsetTop = 8;
-		statsVBox.OffsetRight = -10;
-		statsVBox.OffsetBottom = -8;
-		statsVBox.MouseFilter = Control.MouseFilterEnum.Ignore;
-		statsPanel.AddChild(statsVBox);
+        _waveCountLabel = MobaTheme.CreateBodyLabel("WAVE 0", MobaTheme.TextSecondary);
+        _waveCountLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        timerVBox.AddChild(_waveCountLabel);
 
-		_levelLabel = new Label();
-		_levelLabel.Text = "LVL 1";
-		_levelLabel.AddThemeFontSizeOverride("font_size", 16);
-		_levelLabel.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.3f));
-		_levelLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
-		statsVBox.AddChild(_levelLabel);
+        // Tower score flanking the timer
+        _redTowerLabel = new Label();
+        _redTowerLabel.AnchorLeft = 0.5f;
+        _redTowerLabel.AnchorRight = 0.5f;
+        _redTowerLabel.OffsetLeft = -200;
+        _redTowerLabel.OffsetRight = -130;
+        _redTowerLabel.OffsetTop = 20;
+        _redTowerLabel.OffsetBottom = 50;
+        _redTowerLabel.HorizontalAlignment = HorizontalAlignment.Right;
+        _redTowerLabel.AddThemeFontSizeOverride("font_size", 20);
+        _redTowerLabel.AddThemeColorOverride("font_color", new Color(1f, 0.3f, 0.3f));
+        _redTowerLabel.Text = "🔴 2";
+        _redTowerLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
+        AddChild(_redTowerLabel);
 
-		_playerHpBar = new ProgressBar();
-		_playerHpBar.MinValue = 0;
-		_playerHpBar.MaxValue = 100;
-		_playerHpBar.Value = 100;
-		_playerHpBar.ShowPercentage = false;
-		_playerHpBar.CustomMinimumSize = new Vector2(0, 20);
+        _blueTowerLabel = new Label();
+        _blueTowerLabel.AnchorLeft = 0.5f;
+        _blueTowerLabel.AnchorRight = 0.5f;
+        _blueTowerLabel.OffsetLeft = 130;
+        _blueTowerLabel.OffsetRight = 200;
+        _blueTowerLabel.OffsetTop = 20;
+        _blueTowerLabel.OffsetBottom = 50;
+        _blueTowerLabel.HorizontalAlignment = HorizontalAlignment.Left;
+        _blueTowerLabel.AddThemeFontSizeOverride("font_size", 20);
+        _blueTowerLabel.AddThemeColorOverride("font_color", new Color(0.3f, 0.5f, 1f));
+        _blueTowerLabel.Text = "2 🔵";
+        _blueTowerLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
+        AddChild(_blueTowerLabel);
 
-		var hpFill = new StyleBoxFlat();
-		hpFill.BgColor = new Color(0.2f, 0.85f, 0.3f);
-		hpFill.CornerRadiusBottomLeft = 4;
-		hpFill.CornerRadiusBottomRight = 4;
-		hpFill.CornerRadiusTopLeft = 4;
-		hpFill.CornerRadiusTopRight = 4;
-		_playerHpBar.AddThemeStyleboxOverride("fill", hpFill);
+        // ╔══════════════════════════════════════════════════════╗
+        // ║  BOTTOM LEFT: Hero Stats (RPG Mode Only)             ║
+        // ╚══════════════════════════════════════════════════════╝
 
-		var hpBg = new StyleBoxFlat();
-		hpBg.BgColor = new Color(0.2f, 0.1f, 0.1f, 0.8f);
-		hpBg.CornerRadiusBottomLeft = 4;
-		hpBg.CornerRadiusBottomRight = 4;
-		hpBg.CornerRadiusTopLeft = 4;
-		hpBg.CornerRadiusTopRight = 4;
-		_playerHpBar.AddThemeStyleboxOverride("background", hpBg);
-		statsVBox.AddChild(_playerHpBar);
+        _statsPanel = MobaTheme.CreatePanel();
+        _statsPanel.AnchorLeft = 0f;
+        _statsPanel.AnchorTop = 1f;
+        _statsPanel.AnchorBottom = 1f;
+        _statsPanel.OffsetLeft = 10;
+        _statsPanel.OffsetRight = 220;
+        _statsPanel.OffsetTop = -220;
+        _statsPanel.OffsetBottom = -10;
+        _statsPanel.Visible = _isRpgMode;
+        AddChild(_statsPanel);
 
-		_playerHpLabel = new Label();
-		_playerHpLabel.Text = "100 / 100";
-		_playerHpLabel.HorizontalAlignment = HorizontalAlignment.Center;
-		_playerHpLabel.AddThemeFontSizeOverride("font_size", 12);
-		_playerHpLabel.AddThemeColorOverride("font_color", Colors.White);
-		_playerHpLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
-		statsVBox.AddChild(_playerHpLabel);
+        var statsVBox = new VBoxContainer();
+        statsVBox.AnchorRight = 1f;
+        statsVBox.AnchorBottom = 1f;
+        statsVBox.OffsetLeft = 10;
+        statsVBox.OffsetTop = 8;
+        statsVBox.OffsetRight = -10;
+        statsVBox.OffsetBottom = -8;
+        statsVBox.MouseFilter = Control.MouseFilterEnum.Ignore;
+        statsVBox.AddThemeConstantOverride("separation", 3);
+        _statsPanel.AddChild(statsVBox);
 
-		_goldLabel = new Label();
-		_goldLabel.Text = "💰 0";
-		_goldLabel.AddThemeFontSizeOverride("font_size", 16);
-		_goldLabel.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.2f));
-		_goldLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
-		statsVBox.AddChild(_goldLabel);
-	}
+        // Level
+        _levelLabel = MobaTheme.CreateHeadingLabel("LVL 1", MobaTheme.AccentGold);
+        statsVBox.AddChild(_levelLabel);
 
-	public override void _Process(double delta)
-	{
-		if (_gameManager == null)
-		{
-			_gameManager = GetTree().GetFirstNodeInGroup("moba_game_manager") as MobaGameManager;
-			if (_gameManager == null) return;
-		}
+        // HP Bar
+        _playerHpBar = MobaTheme.CreateHpBar(100f);
+        statsVBox.AddChild(_playerHpBar);
 
-		UpdateWaveTimer();
-		UpdateTowerScore();
-	}
+        _playerHpLabel = MobaTheme.CreateBodyLabel("100 / 100 HP", MobaTheme.TextPrimary);
+        _playerHpLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        statsVBox.AddChild(_playerHpLabel);
 
-	private void UpdateWaveTimer()
-	{
-		int wave = _gameManager.GetWaveCount();
-		_waveCountLabel.Text = $"WAVE {wave}";
+        // Stamina Bar (all heroes)
+        _staminaBar = MobaTheme.CreateStaminaBar(100f);
+        statsVBox.AddChild(_staminaBar);
 
-		float timeLeft = _gameManager.WaveTimeRemaining;
-		int minutes = (int)(timeLeft / 60f);
-		int seconds = (int)(timeLeft % 60f);
-		_waveTimerLabel.Text = $"{minutes}:{seconds:D2}";
-	}
+        _staminaLabel = MobaTheme.CreateBodyLabel("100 / 100 SP", MobaTheme.TextSecondary);
+        _staminaLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        statsVBox.AddChild(_staminaLabel);
 
-	private void UpdateTowerScore()
-	{
-		int redTowers = _gameManager.GetTowerCount(MobaTeam.Red);
-		int blueTowers = _gameManager.GetTowerCount(MobaTeam.Blue);
-		_redTowerLabel.Text = $"🔴 {redTowers}";
-		_blueTowerLabel.Text = $"{blueTowers} 🔵";
-	}
+        // Secondary Resource (Mana or Fury)
+        _secondaryBar = MobaTheme.CreateManaBar(100f);  // default to Mana style
+        statsVBox.AddChild(_secondaryBar);
+
+        _secondaryLabel = MobaTheme.CreateBodyLabel("100 / 100 MP", MobaTheme.TextSecondary);
+        _secondaryLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        statsVBox.AddChild(_secondaryLabel);
+
+        // XP Bar (thin)
+        _xpBar = MobaTheme.CreateXpBar(100f);
+        statsVBox.AddChild(_xpBar);
+
+        // Gold
+        _goldLabel = MobaTheme.CreateHeadingLabel("💰 0", MobaTheme.AccentGold);
+        statsVBox.AddChild(_goldLabel);
+
+        // Apply class-specific secondary bar styling
+        UpdateSecondaryBarStyle();
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_gameManager == null)
+        {
+            _gameManager = GetTree().GetFirstNodeInGroup("moba_game_manager") as MobaGameManager;
+            if (_gameManager == null) return;
+        }
+
+        UpdateWaveTimer();
+        UpdateTowerScore();
+
+        // Lazy-connect mode signal if ToolManager wasn't ready at _Ready time
+        if (ToolManager.Instance != null && !_modeSignalConnected)
+        {
+            ConnectModeSignal();
+            _modeSignalConnected = true;
+        }
+    }
+
+    private bool _modeSignalConnected = false;
+
+    private void UpdateWaveTimer()
+    {
+        int wave = _gameManager.GetWaveCount();
+        _waveCountLabel.Text = $"WAVE {wave}";
+
+        float timeLeft = _gameManager.WaveTimeRemaining;
+        int minutes = (int)(timeLeft / 60f);
+        int seconds = (int)(timeLeft % 60f);
+        _waveTimerLabel.Text = $"{minutes}:{seconds:D2}";
+    }
+
+    private void UpdateTowerScore()
+    {
+        int redTowers = _gameManager.GetTowerCount(MobaTeam.Red);
+        int blueTowers = _gameManager.GetTowerCount(MobaTeam.Blue);
+        _redTowerLabel.Text = $"🔴 {redTowers}";
+        _blueTowerLabel.Text = $"{blueTowers} 🔵";
+    }
+
+    // ── Public update methods (called by PlayerController or game systems) ──
+
+    public void UpdateHp(float current, float max)
+    {
+        if (_playerHpBar != null) { _playerHpBar.MaxValue = max; _playerHpBar.Value = current; }
+        if (_playerHpLabel != null) _playerHpLabel.Text = $"{(int)current} / {(int)max} HP";
+    }
+
+    public void UpdateStamina(float current, float max)
+    {
+        if (_staminaBar != null) { _staminaBar.MaxValue = max; _staminaBar.Value = current; }
+        if (_staminaLabel != null) _staminaLabel.Text = $"{(int)current} / {(int)max} SP";
+    }
+
+    public void UpdateSecondaryResource(float current, float max)
+    {
+        bool isFury = _heroClass == "warrior";
+        string suffix = isFury ? "Fury" : "MP";
+        if (_secondaryBar != null) { _secondaryBar.MaxValue = max; _secondaryBar.Value = current; }
+        if (_secondaryLabel != null) _secondaryLabel.Text = $"{(int)current} / {(int)max} {suffix}";
+    }
+
+    public void UpdateXp(float current, float max)
+    {
+        if (_xpBar != null) { _xpBar.MaxValue = max; _xpBar.Value = current; }
+    }
+
+    public void UpdateGold(int gold)
+    {
+        if (_goldLabel != null) _goldLabel.Text = $"💰 {gold}";
+    }
+
+    public void UpdateLevel(int level)
+    {
+        if (_levelLabel != null) _levelLabel.Text = $"LVL {level}";
+    }
 }

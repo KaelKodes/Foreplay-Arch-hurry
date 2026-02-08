@@ -28,6 +28,9 @@ public partial class HotbarController : Control
     private int _draggedSlotIndex = -1;
     private Control _dragPreview;
 
+    // Ability Tooltip
+    private AbilityTooltip _abilityTooltip;
+
     // Placeholder colors for slots without icons
     private static readonly Color[] SlotColors = new Color[]
     {
@@ -96,6 +99,11 @@ public partial class HotbarController : Control
         {
             bg.GuiInput += OnBackgroundGuiInput;
         }
+
+        // Create ability tooltip (shared across all slots)
+        _abilityTooltip = new AbilityTooltip();
+        _abilityTooltip.Name = "AbilityTooltip";
+        AddChild(_abilityTooltip);
     }
 
     private void OnHotbarModeChanged(ToolManager.HotbarMode mode)
@@ -361,6 +369,10 @@ public partial class HotbarController : Control
             int slotIndex = i; // Capture for lambda
             slot.Pressed += () => OnSlotPressed(slotIndex);
 
+            // Ability tooltip on hover (RPG mode only)
+            slot.MouseEntered += () => OnSlotMouseEntered(slotIndex);
+            slot.MouseExited += () => OnSlotMouseExited();
+
             // DRAG AND DROP SETUP
             slot.SetDragForwarding(new Godot.Callable(this, nameof(GetSlotDragData)), new Godot.Callable(this, nameof(CanDropOnSlot)), new Godot.Callable(this, nameof(DropOnSlot)));
 
@@ -507,5 +519,36 @@ public partial class HotbarController : Control
                 highlight.Visible = false;
             }
         }
+    }
+
+    // ── Tooltip Hover Logic ─────────────────────────────────
+
+    private void OnSlotMouseEntered(int slotIndex)
+    {
+        if (_abilityTooltip == null) return;
+        if (ToolManager.Instance == null) return;
+        if (ToolManager.Instance.CurrentMode != ToolManager.HotbarMode.RPG) return;
+
+        var item = ToolManager.Instance.GetSlotItem(slotIndex);
+        if (item == null || string.IsNullOrEmpty(item.DisplayName)) return;
+
+        var abilityInfo = AbilityData.Get(item.DisplayName);
+        if (abilityInfo == null) return;
+
+        // Position tooltip above the hovered slot
+        if (slotIndex < _slots.Length && _slots[slotIndex] != null)
+        {
+            var slotRect = _slots[slotIndex].GetGlobalRect();
+            var tooltipPos = new Vector2(
+                slotRect.Position.X + slotRect.Size.X / 2f,
+                slotRect.Position.Y
+            );
+            _abilityTooltip.ShowAbility(abilityInfo, tooltipPos);
+        }
+    }
+
+    private void OnSlotMouseExited()
+    {
+        _abilityTooltip?.HideTooltip();
     }
 }
