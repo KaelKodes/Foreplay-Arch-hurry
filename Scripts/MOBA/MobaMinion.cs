@@ -239,7 +239,7 @@ public partial class MobaMinion : Monsters
 
     private void DisableCollisionRecursive(Node node)
     {
-        if (node is CollisionShape3D col) col.Disabled = true;
+        if (node is CollisionShape3D col) col.SetDeferred("disabled", true);
         foreach (Node child in node.GetChildren())
         {
             DisableCollisionRecursive(child);

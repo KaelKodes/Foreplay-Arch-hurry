@@ -169,7 +169,7 @@ public partial class DistanceMarker : InteractableObject
 
         if (_boardMesh != null) _boardMesh.Visible = false;
         if (_label != null) _label.Visible = false;
-        if (_collider != null) _collider.Disabled = true;
+        if (_collider != null) _collider.SetDeferred("disabled", true);
 
         // Use cached texture if available
         Texture2D texture = _cachedDebrisTexture;
