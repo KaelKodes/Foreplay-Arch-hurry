@@ -21,6 +21,10 @@ public class Stats
     public int CurrentHealth { get; set; } = 100;
     public int MaxStamina { get; set; } = 100;
     public int CurrentStamina { get; set; } = 100;
+    public int MaxMana { get; set; } = 100;
+    public int CurrentMana { get; set; } = 100;
+    public int MaxFury { get; set; } = 100;
+    public int CurrentFury { get; set; } = 0;  // Fury starts at 0, builds in combat
 
     public bool IsRightHanded { get; set; } = true;
 

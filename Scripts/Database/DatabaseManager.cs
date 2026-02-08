@@ -37,6 +37,10 @@ public partial class DatabaseManager : Node
                     CurrentHealth INTEGER DEFAULT 100,
                     MaxStamina INTEGER DEFAULT 100,
                     CurrentStamina INTEGER DEFAULT 100,
+                    MaxMana INTEGER DEFAULT 100,
+                    CurrentMana INTEGER DEFAULT 100,
+                    MaxFury INTEGER DEFAULT 100,
+                    CurrentFury INTEGER DEFAULT 0,
                     IsRightHanded INTEGER DEFAULT 1
                 );
 

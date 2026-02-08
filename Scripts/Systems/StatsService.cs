@@ -16,7 +16,7 @@ public partial class StatsService : Node
             {
                 connection.Open();
                 var command = connection.CreateCommand();
-                command.CommandText = "SELECT Level, Experience, Gold, Strength, Agility, Dexterity, Vitality, Intelligence, MaxHealth, CurrentHealth, MaxStamina, CurrentStamina, IsRightHanded FROM Characters WHERE Id = 1";
+                command.CommandText = "SELECT Level, Experience, Gold, Strength, Agility, Dexterity, Vitality, Intelligence, MaxHealth, CurrentHealth, MaxStamina, CurrentStamina, MaxMana, CurrentMana, MaxFury, CurrentFury, IsRightHanded FROM Characters WHERE Id = 1";
                 using (var reader = command.ExecuteReader())
                 {
                     if (reader.Read())
@@ -33,7 +33,11 @@ public partial class StatsService : Node
                         _playerStats.CurrentHealth = reader.GetInt32(9);
                         _playerStats.MaxStamina = reader.GetInt32(10);
                         _playerStats.CurrentStamina = reader.GetInt32(11);
-                        _playerStats.IsRightHanded = reader.GetInt32(12) == 1;
+                        _playerStats.MaxMana = reader.GetInt32(12);
+                        _playerStats.CurrentMana = reader.GetInt32(13);
+                        _playerStats.MaxFury = reader.GetInt32(14);
+                        _playerStats.CurrentFury = reader.GetInt32(15);
+                        _playerStats.IsRightHanded = reader.GetInt32(16) == 1;
                     }
                 }
             }
@@ -57,7 +61,9 @@ public partial class StatsService : Node
                     Strength = @str, Agility = @agi, Dexterity = @dex,
                     Vitality = @vit, Intelligence = @int,
                     MaxHealth = @mhp, CurrentHealth = @chp,
-                    MaxStamina = @mst, CurrentStamina = @cst
+                    MaxStamina = @mst, CurrentStamina = @cst,
+                    MaxMana = @mmp, CurrentMana = @cmp,
+                    MaxFury = @mfu, CurrentFury = @cfu
                     WHERE Id = 1";
 
                 command.Parameters.AddWithValue("@lvl", _playerStats.Level);
@@ -72,6 +78,10 @@ public partial class StatsService : Node
                 command.Parameters.AddWithValue("@chp", _playerStats.CurrentHealth);
                 command.Parameters.AddWithValue("@mst", _playerStats.MaxStamina);
                 command.Parameters.AddWithValue("@cst", _playerStats.CurrentStamina);
+                command.Parameters.AddWithValue("@mmp", _playerStats.MaxMana);
+                command.Parameters.AddWithValue("@cmp", _playerStats.CurrentMana);
+                command.Parameters.AddWithValue("@mfu", _playerStats.MaxFury);
+                command.Parameters.AddWithValue("@cfu", _playerStats.CurrentFury);
 
                 command.ExecuteNonQuery();
             }

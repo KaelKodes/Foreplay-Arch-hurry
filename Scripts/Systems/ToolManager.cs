@@ -104,8 +104,11 @@ public partial class ToolManager : Node
     /// <summary>
     /// Updates the RPG ability hotbar with icons for the specific hero class.
     /// </summary>
+    public string CurrentHeroClass { get; private set; } = "Ranger";
+
     public void UpdateRPGAbilities(string heroClass)
     {
+        CurrentHeroClass = heroClass;
         string h = heroClass.ToLower();
         string folder = h switch
         {
