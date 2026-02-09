@@ -15,15 +15,27 @@ public partial class GenericHeroAbility : HeroAbilityBase
 
         if (isRanger)
         {
-            if (AbilitySlot < 3)
+            var archery = caster.GetNodeOrNull<ArcherySystem>("ArcherySystem");
+
+            switch (AbilitySlot)
             {
-                // Accessing the local ArcherySystem
-                caster.GetNodeOrNull<ArcherySystem>("ArcherySystem")?.QuickFire(0f);
-            }
-            else if (AbilitySlot == 3)
-            {
-                // PerformVault is now public in PlayerController
-                caster.PerformVault();
+                case 0: // Rapid Fire
+                    archery?.QuickFire(0f);
+                    break;
+                case 1: // Piercing Shot
+                    if (archery != null)
+                    {
+                        archery.SetNextShotPiercing(true);
+                        archery.QuickFire(0f);
+                    }
+                    break;
+                case 2: // Rain of Arrows
+                    // TODO: Implement AoE Rain logic
+                    archery?.QuickFire(0f);
+                    break;
+                case 3: // Vault
+                    caster.PerformVault();
+                    break;
             }
         }
         else

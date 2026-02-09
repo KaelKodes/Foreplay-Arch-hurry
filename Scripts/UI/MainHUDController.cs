@@ -183,7 +183,7 @@ public partial class MainHUDController : CanvasLayer
 		}
 		else
 		{
-			if (_player != null) Input.MouseMode = Input.MouseModeEnum.Captured;
+			if (_player != null) Input.MouseMode = Input.MouseModeEnum.Visible;
 		}
 	}
 

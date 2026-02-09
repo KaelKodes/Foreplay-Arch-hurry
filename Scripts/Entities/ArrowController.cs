@@ -12,6 +12,7 @@ public partial class ArrowController : RigidBody3D
 
 	public bool HasBeenShot { get; private set; } = false;
 	public bool IsCollectible { get; private set; } = false;
+	public bool IsPiercing { get; set; } = false; // Added for Perk Compatibility
 	[Export] public MobaTeam Team = MobaTeam.None;
 
 	private Vector3 _windVelocity = Vector3.Zero;
@@ -128,21 +129,24 @@ public partial class ArrowController : RigidBody3D
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true)]
-    public void Launch(Vector3 startPosition, Vector3 startRotation, Vector3 velocity, Vector3 spin)
+    public void Launch(Vector3 startPosition, Vector3 startRotation, Vector3 velocity, Vector3 windVector, bool isPiercing = false)
     {
 		// Set position/rotation first (critical for remote clients who haven't seen this arrow move)
 		GlobalPosition = startPosition;
 		GlobalRotation = startRotation;
 
+		IsPiercing = isPiercing;
+
 		HasBeenShot = true;
-		GD.Print($"Arrow: Launch() called from {GlobalPosition} with velocity: {velocity}");
+		GD.Print($"Arrow: Launch() called from {GlobalPosition} with velocity: {velocity} (Piercing: {IsPiercing})");
 		_isFlying = true;
 		_isStuck = false;
 		Freeze = false;
 		Sleeping = false;
 		_startPosition = GlobalPosition;
 		_pendingVelocity = velocity; // Apply in next IntegrateForces
-		_spin = spin;
+		// _spin = spin; // Removed spin support to match signature
+		_windVelocity = windVector;
 		_maxSpeed = 0.0f;
 
 		// Force wake the physics engine

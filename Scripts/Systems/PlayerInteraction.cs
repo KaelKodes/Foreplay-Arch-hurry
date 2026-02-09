@@ -75,4 +75,78 @@ public static class PlayerInteraction
         }
         return nearestCart;
     }
+
+    /// <summary>
+    /// Check for interactable objects using a forward raycast from the player's body.
+    /// </summary>
+    public static Node CheckInteractionForwardRaycast(CharacterBody3D player)
+    {
+        var spaceState = player.GetWorld3D().DirectSpaceState;
+        var from = player.GlobalPosition + new Vector3(0, 1.5f, 0);
+        var to = from + (-player.GlobalTransform.Basis.Z) * 3.0f;
+
+        var query = PhysicsRayQueryParameters3D.Create(from, to);
+        query.CollisionMask = 3;
+        query.Exclude = new Godot.Collections.Array<Rid> { player.GetRid() };
+
+        var result = spaceState.IntersectRay(query);
+        if (result.Count > 0)
+        {
+            var hitNode = (Node)result["collider"];
+            Node n = hitNode;
+            while (n != null)
+            {
+                if (n is InteractableObject io) return io;
+                if (n is ArrowController ac) return ac;
+                n = n.GetParent();
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Handle proximity prompts for interaction.
+    /// </summary>
+    public static void HandleProximityPrompts(PlayerController player, ArcherySystem archerySystem)
+    {
+        if (archerySystem == null) return;
+
+        // 1. Proximity Check for Arrows
+        ArrowController nearestArrow = FindNearestCollectibleArrow(player, player.GlobalPosition, 3.0f);
+        if (nearestArrow != null && nearestArrow.IsCollectible)
+        {
+            string prompt = nearestArrow.GetInteractionPrompt();
+            if (!string.IsNullOrEmpty(prompt))
+            {
+                archerySystem.SetPrompt(true, prompt);
+                if (Input.IsKeyPressed(Key.E))
+                {
+                    nearestArrow.OnInteract(player);
+                }
+                return;
+            }
+        }
+
+        // 2. Generic Interaction Check
+        Node hitNode = CheckInteractionForwardRaycast(player);
+        if (hitNode != null)
+        {
+            float dist = player.GlobalPosition.DistanceTo((hitNode is Node3D n3d ? n3d.GlobalPosition : player.GlobalPosition));
+            if (dist < 5.0f)
+            {
+                string prompt = (hitNode is InteractableObject io) ? io.GetInteractionPrompt() : ((hitNode is ArrowController ac) ? ac.GetInteractionPrompt() : "");
+                if (!string.IsNullOrEmpty(prompt))
+                {
+                    archerySystem.SetPrompt(true, prompt);
+                    if (Input.IsKeyPressed(Key.E))
+                    {
+                        if (hitNode is InteractableObject io2) io2.OnInteract(player); else if (hitNode is ArrowController ac2) ac2.OnInteract(player);
+                    }
+                    return;
+                }
+            }
+        }
+
+        archerySystem.SetPrompt(false);
+    }
 }
