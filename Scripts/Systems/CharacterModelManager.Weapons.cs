@@ -232,6 +232,12 @@ public partial class CharacterModelManager
         var model = registry?.GetModel(_currentModelId);
         if (model == null || _currentCustomModel == null) return;
 
+        // Custom-skeleton heroes with built-in weapons: skip standalone weapon logic entirely
+        if (model.IsCustomSkeleton && (model.Meshes == null || model.Meshes.Count == 0))
+        {
+            return;
+        }
+
         bool hasCustomSword = HasVisibleMeshInCategory(model, CharacterConfig.MeshConfig.Categories.WeaponMain);
         bool hasCustomBow = HasVisibleMeshInCategory(model, CharacterConfig.MeshConfig.Categories.WeaponBow);
 

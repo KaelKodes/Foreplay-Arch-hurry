@@ -39,13 +39,14 @@ public partial class CharacterModelManager : Node
     private AnimationPlayer _archeryAnimPlayer;
     private AnimationPlayer _customAnimPlayer;
     private string _lastPlayedAnim = "";
+    private string _lastAttackAnim = "";
     private Mesh _cachedBowMesh;
     private string _currentModelId = "Ranger";
 
     public string CurrentModelId => _currentModelId;
 
-    public void Initialize(PlayerController player, Node3D meleeModel, Node3D archeryModel,
-                          AnimationTree animTree, AnimationPlayer meleeAnimPlayer, AnimationPlayer archeryAnimPlayer)
+    public void Initialize(PlayerController player, Node3D meleeModel = null, Node3D archeryModel = null,
+                          AnimationTree animTree = null, AnimationPlayer meleeAnimPlayer = null, AnimationPlayer archeryAnimPlayer = null)
     {
         _player = player;
         _meleeModel = meleeModel;
@@ -54,6 +55,7 @@ public partial class CharacterModelManager : Node
         _meleeAnimPlayer = meleeAnimPlayer;
         _archeryAnimPlayer = archeryAnimPlayer;
 
-        CacheBowMesh();
+        if (_archeryModel != null)
+            CacheBowMesh();
     }
 }

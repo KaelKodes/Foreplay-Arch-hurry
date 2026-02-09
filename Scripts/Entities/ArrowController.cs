@@ -203,8 +203,14 @@ public partial class ArrowController : RigidBody3D
 
         GD.Print($"Arrow: Hit {body.Name} (Type: {body.GetType().Name}) at {GlobalPosition}, Velocity: {LinearVelocity.Length():F1} m/s");
 
-        // Combat Logic: Check if we hit an interactable that can take damage
-        if (body is InteractableObject interactable)
+        // Combat Logic: Check if we hit an interactable or a specific body part
+        var monsterPart = body as MonsterPart ?? body.GetNodeOrNull<MonsterPart>("MonsterPart");
+        if (monsterPart != null)
+        {
+            float damage = LinearVelocity.Length() * 0.5f;
+            monsterPart.OnHit(damage, GlobalPosition, LinearVelocity.Normalized(), _playerException);
+        }
+        else if (body is InteractableObject interactable)
         {
             // Check team affiliation
             MobaTeam otherTeam = MobaTeam.None;

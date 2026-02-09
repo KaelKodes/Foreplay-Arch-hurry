@@ -99,6 +99,39 @@ public partial class PlayerController : CharacterBody3D
 
     private bool _isJumping = false;
 
+    public virtual void OnHit(float damage, Vector3 hitPosition, Vector3 hitNormal, Node attacker = null)
+    {
+        // Server handles authoritative state; Local provides immediate feedback
+        if (Multiplayer.IsServer() || IsLocal)
+        {
+            GD.Print($"[Player {PlayerIndex}] Hit for {damage} by {attacker?.Name ?? "Unknown"}");
+
+            var stats = _archerySystem?.PlayerStats;
+            if (stats != null)
+            {
+                stats.CurrentHealth -= (int)damage;
+                if (stats.CurrentHealth < 0) stats.CurrentHealth = 0;
+
+                GD.Print($"[Player {PlayerIndex}] HP: {stats.CurrentHealth}/{stats.MaxHealth}");
+
+                // Trigger death if HP reaches zero (placeholder for Respawn logic)
+                if (stats.CurrentHealth <= 0)
+                {
+                    GD.Print($"[Player {PlayerIndex}] DIED!");
+                }
+            }
+        }
+    }
+    private bool _isIntercepting = false;
+    private float _interceptTime = 0.0f;
+    private Vector3 _interceptDir = Vector3.Forward;
+
+    // Buffs
+    public bool IsCCImmune { get; private set; } = false;
+    public float LifestealPercent { get; private set; } = 0f;
+    private float _ccImmunityTimer = 0f;
+    private float _lifestealTimer = 0f;
+
     public int SynchronizedTool
     {
         get => (int)_currentTool;
@@ -184,24 +217,57 @@ public partial class PlayerController : CharacterBody3D
 
         _avatarMesh = GetNodeOrNull<MeshInstance3D>("AvatarMesh");
 
-        if (!AnimationTreePath.IsEmpty)
-            _animTree = GetNodeOrNull<AnimationTree>(AnimationTreePath);
+        // Determine if this hero uses a custom skeleton (own model/anims)
+        var registry = CharacterRegistry.Instance;
+        var heroModel = registry?.GetModel(_currentModelId);
+        bool isCustomSkeleton = heroModel?.IsCustomSkeleton ?? false;
 
-        if (_animTree == null)
-            _animTree = GetNodeOrNull<AnimationTree>("AnimationTree");
+        GD.Print($"[PlayerController] Hero: {_currentModelId}, CustomSkeleton: {isCustomSkeleton}");
 
-        _meleeModel = GetNodeOrNull<Node3D>("Erika");
-        _archeryModel = GetNodeOrNull<Node3D>("ErikaBow");
+        if (!isCustomSkeleton)
+        {
+            // Shared skeleton (Ranger, Cleric) — use Erika rig
+            if (!AnimationTreePath.IsEmpty)
+                _animTree = GetNodeOrNull<AnimationTree>(AnimationTreePath);
 
-        _meleeAnimPlayer = GetNodeOrNull<AnimationPlayer>("Erika/AnimationPlayer");
-        _archeryAnimPlayer = GetNodeOrNull<AnimationPlayer>("ErikaBow/AnimationPlayer");
+            if (_animTree == null)
+                _animTree = GetNodeOrNull<AnimationTree>("AnimationTree");
+
+            _meleeModel = GetNodeOrNull<Node3D>("Erika");
+            _archeryModel = GetNodeOrNull<Node3D>("ErikaBow");
+
+            _meleeAnimPlayer = GetNodeOrNull<AnimationPlayer>("Erika/AnimationPlayer");
+            _archeryAnimPlayer = GetNodeOrNull<AnimationPlayer>("ErikaBow/AnimationPlayer");
+        }
+        else
+        {
+            // Custom skeleton (Warrior, Necromancer) — skip Erika entirely
+            var erika = GetNodeOrNull<Node3D>("Erika");
+            var erikaBow = GetNodeOrNull<Node3D>("ErikaBow");
+            if (erika != null) erika.Visible = false;
+            if (erikaBow != null) erikaBow.Visible = false;
+
+            // Disable Erika's AnimationTree — custom models use their own AnimationPlayer
+            var animTreeNode = GetNodeOrNull<AnimationTree>("AnimationTree");
+            if (animTreeNode != null) animTreeNode.Active = false;
+
+            // Null out Erika refs — not needed
+            _meleeModel = null;
+            _archeryModel = null;
+            _meleeAnimPlayer = null;
+            _archeryAnimPlayer = null;
+            _animTree = null;
+        }
 
         if (_modelManager == null)
-            _modelManager = GetNodeOrNull<CharacterModelManager>("ModelManager") ?? GetNodeOrNull<CharacterModelManager>("Erika/ModelManager");
+            _modelManager = GetNodeOrNull<CharacterModelManager>("ModelManager")
+                    ?? GetNodeOrNull<CharacterModelManager>("CharacterModelManager")
+                    ?? GetNodeOrNull<CharacterModelManager>("Erika/ModelManager");
 
         if (_modelManager == null)
         {
             _modelManager = new CharacterModelManager();
+            _modelManager.Name = "ModelManager";
             AddChild(_modelManager);
         }
 
@@ -217,6 +283,11 @@ public partial class PlayerController : CharacterBody3D
         if (IsLocal)
         {
             AddToGroup("local_player");
+            AddToGroup("player"); // Core group for Monster AI detection
+
+            // JOIN TEAM GROUPS: Critical for MobaTower and MobaMinion discovery
+            if (Team != MobaTeam.None) AddToGroup($"team_{Team.ToString().ToLower()}");
+
             _hud = GetTree().CurrentScene.FindChild("HUD", true, false) as MainHUDController;
             if (_hud != null) _hud.RegisterPlayer(this);
 
@@ -255,6 +326,8 @@ public partial class PlayerController : CharacterBody3D
 
     public override void _PhysicsProcess(double delta)
     {
+        ProcessBuffs((float)delta);
+
         if (_lastPlayerIndex != PlayerIndex)
         {
             _lastPlayerIndex = PlayerIndex;
@@ -315,7 +388,7 @@ public partial class PlayerController : CharacterBody3D
         if (_isVaulting) return;
         _isVaulting = true;
         _dashTime = DashDuration;
-        _dashDir = GlobalBasis.Z;
+        _dashDir = GlobalBasis.Z; // Forward leap
         _dashDir.Y = 0;
         _dashDir = _dashDir.Normalized();
         _originalMask = CollisionMask;
@@ -333,6 +406,49 @@ public partial class PlayerController : CharacterBody3D
             if (perkId.Contains("dmg")) ability.DamageMultiplier *= 1.2f;
             if (perkId.Contains("cdr")) ability.CooldownReduction += 0.5f;
             if (perkId.Contains("radius")) ability.RadiusBonus += 1.0f;
+        }
+    }
+
+    public void PerformIntercept()
+    {
+        if (_isIntercepting) return;
+        _isIntercepting = true;
+        _interceptTime = 0.4f; // Flat duration for consistency
+        _interceptDir = GlobalBasis.Z; // REVERTED: Direction as per user preference
+        _interceptDir.Y = 0;
+        _interceptDir = _interceptDir.Normalized();
+
+        // Also apply a small jump/hop for flair
+        _velocity.Y = JumpForce * 0.5f;
+        _isJumping = true;
+    }
+
+    public void ApplyCCImmunity(float duration)
+    {
+        _ccImmunityTimer = duration;
+        IsCCImmune = true;
+        GD.Print($"[PlayerController] CC Immunity active for {duration}s");
+    }
+
+    public void ApplyLifesteal(float percent, float duration)
+    {
+        LifestealPercent = percent;
+        _lifestealTimer = duration;
+        GD.Print($"[PlayerController] Lifesteal ({percent * 100}%) active for {duration}s");
+    }
+
+    private void ProcessBuffs(float dt)
+    {
+        if (_ccImmunityTimer > 0)
+        {
+            _ccImmunityTimer -= dt;
+            if (_ccImmunityTimer <= 0) IsCCImmune = false;
+        }
+
+        if (_lifestealTimer > 0)
+        {
+            _lifestealTimer -= dt;
+            if (_lifestealTimer <= 0) LifestealPercent = 0f;
         }
     }
 }

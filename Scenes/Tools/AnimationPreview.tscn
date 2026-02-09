@@ -1,0 +1,149 @@
+[gd_scene load_steps=3 format=3 uid="uid://c8xa32uycwpsw"]
+
+[ext_resource type="Script" path="res://Scripts/Tools/AnimationPreviewController.cs" id="1_controller"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_t5v1k"]
+size = Vector2(2, 2)
+
+[node name="AnimationPreview" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_controller")
+
+[node name="BG" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.12, 0.12, 0.12, 1)
+
+[node name="HSplit" type="HSplitContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offset = 300
+
+[node name="Sidebar" type="VBoxContainer" parent="HSplit"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Margin" type="MarginContainer" parent="HSplit/Sidebar"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="HSplit/Sidebar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BackBtn" type="Button" parent="HSplit/Sidebar/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back to Main Menu"
+
+[node name="HSeparator" type="HSeparator" parent="HSplit/Sidebar/Margin/VBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HSplit/Sidebar/Margin/VBox"]
+layout_mode = 2
+text = "Select Character Model:"
+
+[node name="ModelList" type="ItemList" parent="HSplit/Sidebar/Margin/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="HSplit/Sidebar/Margin/VBox"]
+layout_mode = 2
+
+[node name="TabContainer" type="TabContainer" parent="HSplit/Sidebar/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Anims" type="VBoxContainer" parent="HSplit/Sidebar/Margin/VBox/TabContainer"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="Scroll" type="ScrollContainer" parent="HSplit/Sidebar/Margin/VBox/TabContainer/Anims"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="AnimGrid" type="GridContainer" parent="HSplit/Sidebar/Margin/VBox/TabContainer/Anims/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 1
+
+[node name="Mappings" type="VBoxContainer" parent="HSplit/Sidebar/Margin/VBox/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="Scroll" type="ScrollContainer" parent="HSplit/Sidebar/Margin/VBox/TabContainer/Mappings"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SlotContainer" type="VBoxContainer" parent="HSplit/Sidebar/Margin/VBox/TabContainer/Mappings/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SaveMappingsBtn" type="Button" parent="HSplit/Sidebar/Margin/VBox/TabContainer/Mappings"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Export Mapping to Console"
+
+[node name="PreviewArea" type="VBoxContainer" parent="HSplit"]
+layout_mode = 2
+
+[node name="Header" type="PanelContainer" parent="HSplit/PreviewArea"]
+layout_mode = 2
+
+[node name="ModelLabel" type="Label" parent="HSplit/PreviewArea/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Character Animation Preview"
+horizontal_alignment = 1
+
+[node name="ModelPreview" type="SubViewportContainer" parent="HSplit/PreviewArea"]
+layout_mode = 2
+size_flags_vertical = 3
+stretch = true
+
+[node name="PreviewViewport" type="SubViewport" parent="HSplit/PreviewArea/ModelPreview"]
+unique_name_in_owner = true
+handle_input_locally = false
+msaa_3d = 2
+screen_space_aa = 1
+size = Vector2i(852, 606)
+render_target_update_mode = 4
+
+[node name="PreviewCamera" type="Camera3D" parent="HSplit/PreviewArea/ModelPreview/PreviewViewport"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 1.5, 3)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="HSplit/PreviewArea/ModelPreview/PreviewViewport"]
+transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433012, 0, 5, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="HSplit/PreviewArea/ModelPreview/PreviewViewport"]
+
+[node name="ModelContainer" type="Node3D" parent="HSplit/PreviewArea/ModelPreview/PreviewViewport"]
+unique_name_in_owner = true
+
+[node name="Floor" type="MeshInstance3D" parent="HSplit/PreviewArea/ModelPreview/PreviewViewport"]
+transform = Transform3D(10, 0, 0, 0, 1, 0, 0, 0, 10, 0, -0.05, 0)
+mesh = SubResource("PlaneMesh_t5v1k")

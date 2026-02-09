@@ -8,7 +8,7 @@ public partial class Monsters
 {
     private void UpdateSpeciesVisuals()
     {
-        MonsterVisuals.UpdateSpeciesVisuals(this, Species, _animPlayer, UpdateCollisionShape);
+        MonsterVisuals.UpdateSpeciesVisuals(this, Species, _animPlayer, AutoSizeCollision ? UpdateCollisionShape : null);
     }
 
     private void UpdateCollisionShape()

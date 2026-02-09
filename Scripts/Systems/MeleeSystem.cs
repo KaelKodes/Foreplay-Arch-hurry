@@ -212,6 +212,28 @@ public partial class MeleeSystem : Node
 
 		if (_currentPlayer != null && _currentPlayer.IsLocal)
 		{
+			// Apply Lifesteal if active
+			if (_currentPlayer.GetType().GetProperty("LifestealPercent")?.GetValue(_currentPlayer) is float ls && ls > 0)
+			{
+				float healAmount = damage * ls;
+				if (_currentPlayer.GetType().GetProperty("CurrentHealth") != null)
+				{
+					var stats = _currentPlayer.GetType().GetProperty("PlayerStats")?.GetValue(_currentPlayer);
+					if (stats != null)
+					{
+						var curHealthProp = stats.GetType().GetProperty("CurrentHealth");
+						var maxHealthProp = stats.GetType().GetProperty("MaxHealth");
+						if (curHealthProp != null && maxHealthProp != null)
+						{
+							int cur = (int)curHealthProp.GetValue(stats);
+							int max = (int)maxHealthProp.GetValue(stats);
+							curHealthProp.SetValue(stats, Mathf.Clamp(cur + (int)healAmount, 0, max));
+							GD.Print($"[MeleeSystem] Lifesteal heal: {healAmount:F1}");
+						}
+					}
+				}
+			}
+
 			if (IsAnySlam)
 			{
 				// Delay the slam to match animation timing
@@ -277,7 +299,16 @@ public partial class MeleeSystem : Node
 				Vector3 hitPos = ((Node3D)collider).GlobalPosition;
 				Vector3 dir = (hitPos - center).Normalized();
 
-				if (interactable != null) interactable.OnHit(damage, hitPos, dir, _currentPlayer);
+				// NEW: Check for specialized body part hitbox
+				var monsterPart = collider as MonsterPart ?? collider.GetNodeOrNull<MonsterPart>("MonsterPart");
+				if (monsterPart != null)
+				{
+					monsterPart.OnHit(damage, hitPos, dir, _currentPlayer);
+				}
+				else if (interactable != null)
+				{
+					interactable.OnHit(damage, hitPos, dir, _currentPlayer);
+				}
 				else if (tower != null) tower.TakeDamage(damage);
 				else if (nexus != null) nexus.TakeDamage(damage);
 			}
@@ -327,7 +358,16 @@ public partial class MeleeSystem : Node
 					hitPos = ((Node3D)collider).GlobalPosition;
 				}
 
-				if (interactable != null) interactable.OnHit(damage, hitPos, forward, _currentPlayer);
+				// NEW: Check for specialized body part hitbox
+				var monsterPart = collider as MonsterPart ?? collider.GetNodeOrNull<MonsterPart>("MonsterPart");
+				if (monsterPart != null)
+				{
+					monsterPart.OnHit(damage, hitPos, forward, _currentPlayer);
+				}
+				else if (interactable != null)
+				{
+					interactable.OnHit(damage, hitPos, forward, _currentPlayer);
+				}
 				else if (tower != null) tower.TakeDamage(damage);
 				else if (nexus != null) nexus.TakeDamage(damage);
 			}

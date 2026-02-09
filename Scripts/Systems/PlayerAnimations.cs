@@ -23,6 +23,35 @@ public static class PlayerAnimations
         Vector3 velocity,
         ref DrawStage lastArcheryStage)
     {
+        // For custom-skeleton heroes, skip AnimationTree entirely — go straight to direct PlayAnimation
+        if (modelManager != null)
+        {
+            var registry = CharacterRegistry.Instance;
+            var model = registry?.GetModel(modelManager.CurrentModelId);
+            if (model != null && model.IsCustomSkeleton)
+            {
+                float customSpeed = new Vector2(velocity.X, velocity.Z).Length();
+                bool customSprinting = player.IsLocal ? (Input.IsKeyPressed(Key.Shift) && customSpeed > 0.1f) : player.IsSprinting;
+                if (player.IsLocal) player.IsSprinting = customSprinting;
+
+                bool customSwinging = false;
+                if (meleeSystem != null)
+                {
+                    var sState = (MeleeSystem.SwingState)player.SynchronizedMeleeStage;
+                    if (sState == MeleeSystem.SwingState.Finishing || sState == MeleeSystem.SwingState.Executing)
+                        customSwinging = true;
+                }
+
+                bool isFiring = (player.CurrentState == PlayerState.CombatArcher && archerySystem != null &&
+                                ((DrawStage)player.SynchronizedArcheryStage == DrawStage.Executing ||
+                                 (DrawStage)player.SynchronizedArcheryStage == DrawStage.ShotComplete));
+
+                float lockedPower = (meleeSystem != null) ? meleeSystem.LockedPower : 0f;
+                modelManager.UpdateCustomAnimations(customSpeed > 0.1f, customSprinting, isJumping, customSwinging, isFiring, lockedPower);
+                return;
+            }
+        }
+
         if (animTree == null) return;
 
         // 1. Calculate Horizontal Movement
@@ -130,8 +159,8 @@ public static class PlayerAnimations
                                 ((DrawStage)player.SynchronizedArcheryStage == DrawStage.Executing ||
                                  (DrawStage)player.SynchronizedArcheryStage == DrawStage.ShotComplete));
 
-                bool overcharged = (meleeSystem != null && meleeSystem.IsTripleSwing);
-                modelManager.UpdateCustomAnimations(speed > 0.1f, currentlySprinting, isJumping, isSwinging, isFiring, overcharged);
+                float lockedPower = (meleeSystem != null) ? meleeSystem.LockedPower : 0f;
+                modelManager.UpdateCustomAnimations(speed > 0.1f, currentlySprinting, isJumping, isSwinging, isFiring, lockedPower);
             }
         }
     }

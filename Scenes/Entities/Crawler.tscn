@@ -1,21 +1,22 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://dqe0q1niab7l1"]
 
-[ext_resource type="Script" path="res://Scripts/Entities/Monsters.cs" id="1_script"]
-[ext_resource type="PackedScene" path="res://Assets/Monsters/Crawler/Crawler_Mesh.fbx" id="2_mesh"]
+[ext_resource type="Script" uid="uid://fyf3dsopdwlv" path="res://Scripts/Entities/Monsters.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://cq0e1tuf6b0t4" path="res://Assets/Monsters/Crawler/Crawler_Mesh.fbx" id="2_mesh"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_crawler"]
-height = 1.5
+radius = 0.47802734
+height = 1.8120117
 
-[node name="Crawler" type="CharacterBody3D"]
+[node name="Crawler" type="CharacterBody3D" unique_id=1491280431]
 collision_mask = 3
 script = ExtResource("1_script")
 Species = "Crawler"
 ObjectName = "Crawler"
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=711196634]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.90600586, 0)
 shape = SubResource("CapsuleShape3D_crawler")
 
-[node name="Visuals" type="Node3D" parent="."]
+[node name="Visuals" type="Node3D" parent="." unique_id=1749468463]
 
-[node name="scene" parent="Visuals" instance=ExtResource("2_mesh")]
+[node name="scene" parent="Visuals" unique_id=1126081707 instance=ExtResource("2_mesh")]

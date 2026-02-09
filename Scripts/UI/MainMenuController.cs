@@ -41,6 +41,10 @@ public partial class MainMenuController : Control
         var joinBtn = FindChild("JoinBtn", true, false) as Button;
         if (joinBtn != null) joinBtn.Pressed += OnJoinPressed;
 
+        // Show Character Import Button (linked via .tscn signal)
+        var importBtn = FindChild("CharacterImportBtn", true, false) as Button;
+        if (importBtn != null) importBtn.Visible = true;
+
         // Hide Putting Range if found (User request)
         var puttingBtn = FindChild("PuttingRangeBtn", true, false) as Button; // Guessing name
         if (puttingBtn != null) puttingBtn.Visible = false;
@@ -116,7 +120,7 @@ public partial class MainMenuController : Control
 
     private void OnCharacterImportPressed()
     {
-        GD.Print("[MainMenu] Opening Character Import Wizard...");
-        GetTree().ChangeSceneToFile("res://Scenes/UI/CharacterImportWizard.tscn");
+        GD.Print("[MainMenu] Opening Animation Preview Tool...");
+        GetTree().ChangeSceneToFile("res://Scenes/Tools/AnimationPreview.tscn");
     }
 }

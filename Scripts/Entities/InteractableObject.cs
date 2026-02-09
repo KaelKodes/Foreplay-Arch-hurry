@@ -38,7 +38,12 @@ public partial class InteractableObject : Node3D
             TryApplyTexturesToModel(this, ModelPath);
         }
 
-        if (GetNodeOrNull<StaticBody3D>("StaticBody3D") == null)
+        // Skip auto-collision if this node is already a physics body or has a manual shape
+        bool hasNativeCollision = GetNodeOrNull<CollisionShape3D>("CollisionShape3D") != null ||
+                                 GetNodeOrNull<StaticBody3D>("StaticBody3D") != null ||
+                                 IsClass("CollisionObject3D");
+
+        if (!hasNativeCollision)
         {
             AddDynamicCollision();
         }
@@ -90,9 +95,10 @@ public partial class InteractableObject : Node3D
             Transform3D currentTransform = parentTransform;
             if (node is Node3D node3D) currentTransform = parentTransform * node3D.Transform;
 
-            if (node is MeshInstance3D meshInstance && meshInstance.Mesh != null)
+            // ONLY include visible meshes in the dynamic collision box
+            if (node is VisualInstance3D vi && vi.Visible)
             {
-                Aabb transformedAabb = currentTransform * meshInstance.GetAabb();
+                Aabb transformedAabb = currentTransform * vi.GetAabb();
                 if (!hasAabb) { combinedAabb = transformedAabb; hasAabb = true; }
                 else combinedAabb = combinedAabb.Merge(transformedAabb);
             }

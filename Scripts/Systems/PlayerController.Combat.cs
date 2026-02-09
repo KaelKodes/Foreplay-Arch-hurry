@@ -7,8 +7,12 @@ public partial class PlayerController
 {
     private void PerformBasicAttack()
     {
-        if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
+        // In RPG mode, non-Rangers stay in WalkMode — still trigger melee
+        if (_meleeSystem != null && (CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.WalkMode))
+        {
+            _meleeSystem.StartCharge();
             _meleeSystem.ExecuteAttack(0f);
+        }
         else if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
             _archerySystem.ExecuteAttack(0f);
     }
@@ -29,7 +33,7 @@ public partial class PlayerController
         // Cap visual at 1.5s for the SYSTEM percent (which signals events)
         float chargePercent = Mathf.Clamp(_attackHoldTimer / 1.5f, 0f, 1f) * 100f;
 
-        if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
+        if ((CurrentState == PlayerState.CombatMelee || (CurrentState == PlayerState.WalkMode && _meleeSystem != null)) && _meleeSystem != null)
             _meleeSystem.UpdateChargeProgress(chargePercent);
         else if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
             _archerySystem.UpdateChargeProgress(chargePercent);

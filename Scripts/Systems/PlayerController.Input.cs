@@ -163,7 +163,10 @@ public partial class PlayerController
             }
             else if (isRPGMode && !isRangerMatch && !_isChargingAttack)
             {
-                PerformBasicAttack();
+                // Hold-to-charge melee attacks (same as CombatMelee path)
+                _isChargingAttack = true;
+                _attackHoldTimer = 0f;
+                _meleeSystem?.StartCharge();
             }
             else if ((CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher) && !_isChargingAttack)
             {
@@ -185,8 +188,9 @@ public partial class PlayerController
                 _attackHoldTimer = 0f;
 
                 bool isRangerRelease = CurrentModelId.ToLower() == "ranger";
+                bool isRPGMelee = isRPGMode && !isRangerRelease && _meleeSystem != null;
 
-                if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
+                if ((CurrentState == PlayerState.CombatMelee || isRPGMelee) && _meleeSystem != null)
                     _meleeSystem.ExecuteAttack(finalHoldTime);
                 else if ((CurrentState == PlayerState.CombatArcher || (isRPGMode && isRangerRelease)) && _archerySystem != null)
                     _archerySystem.ExecuteAttack(finalHoldTime);

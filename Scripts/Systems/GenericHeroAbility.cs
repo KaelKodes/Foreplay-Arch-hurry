@@ -7,19 +7,21 @@ namespace Archery;
 /// </summary>
 public partial class GenericHeroAbility : HeroAbilityBase
 {
-    public int AbilitySlot { get; set; }
-
     public override void Execute(PlayerController caster)
     {
-        bool isRanger = caster.CurrentModelId.ToLower() == "ranger";
+        string classId = caster.CurrentModelId?.ToLower() ?? "";
 
-        if (isRanger)
+        switch (classId)
         {
-            RangerAbilities.ExecuteAbility(caster, AbilitySlot);
-        }
-        else
-        {
-            GD.Print($"[Ability] {caster.CurrentModelId} ability {AbilitySlot + 1} triggered (No implementation yet)");
+            case "ranger":
+                RangerAbilities.ExecuteAbility(caster, AbilitySlot);
+                break;
+            case "warrior":
+                WarriorAbilities.ExecuteAbility(caster, AbilitySlot);
+                break;
+            default:
+                GD.Print($"[Ability] {caster.CurrentModelId} ability {AbilitySlot + 1} triggered (No implementation yet)");
+                break;
         }
     }
 }

@@ -111,14 +111,43 @@ public partial class CharacterRegistry : Node
             }
         });
 
-        // Warrior (Formerly Paladin.fbx - Shared Skeleton)
+        // Warrior (New Paladin WProp model - Own Skeleton + Animations)
         AvailableModels.Add(new CharacterModel
         {
             Id = "Warrior",
             DisplayName = "Warrior",
-            MeleeScenePath = "res://Assets/CharacterMeshes/Paladin.fbx",
-            ArcheryScenePath = "res://Assets/CharacterMeshes/Paladin.fbx",
-            IsCustomSkeleton = false
+            MeleeScenePath = "res://assets/warrior/Paladin WProp J Nordstrom.fbx",
+            ArcheryScenePath = "res://assets/warrior/Paladin WProp J Nordstrom.fbx",
+            IsCustomSkeleton = true,
+            AnimationSources = new Dictionary<string, string> {
+                // Core locomotion
+                { "Idle", "res://assets/warrior/sword and shield idle.fbx" },
+                { "Walk", "res://assets/warrior/sword and shield walk.fbx" },
+                { "Run", "res://assets/warrior/sword and shield run.fbx" },
+                { "Jump", "res://assets/warrior/sword and shield jump.fbx" },
+                // Melee combat — basic attack
+                { "MeleeAttack1", "res://assets/warrior/sword and shield slash.fbx" },
+                // Melee combat — charged tiers
+                { "PowerSlash", "res://assets/warrior/sword and shield slash (4).fbx" },
+                { "SlashCombo", "res://assets/warrior/sword and shield slash (2).fbx" },
+                // Extra slash variants
+                { "MeleeAttack2", "res://assets/warrior/sword and shield slash (3).fbx" },
+                { "MeleeAttack3", "res://assets/warrior/sword and shield attack.fbx" },
+                // Archery slots (Warrior doesn't use a bow — reuse melee anims)
+                { "ArcheryIdle", "res://assets/warrior/sword and shield idle.fbx" },
+                { "ArcheryDraw", "res://assets/warrior/sword and shield idle.fbx" },
+                { "ArcheryFire", "res://assets/warrior/sword and shield slash.fbx" },
+                // Death
+                { "Death", "res://assets/warrior/sword and shield death.fbx" },
+                // Abilities
+                { "Kick", "res://assets/warrior/sword and shield kick.fbx" },
+                { "PowerUp", "res://assets/warrior/sword and shield power up.fbx" },
+                { "Casting", "res://assets/warrior/sword and shield casting.fbx" },
+                // Extra combat anims
+                { "Block", "res://assets/warrior/sword and shield block.fbx" },
+                { "BlockIdle", "res://assets/warrior/sword and shield block idle.fbx" },
+                { "Impact", "res://assets/warrior/sword and shield impact.fbx" }
+            }
         });
 
         // Cleric (Formerly Warrior.fbx - Shared Skeleton)

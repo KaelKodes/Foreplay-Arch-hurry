@@ -10,22 +10,34 @@ public partial class PlayerController
         if (_camera == null) return;
 
         // Apply Vault movement
-        if (_isVaulting)
+        if (_isVaulting || _isIntercepting)
         {
-            _dashTime -= (float)delta;
-            _velocity.X = _dashDir.X * DashSpeed;
-            _velocity.Z = _dashDir.Z * DashSpeed;
-            _velocity.Y -= Gravity * (float)delta; // Natural falling arc
+            float currentDashTime = _isVaulting ? _dashTime : _interceptTime;
+            Vector3 currentDashDir = _isVaulting ? _dashDir : _interceptDir;
+
+            if (_isVaulting) _dashTime -= (float)delta;
+            else _interceptTime -= (float)delta;
+
+            _velocity.X = currentDashDir.X * DashSpeed;
+            _velocity.Z = currentDashDir.Z * DashSpeed;
+
+            if (_isVaulting) _velocity.Y -= Gravity * (float)delta; // Natural falling arc for vault
+            else _velocity.Y = 0; // Flat dash for intercept
 
             Velocity = _velocity;
             MoveAndSlide();
             _velocity = Velocity;
 
-            // End vault when time runs out OR if we hit ground after the initial leap
-            if (_dashTime <= 0 || (IsOnFloor() && _dashTime < DashDuration * 0.7f))
+            // End dash when time runs out
+            if (_isVaulting && (_dashTime <= 0 || (IsOnFloor() && _dashTime < DashDuration * 0.7f)))
             {
                 _isVaulting = false;
                 CollisionMask = _originalMask;
+                _isJumping = false;
+            }
+            else if (_isIntercepting && _interceptTime <= 0)
+            {
+                _isIntercepting = false;
                 _isJumping = false;
             }
             return;

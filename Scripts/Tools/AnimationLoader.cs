@@ -64,6 +64,19 @@ public partial class AnimationLoader : Node
 
     public override void _Ready()
     {
+        // Skip loading Erika animations for custom-skeleton heroes (they have their own)
+        var player = GetParent<Archery.PlayerController>();
+        if (player != null)
+        {
+            var registry = CharacterRegistry.Instance;
+            var heroModel = registry?.GetModel(player.CurrentModelId);
+            if (heroModel?.IsCustomSkeleton ?? false)
+            {
+                GD.Print($"[AnimationLoader] Skipping Erika animations — {player.CurrentModelId} uses custom skeleton");
+                return;
+            }
+        }
+
         var animPlayer = GetNodeOrNull<AnimationPlayer>(AnimationPlayerPath);
         if (animPlayer == null)
         {

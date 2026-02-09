@@ -1,13 +1,13 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://cdqnx4f5nd1my"]
 
 [ext_resource type="Script" uid="uid://s1mynw5om6ra" path="res://Scripts/MOBA/MobaMinion.cs" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://be60sld8pix8q" path="res://Assets/Monsters/Zombie/Parasite L Starkie.fbx" id="2_mesh"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_zombie"]
-radius = 0.25
+radius = 0.28222656
 height = 1.2
 
-[node name="MobaZombie" type="CharacterBody3D"]
+[node name="MobaZombie" type="CharacterBody3D" unique_id=1458182932]
 collision_mask = 3
 script = ExtResource("1_script")
 Health = 500.0
@@ -15,22 +15,12 @@ MaxHealth = 500.0
 Species = "Zombie"
 ObjectName = "MobaZombie"
 Team = 1
-MinionType = 0
-Armor = 4.0
-AttackDamage = 12.0
-AttackRange = 2.0
-AttackCooldown = 1.2
-MoveSpeed = 3.5
-GoldOnLastHit = 20.0
-GoldOnProximity = 8.0
-XpOnLastHit = 60.0
-XpOnProximity = 20.0
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=29318665]
+transform = Transform3D(0.7145064, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 shape = SubResource("CapsuleShape3D_zombie")
 
-[node name="Visuals" type="Node3D" parent="."]
+[node name="Visuals" type="Node3D" parent="." unique_id=351418286]
 transform = Transform3D(0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0, 0, 0)
 
-[node name="scene" parent="Visuals" instance=ExtResource("2_mesh")]
+[node name="scene" parent="Visuals" unique_id=2078296635 instance=ExtResource("2_mesh")]

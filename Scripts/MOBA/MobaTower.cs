@@ -104,7 +104,16 @@ public partial class MobaTower : InteractableObject
     {
         if (target == null || !IsInstanceValid(target)) return false;
         if (target is Monsters monster && monster.Health <= 0) return false;
-        if (target is InteractableObject io && (io.Team == Team || io.Team == MobaTeam.None)) return false;
+
+        // RANGE CHECK: Stop attacking if target moved away
+        if (GlobalPosition.DistanceTo(target.GlobalPosition) > AttackRange) return false;
+
+        MobaTeam targetTeam = MobaTeam.None;
+        if (target is InteractableObject io) targetTeam = io.Team;
+        else if (target is PlayerController pc) targetTeam = pc.Team;
+
+        if (targetTeam == Team || targetTeam == MobaTeam.None) return false;
+
         return true;
     }
 

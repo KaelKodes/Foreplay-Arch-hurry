@@ -279,4 +279,39 @@ public static class TargetingHelper
 
         return true;
     }
+
+    /// <summary>
+    /// Executes an action on all enemies/targets within a radius.
+    /// </summary>
+    public static void PerformAoEAction(Node3D caster, Vector3 center, float radius, System.Action<Node3D> action, MobaTeam attackerTeam = MobaTeam.None)
+    {
+        var spaceState = caster.GetWorld3D().DirectSpaceState;
+        var query = new PhysicsShapeQueryParameters3D();
+        query.Shape = new SphereShape3D { Radius = radius };
+        query.Transform = new Transform3D(Basis.Identity, center);
+        query.CollisionMask = 1 | 2; // Targetables and Monsters
+        if (caster is CollisionObject3D co)
+        {
+            query.Exclude = new Godot.Collections.Array<Rid> { co.GetRid() };
+        }
+
+        var results = spaceState.IntersectShape(query);
+        foreach (var result in results)
+        {
+            var collider = (Node)result["collider"];
+            var target = collider as Node3D;
+            if (target == null) target = collider.GetParent() as Node3D;
+            if (target == null) continue;
+
+            MobaTeam targetTeam = MobaTeam.None;
+            if (target is InteractableObject io) targetTeam = io.Team;
+            else if (target is MobaTower tower) targetTeam = tower.Team;
+            else if (target is MobaNexus nexus) targetTeam = nexus.Team;
+
+            if (TeamSystem.AreEnemies(attackerTeam, targetTeam) || targetTeam == MobaTeam.None)
+            {
+                action?.Invoke(target);
+            }
+        }
+    }
 }

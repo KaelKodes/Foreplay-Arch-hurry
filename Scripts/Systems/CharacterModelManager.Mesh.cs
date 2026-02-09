@@ -6,268 +6,272 @@ namespace Archery;
 
 public partial class CharacterModelManager
 {
-    private void SetupCustomModel(CharacterRegistry.CharacterModel model)
-    {
-        CleanupCustomModel();
+	private void SetupCustomModel(CharacterRegistry.CharacterModel model)
+	{
+		CleanupCustomModel();
 
-        // 1. Hide Erika
-        if (_meleeModel != null) _meleeModel.Visible = false;
-        if (_archeryModel != null) _archeryModel.Visible = false;
-        if (_animTree != null) _animTree.Active = false;
+		// 1. Hide Erika
+		if (_meleeModel != null) _meleeModel.Visible = false;
+		if (_archeryModel != null) _archeryModel.Visible = false;
+		if (_animTree != null) _animTree.Active = false;
 
-        // 2. Instantiate Custom Model
-        var path = model.MeleeScenePath; // Use Melee for default
-        if (ResourceLoader.Exists(path))
-        {
-            var scn = GD.Load<PackedScene>(path);
-            if (scn != null)
-            {
-                _currentCustomModel = scn.Instantiate<Node3D>();
-                _player.AddChild(_currentCustomModel);
-                _currentCustomModel.Transform = _meleeModel.Transform; // Match position/rotation
+		// 2. Instantiate Custom Model
+		var path = model.MeleeScenePath; // Use Melee for default
+		if (ResourceLoader.Exists(path))
+		{
+			var scn = GD.Load<PackedScene>(path);
+			if (scn != null)
+			{
+				_currentCustomModel = scn.Instantiate<Node3D>();
+				_player.AddChild(_currentCustomModel);
+				_currentCustomModel.Transform = _meleeModel?.Transform ?? Transform3D.Identity;
 
-                // Apply custom rig offsets
-                _currentCustomModel.Position += model.PositionOffset;
-                _currentCustomModel.RotationDegrees += model.RotationOffset;
-                _currentCustomModel.Scale *= model.ModelScale;
+				// Apply custom rig offsets
+				_currentCustomModel.Position += model.PositionOffset;
+				_currentCustomModel.RotationDegrees += model.RotationOffset;
+				_currentCustomModel.Scale *= model.ModelScale;
 
-                // Find AnimPlayer
-                _customAnimPlayer = FindPopulatedAnimationPlayerRecursive(_currentCustomModel);
-                if (_customAnimPlayer != null)
-                {
-                    var animations = _customAnimPlayer.GetAnimationList();
-                    GD.Print($"[CharacterModelManager] Custom AnimPlayer: {_customAnimPlayer.GetPath()} with {animations.Length} anims.");
+				// Find AnimPlayer
+				_customAnimPlayer = FindPopulatedAnimationPlayerRecursive(_currentCustomModel);
+				if (_customAnimPlayer != null)
+				{
+					var animations = _customAnimPlayer.GetAnimationList();
+					GD.Print($"[CharacterModelManager] Custom AnimPlayer: {_customAnimPlayer.GetPath()} with {animations.Length} anims.");
 
-                    // 1. Load Standard Animations (Retargeted) based on Config
-                    LoadRetargetedStandardAnimations(_customAnimPlayer, model);
+					// 1. Load Standard Animations (Retargeted) based on Config
+					LoadRetargetedStandardAnimations(_customAnimPlayer, model);
 
-                    // 2. Map common internal names to standard ones (Alias) for any "Internal" sources
-                    AliasEmbeddedAnimations(_customAnimPlayer, model);
+					// 2. Map common internal names to standard ones (Alias) for any "Internal" sources
+					AliasEmbeddedAnimations(_customAnimPlayer, model);
 
-                    // Re-fetch names after aliasing/loading
-                    animations = _customAnimPlayer.GetAnimationList();
-                    GD.Print($"[CharacterModelManager] Final animation count: {animations.Length}");
+					// Re-fetch names after aliasing/loading
+					animations = _customAnimPlayer.GetAnimationList();
+					GD.Print($"[CharacterModelManager] Final animation count: {animations.Length}");
 
-                    _lastPlayedAnim = "";
-                }
-                else
-                {
-                    GD.PrintErr($"[CharacterModelManager] NO ANIMATION PLAYER found in {path}");
-                }
+					_lastPlayedAnim = "";
+				}
+				else
+				{
+					GD.PrintErr($"[CharacterModelManager] NO ANIMATION PLAYER found in {path}");
+				}
 
-                // Apply Mesh Configuration (Hiding/Scaling)
-                ApplyMeshConfig(_currentCustomModel, model);
-            }
-        }
-    }
+				// --- Remove debug dump, keep just a summary ---
+				GD.Print($"[CharacterModelManager] Model {model.Id} loaded with custom skeleton");
 
-    private void ApplyMeshConfig(Node3D modelInstance, CharacterRegistry.CharacterModel modelData)
-    {
-        if (modelData.Meshes == null || modelData.Meshes.Count == 0)
-        {
-            // Fallback for models without config: Hide known weapon strings to be safe
-            HideBuiltinWeapons(modelInstance);
-            return;
-        }
+				// Apply Mesh Configuration (Hiding/Scaling)
+				ApplyMeshConfig(_currentCustomModel, model);
+			}
+		}
+	}
 
-        foreach (var kvp in modelData.Meshes)
-        {
-            string meshName = kvp.Key;
-            var cfg = kvp.Value;
+	private void ApplyMeshConfig(Node3D modelInstance, CharacterRegistry.CharacterModel modelData)
+	{
+		if (modelData.Meshes == null || modelData.Meshes.Count == 0)
+		{
+			// Custom-skeleton models: show ALL meshes by default (body + built-in weapons)
+			// Their FBX includes everything they need
+			GD.Print($"[CharacterModelManager] No mesh config — showing all meshes (per-hero model)");
+			return;
+		}
 
-            var meshNode = modelInstance.FindChild(meshName, true, false) as Node3D;
-            if (meshNode != null)
-            {
-                // Apply Scale
-                meshNode.Scale = new Vector3(cfg.Scale[0], cfg.Scale[1], cfg.Scale[2]);
+		foreach (var kvp in modelData.Meshes)
+		{
+			string meshName = kvp.Key;
+			var cfg = kvp.Value;
 
-                // Apply Visibility based on Category
-                // Items/Body/Hidden are static. Weapons are dynamic.
-                if (cfg.Category == CharacterConfig.MeshConfig.Categories.Hidden)
-                {
-                    meshNode.Visible = false;
-                }
-                else if (cfg.Category == CharacterConfig.MeshConfig.Categories.Body ||
-                         cfg.Category == CharacterConfig.MeshConfig.Categories.Item)
-                {
-                    meshNode.Visible = cfg.IsVisible;
-                }
-                else
-                {
-                    // Weapons: Initially hide until Mode update
-                    meshNode.Visible = false;
-                }
-            }
-        }
-    }
+			var meshNode = modelInstance.FindChild(meshName, true, false) as Node3D;
+			if (meshNode != null)
+			{
+				// Apply Scale
+				meshNode.Scale = new Vector3(cfg.Scale[0], cfg.Scale[1], cfg.Scale[2]);
 
-    private void CleanupCustomModel()
-    {
-        if (_currentCustomModel != null)
-        {
-            _currentCustomModel.QueueFree();
-            _currentCustomModel = null;
-            _customAnimPlayer = null;
-        }
+				// Apply Visibility based on Category
+				// Items/Body/Hidden are static. Weapons are dynamic.
+				if (cfg.Category == CharacterConfig.MeshConfig.Categories.Hidden)
+				{
+					meshNode.Visible = false;
+				}
+				else if (cfg.Category == CharacterConfig.MeshConfig.Categories.Body ||
+						 cfg.Category == CharacterConfig.MeshConfig.Categories.Item)
+				{
+					meshNode.Visible = cfg.IsVisible;
+				}
+				else
+				{
+					// Weapons: Initially hide until Mode update
+					meshNode.Visible = false;
+				}
+			}
+		}
+	}
 
-        // Restore Erika base state
-        if (_meleeModel != null) _meleeModel.Visible = true;
-        if (_archeryModel != null) _archeryModel.Visible = false;
-        if (_animTree != null) _animTree.Active = true;
-        _lastPlayedAnim = "";
-    }
+	private void CleanupCustomModel()
+	{
+		if (_currentCustomModel != null)
+		{
+			_currentCustomModel.QueueFree();
+			_currentCustomModel = null;
+			_customAnimPlayer = null;
+		}
 
-    /// <summary>
-    /// Swaps the mesh on a model node by loading the new FBX and copying mesh instances.
-    /// </summary>
-    private void SwapModelMesh(Node3D targetModel, string fbxPath)
-    {
-        if (targetModel == null) return;
+		// Restore Erika base state
+		if (_meleeModel != null) _meleeModel.Visible = true;
+		if (_archeryModel != null) _archeryModel.Visible = false;
+		if (_animTree != null) _animTree.Active = true;
+		_lastPlayedAnim = "";
+	}
 
-        if (!ResourceLoader.Exists(fbxPath))
-        {
-            GD.PrintErr($"[CharacterModelManager] Model FBX not found: {fbxPath}");
-            return;
-        }
+	/// <summary>
+	/// Swaps the mesh on a model node by loading the new FBX and copying mesh instances.
+	/// </summary>
+	private void SwapModelMesh(Node3D targetModel, string fbxPath)
+	{
+		if (targetModel == null) return;
 
-        var fbxScene = GD.Load<PackedScene>(fbxPath);
-        if (fbxScene == null)
-        {
-            GD.PrintErr($"[CharacterModelManager] Could not load FBX: {fbxPath}");
-            return;
-        }
+		if (!ResourceLoader.Exists(fbxPath))
+		{
+			GD.PrintErr($"[CharacterModelManager] Model FBX not found: {fbxPath}");
+			return;
+		}
 
-        var newModelInstance = fbxScene.Instantiate<Node3D>();
-        var targetSkeleton = targetModel.GetNodeOrNull<Skeleton3D>("Skeleton3D");
-        var newSkeleton = newModelInstance.GetNodeOrNull<Skeleton3D>("Skeleton3D");
+		var fbxScene = GD.Load<PackedScene>(fbxPath);
+		if (fbxScene == null)
+		{
+			GD.PrintErr($"[CharacterModelManager] Could not load FBX: {fbxPath}");
+			return;
+		}
 
-        if (targetSkeleton == null || newSkeleton == null)
-        {
-            GD.PrintErr("[CharacterModelManager] Could not find skeletons for mesh swap");
-            newModelInstance.QueueFree();
-            return;
-        }
+		var newModelInstance = fbxScene.Instantiate<Node3D>();
+		var targetSkeleton = targetModel.GetNodeOrNull<Skeleton3D>("Skeleton3D");
+		var newSkeleton = newModelInstance.GetNodeOrNull<Skeleton3D>("Skeleton3D");
 
-        // Remove old mesh instances from target skeleton (but keep BoneAttachments)
-        foreach (var child in targetSkeleton.GetChildren())
-        {
-            if (child is MeshInstance3D oldMesh)
-            {
-                oldMesh.QueueFree();
-            }
-        }
+		if (targetSkeleton == null || newSkeleton == null)
+		{
+			GD.PrintErr("[CharacterModelManager] Could not find skeletons for mesh swap");
+			newModelInstance.QueueFree();
+			return;
+		}
 
-        // Copy mesh instances from new skeleton to target skeleton
-        foreach (var child in newSkeleton.GetChildren())
-        {
-            if (child is MeshInstance3D newMesh)
-            {
-                newMesh.Owner = null;
-                newSkeleton.RemoveChild(newMesh);
-                targetSkeleton.AddChild(newMesh);
-                newMesh.Skeleton = new NodePath(".."); // Explicitly bind to parent skeleton
-                FixMeshCulling(newMesh);
-            }
-        }
+		// Remove old mesh instances from target skeleton (but keep BoneAttachments)
+		foreach (var child in targetSkeleton.GetChildren())
+		{
+			if (child is MeshInstance3D oldMesh)
+			{
+				oldMesh.QueueFree();
+			}
+		}
 
-        newModelInstance.QueueFree();
-        GD.Print($"[CharacterModelManager] Swapped mesh from: {fbxPath}");
-    }
+		// Copy mesh instances from new skeleton to target skeleton
+		foreach (var child in newSkeleton.GetChildren())
+		{
+			if (child is MeshInstance3D newMesh)
+			{
+				newMesh.Owner = null;
+				newSkeleton.RemoveChild(newMesh);
+				targetSkeleton.AddChild(newMesh);
+				newMesh.Skeleton = new NodePath(".."); // Explicitly bind to parent skeleton
+				FixMeshCulling(newMesh);
+			}
+		}
 
-    /// <summary>
-    /// Disables backface culling on all materials of a mesh to prevent "see-through" issues.
-    /// </summary>
-    private void FixMeshCulling(MeshInstance3D mesh)
-    {
-        if (mesh == null) return;
+		newModelInstance.QueueFree();
+		GD.Print($"[CharacterModelManager] Swapped mesh from: {fbxPath}");
+	}
 
-        int surfaceCount = mesh.GetSurfaceOverrideMaterialCount();
-        if (surfaceCount == 0 && mesh.Mesh != null)
-        {
-            surfaceCount = mesh.Mesh.GetSurfaceCount();
-        }
+	/// <summary>
+	/// Disables backface culling on all materials of a mesh to prevent "see-through" issues.
+	/// </summary>
+	private void FixMeshCulling(MeshInstance3D mesh)
+	{
+		if (mesh == null) return;
 
-        for (int i = 0; i < surfaceCount; i++)
-        {
-            var mat = mesh.GetSurfaceOverrideMaterial(i) as BaseMaterial3D;
-            if (mat == null && mesh.Mesh != null)
-            {
-                mat = mesh.Mesh.SurfaceGetMaterial(i) as BaseMaterial3D;
-            }
+		int surfaceCount = mesh.GetSurfaceOverrideMaterialCount();
+		if (surfaceCount == 0 && mesh.Mesh != null)
+		{
+			surfaceCount = mesh.Mesh.GetSurfaceCount();
+		}
 
-            if (mat != null)
-            {
-                var uniqueMat = (BaseMaterial3D)mat.Duplicate();
-                uniqueMat.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
-                mesh.SetSurfaceOverrideMaterial(i, uniqueMat);
-            }
-        }
-    }
+		for (int i = 0; i < surfaceCount; i++)
+		{
+			var mat = mesh.GetSurfaceOverrideMaterial(i) as BaseMaterial3D;
+			if (mat == null && mesh.Mesh != null)
+			{
+				mat = mesh.Mesh.SurfaceGetMaterial(i) as BaseMaterial3D;
+			}
 
-    private void HideBuiltinWeapons(Node3D model)
-    {
-        HideNodesByKeywordsRecursive(model, new string[] {
-            "sword", "weapon", "blade", "bow", "arrow",
-            "knight_sword", "sword_low", "weapon_r", "hand_r_weapon"
-        });
-    }
+			if (mat != null)
+			{
+				var uniqueMat = (BaseMaterial3D)mat.Duplicate();
+				uniqueMat.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
+				mesh.SetSurfaceOverrideMaterial(i, uniqueMat);
+			}
+		}
+	}
 
-    private void HideNodesByKeywordsRecursive(Node node, string[] keywords)
-    {
-        string lowerName = node.Name.ToString().ToLower();
-        foreach (var k in keywords)
-        {
-            if (lowerName.Contains(k))
-            {
-                if (node is Node3D n3d)
-                {
-                    n3d.Visible = false;
-                    GD.Print($"[CharacterModelManager] Hiding built-in part: {node.Name}");
-                }
-                break;
-            }
-        }
-        foreach (Node child in node.GetChildren())
-        {
-            HideNodesByKeywordsRecursive(child, keywords);
-        }
-    }
+	private void HideBuiltinWeapons(Node3D model)
+	{
+		HideNodesByKeywordsRecursive(model, new string[] {
+			"sword", "weapon", "blade", "bow", "arrow",
+			"knight_sword", "sword_low", "weapon_r", "hand_r_weapon"
+		});
+	}
 
-    private Skeleton3D FindSkeletonRecursive(Node node)
-    {
-        if (node is Skeleton3D skel) return skel;
-        foreach (Node child in node.GetChildren())
-        {
-            var found = FindSkeletonRecursive(child);
-            if (found != null) return found;
-        }
-        return null;
-    }
+	private void HideNodesByKeywordsRecursive(Node node, string[] keywords)
+	{
+		string lowerName = node.Name.ToString().ToLower();
+		foreach (var k in keywords)
+		{
+			if (lowerName.Contains(k))
+			{
+				if (node is Node3D n3d)
+				{
+					n3d.Visible = false;
+					GD.Print($"[CharacterModelManager] Hiding built-in part: {node.Name}");
+				}
+				break;
+			}
+		}
+		foreach (Node child in node.GetChildren())
+		{
+			HideNodesByKeywordsRecursive(child, keywords);
+		}
+	}
 
-    public void LogHierarchyScales(Node node, string indent)
-    {
-        if (node is Node3D n3d)
-        {
-            GD.Print($"{indent}- {node.Name}: Scale={n3d.Scale}, GlobalScale={n3d.GlobalTransform.Basis.Scale}");
-        }
-        foreach (Node child in node.GetChildren())
-        {
-            LogHierarchyScales(child, indent + "  ");
-        }
-    }
+	private Skeleton3D FindSkeletonRecursive(Node node)
+	{
+		if (node is Skeleton3D skel) return skel;
+		foreach (Node child in node.GetChildren())
+		{
+			var found = FindSkeletonRecursive(child);
+			if (found != null) return found;
+		}
+		return null;
+	}
 
-    private void PrintNodeRecursive(Node node, string indent)
-    {
-        string extra = "";
-        if (node is MeshInstance3D mi) extra = $" [Mesh: {mi.Mesh?.ResourceName}]";
-        if (node is Skeleton3D skel) extra = $" [Skeleton: {skel.GetBoneCount()} bones]";
-        if (node is AnimationPlayer ap) extra = $" [AnimPlayer: {ap.GetAnimationList().Length}]";
+	public void LogHierarchyScales(Node node, string indent)
+	{
+		if (node is Node3D n3d)
+		{
+			GD.Print($"{indent}- {node.Name}: Scale={n3d.Scale}, GlobalScale={n3d.GlobalTransform.Basis.Scale}");
+		}
+		foreach (Node child in node.GetChildren())
+		{
+			LogHierarchyScales(child, indent + "  ");
+		}
+	}
 
-        GD.Print($"{indent}- {node.Name} ({node.GetType().Name}){extra}");
+	private void PrintNodeRecursive(Node node, string indent)
+	{
+		string extra = "";
+		if (node is MeshInstance3D mi) extra = $" [Mesh: {mi.Mesh?.ResourceName}]";
+		if (node is Skeleton3D skel) extra = $" [Skeleton: {skel.GetBoneCount()} bones]";
+		if (node is AnimationPlayer ap) extra = $" [AnimPlayer: {ap.GetAnimationList().Length}]";
 
-        foreach (Node child in node.GetChildren())
-        {
-            PrintNodeRecursive(child, indent + "  ");
-        }
-    }
+		GD.Print($"{indent}- {node.Name} ({node.GetType().Name}){extra}");
+
+		foreach (Node child in node.GetChildren())
+		{
+			PrintNodeRecursive(child, indent + "  ");
+		}
+	}
 }

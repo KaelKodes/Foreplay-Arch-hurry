@@ -128,7 +128,7 @@ public partial class MobaProjectile : Node3D
             }
             else if (Target is PlayerController player)
             {
-                GD.Print($"[MobaProjectile] Hit player {player.Name} for {Damage}");
+                player.OnHit(Damage, GlobalPosition, Vector3.Up, this);
             }
         }
 

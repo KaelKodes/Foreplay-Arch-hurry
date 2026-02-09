@@ -9,35 +9,60 @@ public partial class CharacterModelManager
     /// <summary>
     /// Direct animation update for custom skeletons.
     /// Logic mirrors Erika's AnimationTree but via direct Play() calls.
+    /// lockedPower: 0=no charge, 50=basic, 100=perfect, 200=overcharged
     /// </summary>
-    public void UpdateCustomAnimations(bool isMoving, bool sprinting, bool jumping, bool swinging, bool firing, bool overcharged = false)
+    public void UpdateCustomAnimations(bool isMoving, bool sprinting, bool jumping, bool swinging, bool firing, float lockedPower = 0f)
     {
         if (_customAnimPlayer == null) return;
 
         string target = "Idle";
 
+        // Define which animations should be allowed to finish before switching back to movement/idle
+        bool isActionAnim = _lastPlayedAnim.StartsWith("MeleeAttack") ||
+                           _lastPlayedAnim == "BowAttack" ||
+                           _lastPlayedAnim == "PowerSlash" ||
+                           _lastPlayedAnim == "SlashCombo" ||
+                           _lastPlayedAnim == "Kick" ||
+                           _lastPlayedAnim == "PowerUp" ||
+                           _lastPlayedAnim == "Casting" ||
+                           _lastPlayedAnim == "Impact" ||
+                           _lastPlayedAnim == "Death";
+
         // Prioritize Attack/Action -> Movement -> Idle
         if (swinging)
         {
-            if (overcharged) target = "MeleeAttack4";
-            else
-            {
-                // Simple cycle: MeleeAttack1 -> MeleeAttack2 -> MeleeAttack3
-                if (_lastPlayedAnim == "MeleeAttack1") target = "MeleeAttack2";
-                else if (_lastPlayedAnim == "MeleeAttack2") target = "MeleeAttack3";
-                else target = "MeleeAttack1";
-            }
-        }
-        else if (firing) target = "BowAttack";
-        else if (jumping) target = "Jump";
-        else if (isMoving) target = sprinting ? "Run" : "Walk";
+            // Pick animation based on charge tier
+            if (lockedPower >= 199f) target = "SlashCombo";       // Overcharged (200%)
+            else if (lockedPower >= 99f) target = "PowerSlash";   // Perfect (100%)
+            else target = "MeleeAttack1";                         // Basic (50% or quick click)
 
-        // If target is found in AnimationPlayer or has a valid fallback, play it
+            // If already playing THIS specific action/attack, don't restart it (even if finished)
+            // This prevents "flicker/restart" if the anim is shorter than the swing state.
+            if (target == _lastPlayedAnim) return;
+        }
+        else if (firing)
+        {
+            target = "BowAttack";
+            if (target == _lastPlayedAnim) return;
+        }
+        else
+        {
+            // We are NOT currently triggering an action.
+            // If we are currently playing an action animation, LET IT FINISH.
+            if (isActionAnim && _customAnimPlayer.IsPlaying())
+            {
+                return;
+            }
+
+            if (jumping) target = "Jump";
+            else if (isMoving) target = sprinting ? "Run" : "Walk";
+        }
+
+        // Play if changed or not currently playing
         if (target != _lastPlayedAnim || !_customAnimPlayer.IsPlaying())
         {
-            GD.Print($"[AnimationDebug] Custom Model ({_currentModelId}) state transition: {_lastPlayedAnim} -> {target}");
             PlayAnimation(target);
-            _lastPlayedAnim = target;
+            // PlayAnimation now updates _lastPlayedAnim internally
         }
     }
 
@@ -60,29 +85,45 @@ public partial class CharacterModelManager
             targetAnim = model.AnimationMap[standardName];
         }
 
-        // 2. Try play
+        // 2. Try play — exact match first, then fuzzy fallback
         string matchedName = "";
-
-        // Exact or fuzzy match
         var anims = _customAnimPlayer.GetAnimationList();
         string lowerTarget = targetAnim.ToLower();
         string lowerStandard = standardName.ToLower();
 
+        // Pass 1: Exact match (case-insensitive)
         foreach (var a in anims)
         {
             string lowerA = a.ToLower();
-            if (lowerA == lowerTarget || lowerA == lowerStandard ||
-                lowerA.Contains(lowerTarget) || lowerTarget.Contains(lowerA) ||
-                lowerA.Contains(lowerStandard) || lowerStandard.Contains(lowerA))
+            if (lowerA == lowerTarget || lowerA == lowerStandard)
             {
                 matchedName = a;
                 break;
             }
         }
 
+        // Pass 2: Fuzzy contains fallback
+        if (string.IsNullOrEmpty(matchedName))
+        {
+            foreach (var a in anims)
+            {
+                string lowerA = a.ToLower();
+                if (lowerA.Contains(lowerTarget) || lowerTarget.Contains(lowerA) ||
+                    lowerA.Contains(lowerStandard) || lowerStandard.Contains(lowerA))
+                {
+                    matchedName = a;
+                    break;
+                }
+            }
+        }
+
         if (!string.IsNullOrEmpty(matchedName))
         {
+            if (matchedName != _lastPlayedAnim)
+                GD.Print($"[Anim] {_currentModelId}: '{standardName}' → '{matchedName}'");
+
             _customAnimPlayer.Play(matchedName);
+            _lastPlayedAnim = standardName; // Use the "Standard" name for tracking logic
         }
         else
         {
@@ -121,8 +162,11 @@ public partial class CharacterModelManager
         string[] standardAnims = new string[] {
             "Idle", "Walk", "Run", "Jump",
             "MeleeAttack1", "MeleeAttack2", "MeleeAttack3",
+            "PowerSlash", "SlashCombo", // Charged tiers
             "ArcheryIdle", "ArcheryDraw", "ArcheryFire",
-            "Death"
+            "Death",
+            // Ability animations
+            "Kick", "PowerUp", "Block", "BlockIdle", "Impact", "Casting"
         };
 
         // Map standard names to what SetupErikaAnimations uses
@@ -384,9 +428,11 @@ public partial class CharacterModelManager
         foreach (var animName in animNames)
         {
             var anim = ap.GetAnimation(animName);
-            for (int i = 0; i < anim.GetTrackCount(); i++)
+            // Iterate backwards when removing tracks!
+            for (int i = anim.GetTrackCount() - 1; i >= 0; i--)
             {
                 var path = anim.TrackGetPath(i);
+                // ... [previous track logic remains same, just ensuring backwards loop]
                 string pathStr = path.ToString();
                 if (!pathStr.Contains(":")) continue;
 

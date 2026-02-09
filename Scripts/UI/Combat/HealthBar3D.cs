@@ -8,7 +8,6 @@ namespace Archery;
 /// </summary>
 public partial class HealthBar3D : Node3D
 {
-    private MeshInstance3D _background;
     private MeshInstance3D _fill;
     private float _currentPercent = 1.0f;
     private float _targetPercent = 1.0f;
@@ -21,21 +20,6 @@ public partial class HealthBar3D : Node3D
 
     private void CreateBar()
     {
-        // Background (dark red)
-        _background = new MeshInstance3D();
-        var bgMesh = new QuadMesh();
-        bgMesh.Size = new Vector2(_barWidth, 0.1f);
-        _background.Mesh = bgMesh;
-
-        var bgMat = new StandardMaterial3D();
-        bgMat.AlbedoColor = new Color(0.3f, 0.1f, 0.1f, 0.8f);
-        bgMat.ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded;
-        bgMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        bgMat.BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled;
-        bgMat.NoDepthTest = true;
-        _background.MaterialOverride = bgMat;
-        AddChild(_background);
-
         // Fill (green)
         _fill = new MeshInstance3D();
         var fillMesh = new QuadMesh();
@@ -49,7 +33,7 @@ public partial class HealthBar3D : Node3D
         fillMat.BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled;
         fillMat.NoDepthTest = true;
         _fill.MaterialOverride = fillMat;
-        _fill.Position = new Vector3(0, 0, 0.01f); // Slightly in front of background
+        _fill.Position = Vector3.Zero; // Center the bar
         AddChild(_fill);
     }
 
@@ -86,9 +70,9 @@ public partial class HealthBar3D : Node3D
             float width = _barWidth * _currentPercent;
             fillMesh.Size = new Vector2(width, 0.1f);
 
-            // Offset to left-align the fill
+            // Offset to left-align the fill relative to the center
             float offset = (_barWidth - width) / 2f;
-            _fill.Position = new Vector3(-offset, 0, 0.01f);
+            _fill.Position = new Vector3(-offset, 0, 0f);
         }
     }
 }
