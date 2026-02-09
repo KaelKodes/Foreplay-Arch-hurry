@@ -6,7 +6,15 @@ public enum PlayerState
     CombatMelee,    // Melee Combat
     CombatArcher,   // Archery
     BuildMode,      // Town Building / Placement
-    DriveMode,      // In a vehicle
+
     SpectateMode,   // Free-cam
     PlacingObject   // Manipulating objects
+}
+
+public enum AbilityType
+{
+    Auto,    // Seeks smart target or hard lock
+    Instant, // Fires straight forward from crosshair
+    Aim,     // Hold to preview, release to fire
+    Aura     // Effect around the caster
 }

@@ -4,14 +4,16 @@ using System.Collections.Generic;
 
 namespace Archery;
 
+/// <summary>
+/// Helpers partial: arrow management, prompts, and player colors.
+/// </summary>
 public partial class ArcherySystem
 {
-    public void SetTeePosition(Vector3 pos) => TeePosition = pos;
-    public void UpdateTeePosition(Vector3 pos) => TeePosition = pos;
-    public void UpdatePinPosition(Vector3 pos) { /* Placeholder for future target logic */ }
-    public BallLie GetCurrentLie() => new BallLie { PowerEfficiency = 1.0f, LaunchAngleBonus = 0.0f, SpinModifier = 1.0f };
-    public float GetEstimatedPower() => 100.0f; // Placeholder
-    public float AoAOffset => 0.0f; // Placeholder
+    /// <summary>
+    /// Set the spawn/respawn position for the player.
+    /// Called by TeeBox, ObjectPlacer, or MOBA spawn logic.
+    /// </summary>
+    public void SetSpawnPosition(Vector3 pos) => SpawnPosition = pos;
 
     private Color GetPlayerColorByOwnerId(long ownerId)
     {
@@ -71,7 +73,7 @@ public partial class ArcherySystem
 
     private void OnArrowSettled(float distance)
     {
-        SetPrompt(true, $"Shot settled: {distance * ArcheryConstants.UNIT_RATIO:F1}y");
+        SetPrompt(true, $"Arrow landed: {distance:F1}m away");
     }
 
     private Color GetPlayerColor(int index)

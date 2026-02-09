@@ -65,8 +65,9 @@ public partial class CameraController : Camera3D
             }
         }
 
-        // Allow Orbit Rotation (Right Click)
-        if (@event is InputEventMouseMotion motion && Input.IsMouseButtonPressed(MouseButton.Right))
+        // Allow Orbit Rotation (Right Click required ONLY if mouse is not captured)
+        bool isCaptured = Input.MouseMode == Input.MouseModeEnum.Captured;
+        if (@event is InputEventMouseMotion motion && (isCaptured || Input.IsMouseButtonPressed(MouseButton.Right)))
         {
             // Rotate camera based on mouse motion
             RotationDegrees -= new Vector3(motion.Relative.Y, motion.Relative.X, 0) * _lookSensitivity;
@@ -98,53 +99,54 @@ public partial class CameraController : Camera3D
             GlobalPosition = GlobalPosition.Lerp(targetPos, (float)delta * SmoothSpeed);
             LookAt(_target.GlobalPosition, Vector3.Up);
         }
-        else if (_lockedTarget != null)
-        {
-            // Z-Targeting Mode: Frame Player and Locked Target
-            // Ideal position: Behind the player, slightly higher, looking towards target
-            Vector3 playerPos = _target.GlobalPosition + new Vector3(0, 1.3f, 0); // Chest height
-            Vector3 targetPos = _lockedTarget.GlobalPosition;
-
-            Vector3 dirToTarget = (targetPos - playerPos).Normalized();
-            Vector3 camRight = dirToTarget.Cross(Vector3.Up).Normalized();
-
-            // Position camera behind player relative to target direction
-            // and slightly to the side for a "shoulder" view
-            float dist = FollowOffset.Z;
-            float height = FollowOffset.Y;
-            Vector3 desiredPos = playerPos - dirToTarget * dist + Vector3.Up * height + camRight * 1.5f;
-
-            GlobalPosition = GlobalPosition.Lerp(desiredPos, (float)delta * SmoothSpeed);
-
-            // Look at a point between player and target, or just at target
-            // Framing: Target should be roughly central, player on the left/right
-            LookAt(targetPos, Vector3.Up);
-        }
         else
         {
-            // Walking Camera (Independent Orbit) with Zoom
-            // Interpolate height and shoulder offset based on zoom distance
-            float zoomT = 1.0f - (_zoomDistance / ZoomMax); // 0 = far, 1 = close/first person
-
-            // Height: From high (far) to eye level (close)
+            // Walking Camera (Independent Orbit) with Optional Target Bias
+            float zoomT = 1.0f - (_zoomDistance / ZoomMax);
             float height = Mathf.Lerp(FollowOffset.Y, 1.7f, zoomT);
-
-            // Shoulder offset: None when far, shifts right when close for over-the-shoulder
             float shoulderOffset = Mathf.Lerp(0f, 0.5f, Mathf.Clamp(zoomT * 2f, 0f, 1f));
 
-            // Calculate position
+            // Calculate desired orbit position
             Vector3 desiredOffset = new Vector3(shoulderOffset, height, _zoomDistance);
             Vector3 orbitPos = _target.GlobalPosition + (GlobalBasis * desiredOffset);
+
+            // --- Camera Ground/Wall Collision ---
+            // Cast from player pivot to desired orbit position.
+            // If we hit geometry, shorten the arm so the camera stays in front.
+            Vector3 pivotPos = _target.GlobalPosition + new Vector3(0, height, 0);
+            Vector3 toCamera = orbitPos - pivotPos;
+            float desiredDist = toCamera.Length();
+
+            if (desiredDist > 0.1f)
+            {
+                var spaceState = GetWorld3D().DirectSpaceState;
+                var query = PhysicsRayQueryParameters3D.Create(
+                    pivotPos,
+                    orbitPos,
+                    collisionMask: 2 // Layer 2 = terrain
+                );
+                // Exclude the player's own body from the cast
+                if (_target is CharacterBody3D cb)
+                    query.Exclude = new Godot.Collections.Array<Rid> { cb.GetRid() };
+
+                var result = spaceState.IntersectRay(query);
+                if (result.Count > 0)
+                {
+                    Vector3 hitPos = (Vector3)result["position"];
+                    Vector3 hitNormal = (Vector3)result["normal"];
+                    // Pull camera back along the hit normal slightly so it doesn't sit ON the surface
+                    orbitPos = hitPos + hitNormal * 0.3f;
+                }
+            }
 
             // Lerp Position for smoothness
             GlobalPosition = GlobalPosition.Lerp(orbitPos, (float)delta * SmoothSpeed);
 
-            // In first person, attach to head bone
+            // In first person, attach to head bone (overrides orbit)
             if (_zoomDistance < 0.5f)
             {
                 Vector3 headPos = GetHeadPosition();
-                // Offset forward (in camera's look direction) so we're in front of the face
-                Vector3 forwardOffset = -GlobalBasis.Z * 0.3f; // 0.3m forward
+                Vector3 forwardOffset = -GlobalBasis.Z * 0.3f;
                 GlobalPosition = headPos + new Vector3(0, 0.1f, 0) + forwardOffset;
             }
         }
@@ -196,7 +198,6 @@ public partial class CameraController : Camera3D
     public void SetLockedTarget(Node3D target)
     {
         _lockedTarget = target;
-        GD.Print($"CameraController: Locked onto {target?.Name}");
     }
 
     public void SnapBehind(Node3D target)

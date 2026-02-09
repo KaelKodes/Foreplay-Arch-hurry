@@ -109,7 +109,10 @@ public partial class ArrowController : RigidBody3D
             // 2. Point towards velocity (Arrow orientation)
             if (speed > 1.0f)
             {
-                LookAt(GlobalPosition + velocity, Vector3.Up);
+                // Use alternative up vector when arrow velocity is nearly vertical
+                Vector3 dir = velocity.Normalized();
+                Vector3 up = Mathf.Abs(dir.Dot(Vector3.Up)) > 0.99f ? Vector3.Forward : Vector3.Up;
+                LookAt(GlobalPosition + velocity, up);
             }
         }
 
@@ -145,7 +148,7 @@ public partial class ArrowController : RigidBody3D
 		Sleeping = false;
 		_startPosition = GlobalPosition;
 		_pendingVelocity = velocity; // Apply in next IntegrateForces
-		// _spin = spin; // Removed spin support to match signature
+									 // _spin = spin; // Removed spin support to match signature
 		_windVelocity = windVector;
 		_maxSpeed = 0.0f;
 

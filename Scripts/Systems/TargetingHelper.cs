@@ -130,14 +130,153 @@ public static class TargetingHelper
         if (target is Monsters monster) return monster.Health <= 0;
         if (target is MobaTower tower) return tower.IsDestroyed;
         if (target is MobaNexus nexus) return nexus.IsDestroyed;
-        if (target is PlayerController pc)
+
+        // Check for common Health or IsDead properties via Duck Typing if needed, 
+        // but for now we stick to known types.
+        return false;
+    }
+
+    /// <summary>
+    /// Risk of Rain 2 Style "Fluid" targeting.
+    /// Finds the best target based on proximity to the crosshair (screen center).
+    /// </summary>
+    public static Node3D GetFluidTarget(Node3D caster, Viewport viewport, float maxDistance = 50.0f, float coneAngleDegrees = 15.0f, MobaTeam attackerTeam = MobaTeam.None, bool alliesOnly = false)
+    {
+        var camera = viewport.GetCamera3D();
+        if (camera == null) return null;
+
+        List<Node3D> potentialTargets = new List<Node3D>();
+        // Filter by team: enemies by default, allies when Ctrl held
+        FindTargetablesRecursive(caster.GetTree().Root, potentialTargets, attackerTeam, alliesOnly);
+
+        Node3D bestTarget = null;
+        float bestScore = float.MaxValue; // Lower is better
+
+        Vector3 camPos = camera.GlobalPosition;
+        Vector3 camForward = -camera.GlobalBasis.Z;
+
+        foreach (var target in potentialTargets)
         {
-            // Assuming PlayerController has stats with CurrentHealth
-            return false;
+            if (target == caster) continue;
+
+            Vector3 toTarget = target.GlobalPosition - camPos;
+            float dist = toTarget.Length();
+            if (dist > maxDistance) continue;
+
+            Vector3 dirToTarget = toTarget.Normalized();
+            float dot = camForward.Dot(dirToTarget);
+            float angle = Mathf.RadToDeg(Mathf.Acos(dot));
+
+            if (angle > coneAngleDegrees) continue;
+
+            var spaceState = caster.GetWorld3D().DirectSpaceState;
+            var query = PhysicsRayQueryParameters3D.Create(camPos, target.GlobalPosition);
+            if (caster is CollisionObject3D co)
+            {
+                query.Exclude = new Godot.Collections.Array<Rid> { co.GetRid() };
+            }
+            var result = spaceState.IntersectRay(query);
+
+            if (result.Count > 0)
+            {
+                var hitCollider = result["collider"].As<Node>();
+                if (hitCollider != target && !target.IsAncestorOf(hitCollider) && !hitCollider.IsAncestorOf(target))
+                {
+                    continue; // Blocked by environment
+                }
+            }
+
+            // Scoring: Combination of Angle (high weight) and Distance (low weight)
+            // RoR2 prioritizes what you are looking at.
+            float score = (angle * 2.0f) + (dist * 0.1f);
+
+            // HERO PRIORITY: Bonus for player heroes
+            if (target is PlayerController) score -= 20.0f;
+
+            // DIRECT HIT PRIORITY: Precision bonus for aiming directly at a target in a cluster
+            if (angle < 2.5f) score -= 50.0f;
+
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestTarget = target;
+            }
         }
 
-        if (target is InteractableObject io && !io.IsTargetable) return true;
+        return bestTarget;
+    }
 
-        return false;
+    /// <summary>
+    /// Tab-targeting logic for cycling through nearby targets.
+    /// </summary>
+    public static Node3D GetNextTabTarget(Node3D caster, Node3D currentTarget, bool alliesOnly = false, float maxDistance = 40.0f, MobaTeam attackerTeam = MobaTeam.None)
+    {
+        List<Node3D> potentialTargets = new List<Node3D>();
+
+        MobaTeam team = attackerTeam;
+        if (team == MobaTeam.None && caster is PlayerController pc) team = pc.Team;
+
+        FindTargetablesRecursive(caster.GetTree().Root, potentialTargets, team, alliesOnly);
+
+        if (potentialTargets.Count == 0) return null;
+
+        // Sort by Hero status first, then distance to player
+        potentialTargets.Sort((a, b) =>
+        {
+            bool aIsHero = a is PlayerController;
+            bool bIsHero = b is PlayerController;
+
+            if (aIsHero && !bIsHero) return -1;
+            if (!aIsHero && bIsHero) return 1;
+
+            return caster.GlobalPosition.DistanceTo(a.GlobalPosition).CompareTo(caster.GlobalPosition.DistanceTo(b.GlobalPosition));
+        });
+
+        if (currentTarget == null) return potentialTargets[0];
+
+        int currentIndex = potentialTargets.IndexOf(currentTarget);
+        int nextIndex = (currentIndex + 1) % potentialTargets.Count;
+
+        return potentialTargets[nextIndex];
+    }
+
+    /// <summary>
+    /// Checks if a target is within the specified cone angle of the camera.
+    /// </summary>
+    public static bool IsTargetInCone(Node3D caster, Viewport viewport, Node3D target, float coneAngleDegrees = 15.0f)
+    {
+        if (target == null || !GodotObject.IsInstanceValid(target)) return false;
+        var camera = viewport.GetCamera3D();
+        if (camera == null) return false;
+
+        Vector3 camPos = camera.GlobalPosition;
+        Vector3 camForward = -camera.GlobalBasis.Z;
+
+        Vector3 toTarget = target.GlobalPosition - camPos;
+        Vector3 dirToTarget = toTarget.Normalized();
+        float dot = camForward.Dot(dirToTarget);
+        float angle = Mathf.RadToDeg(Mathf.Acos(dot));
+
+        if (angle > coneAngleDegrees) return false;
+
+        // Also check line of sight
+        var spaceState = caster.GetWorld3D().DirectSpaceState;
+        var query = PhysicsRayQueryParameters3D.Create(camPos, target.GlobalPosition);
+        if (caster is CollisionObject3D co)
+        {
+            query.Exclude = new Godot.Collections.Array<Rid> { co.GetRid() };
+        }
+        var result = spaceState.IntersectRay(query);
+
+        if (result.Count > 0)
+        {
+            var hitCollider = result["collider"].As<Node>();
+            if (hitCollider != target && !target.IsAncestorOf(hitCollider) && !hitCollider.IsAncestorOf(target))
+            {
+                return false; // Blocked by environment
+            }
+        }
+
+        return true;
     }
 }

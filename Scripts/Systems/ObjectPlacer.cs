@@ -119,8 +119,7 @@ public partial class ObjectPlacer : Node
             _currentObject.AddToGroup("targets"); // Ensure distance markers can track it
 
             // Update ArcherySystem
-            if (isTee) _archerySystem?.UpdateTeePosition(_currentObject.GlobalPosition);
-            if (isPin) _archerySystem?.UpdatePinPosition(_currentObject.GlobalPosition);
+            if (isTee) _archerySystem?.SetSpawnPosition(_currentObject.GlobalPosition);
         }
 
         // NETWORK SPAWN LOGIC

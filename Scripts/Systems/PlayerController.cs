@@ -64,7 +64,7 @@ public partial class PlayerController : CharacterBody3D
     private MeshInstance3D _avatarMesh;
     private ArcherySystem _archerySystem;
 
-    private GolfCart _currentCart;
+
     private InteractableObject _selectedObject;
     public InteractableObject SelectedObject => _selectedObject;
     private InteractableObject _lastHoveredObject;
@@ -137,6 +137,19 @@ public partial class PlayerController : CharacterBody3D
     }
 
     [Export] public float HeadXRotation { get; set; }
+
+    // Hybrid Targeting State
+    private Node3D _hardLockTarget;
+    private Node3D _fluidTarget;
+    private Node3D _lastTarget;
+    private bool _isMouseCaptured = false;
+    private bool _isAltPressed = false;
+
+    public Node3D CurrentTarget => (_hardLockTarget != null && TargetingHelper.IsTargetDead(_hardLockTarget)) ? null : (_hardLockTarget ?? _fluidTarget);
+    public Node3D HardLockTarget => _hardLockTarget;
+    public Node3D FluidTarget => _fluidTarget;
+
+    [Signal] public delegate void HitScoredEventHandler();
 
     public override void _EnterTree()
     {
@@ -256,8 +269,14 @@ public partial class PlayerController : CharacterBody3D
 
         if (_inputCooldown > 0) _inputCooldown -= (float)delta;
 
+        // Mouse capture logic
+        UpdateMouseCapture();
+
         // Essential: Run charge logic even in WalkMode for RPG combat
         HandleCombatCharge(delta);
+
+        // Fluid Smart Targeting update
+        UpdateFluidTargeting();
 
         if (CurrentState == PlayerState.WalkMode || CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher)
         {
@@ -273,10 +292,6 @@ public partial class PlayerController : CharacterBody3D
                 break;
             case PlayerState.WalkMode:
                 PlayerInteraction.HandleProximityPrompts(this, _archerySystem);
-                HandleVehicleDetection();
-                break;
-            case PlayerState.DriveMode:
-                HandleDrivingInput(delta);
                 break;
             case PlayerState.BuildMode:
                 HandleBuildModeInput(delta);
@@ -308,21 +323,6 @@ public partial class PlayerController : CharacterBody3D
         _velocity.Y = JumpForce * 0.7f;
         _isJumping = true;
         _modelManager?.UpdateCustomAnimations(false, false, true, false, false);
-    }
-
-    public void HandleDrivingInput(double delta)
-    {
-        if (_currentCart == null)
-        {
-            CurrentState = PlayerState.WalkMode;
-            return;
-        }
-        GlobalPosition = _currentCart.GlobalPosition + _currentCart.Transform.Basis.Y * 0.5f;
-        Rotation = _currentCart.Rotation;
-        if (Input.IsActionJustPressed("ui_accept") || Input.IsKeyPressed(Key.E))
-        {
-            ExitVehicle();
-        }
     }
 
     public void OnPerkSelected(string perkId)

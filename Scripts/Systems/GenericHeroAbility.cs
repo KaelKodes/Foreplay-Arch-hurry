@@ -15,28 +15,7 @@ public partial class GenericHeroAbility : HeroAbilityBase
 
         if (isRanger)
         {
-            var archery = caster.GetNodeOrNull<ArcherySystem>("ArcherySystem");
-
-            switch (AbilitySlot)
-            {
-                case 0: // Rapid Fire
-                    archery?.QuickFire(0f);
-                    break;
-                case 1: // Piercing Shot
-                    if (archery != null)
-                    {
-                        archery.SetNextShotPiercing(true);
-                        archery.QuickFire(0f);
-                    }
-                    break;
-                case 2: // Rain of Arrows
-                    // TODO: Implement AoE Rain logic
-                    archery?.QuickFire(0f);
-                    break;
-                case 3: // Vault
-                    caster.PerformVault();
-                    break;
-            }
+            RangerAbilities.ExecuteAbility(caster, AbilitySlot);
         }
         else
         {

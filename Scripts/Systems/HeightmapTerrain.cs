@@ -26,6 +26,34 @@ public partial class HeightmapTerrain : StaticBody3D
 	public float[,] GetHeightData() => _heightData;
 	public int[,] GetTerrainTypeData() => _terrainTypeData;
 
+	public float GetHeight(Vector3 globalPos)
+	{
+		if (_heightData == null) return 0f;
+		Vector3 localPos = ToLocal(globalPos);
+
+		float fx = localPos.X / CellSize;
+		float fz = localPos.Z / CellSize;
+
+		int x1 = Mathf.Clamp(Mathf.FloorToInt(fx), 0, GridWidth);
+		int z1 = Mathf.Clamp(Mathf.FloorToInt(fz), 0, GridDepth);
+		int x2 = Mathf.Min(x1 + 1, GridWidth);
+		int z2 = Mathf.Min(z1 + 1, GridDepth);
+
+		float tx = fx - x1;
+		float tz = fz - z1;
+
+		float h1 = _heightData[x1, z1];
+		float h2 = _heightData[x2, z1];
+		float h3 = _heightData[x1, z2];
+		float h4 = _heightData[x2, z2];
+
+		float h_z1 = Mathf.Lerp(h1, h2, tx);
+		float h_z2 = Mathf.Lerp(h3, h4, tx);
+		float finalHeight = Mathf.Lerp(h_z1, h_z2, tz);
+
+		return finalHeight + GlobalPosition.Y;
+	}
+
 	public float[] GetFlattenedHeightData()
 	{
 		float[] flattened = new float[(GridWidth + 1) * (GridDepth + 1)];

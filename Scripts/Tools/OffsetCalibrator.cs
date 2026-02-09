@@ -29,7 +29,6 @@ public partial class OffsetCalibrator : Node
         if (!IsInstanceValid(_target))
         {
             _target = null;
-            GD.Print("[OffsetCalibrator] Target lost/deleted.");
             return;
         }
 

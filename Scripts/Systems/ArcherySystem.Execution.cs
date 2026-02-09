@@ -147,6 +147,8 @@ public partial class ArcherySystem
         _lockedAccuracy = isRPG ? ArcheryConstants.PERFECT_ACCURACY_VALUE : 100f;
         _stage = DrawStage.Executing;
 
+        if (isRPG) _isNextShotFlat = true;
+
         EmitSignal(SignalName.ArcheryValuesUpdated, _lockedPower, _lockedPower, _lockedAccuracy);
         EmitSignal(SignalName.DrawStageChanged, (int)_stage);
 
@@ -172,6 +174,8 @@ public partial class ArcherySystem
         _lockedAccuracy = ArcheryConstants.PERFECT_ACCURACY_VALUE; // Perfect center (fix for "firing to the right")
         _stage = DrawStage.Executing;
 
+        if (isRPG) _isNextShotFlat = true;
+
         EmitSignal(SignalName.DrawStageChanged, (int)_stage);
         ExecuteShot();
     }
@@ -179,6 +183,11 @@ public partial class ArcherySystem
     public void SetNextShotPiercing(bool enabled)
     {
         _isNextShotPiercing = enabled;
+    }
+
+    public void SetNextShotFlat(bool enabled)
+    {
+        _isNextShotFlat = enabled;
     }
 
     private void ExecuteShot()
@@ -238,11 +247,17 @@ public partial class ArcherySystem
             }
             else
             {
-                if (isRPG && _currentPlayer != null)
+                if (isRPG && _currentPlayer != null && _camera != null)
                 {
-                    launchDir = _currentPlayer.GlobalBasis.Z;
-                    launchDir.Y = 0;
-                    launchDir = launchDir.Normalized();
+                    // NEW: For flat shots without a target, follow crosshair (camera forward) exactly
+                    if (_isNextShotFlat)
+                        launchDir = -_camera.GlobalBasis.Z;
+                    else
+                    {
+                        launchDir = _currentPlayer.GlobalBasis.Z;
+                        launchDir.Y = 0;
+                        launchDir = launchDir.Normalized();
+                    }
                 }
                 else
                 {
@@ -253,7 +268,14 @@ public partial class ArcherySystem
 
             // Apply Loft
             float loftDeg = 12.0f;
-            if (_currentTarget != null)
+            bool skipLoftOverride = false;
+
+            if (_isNextShotFlat)
+            {
+                loftDeg = 0.0f; // Perfect direct line (for targeted shots)
+                skipLoftOverride = true; // For no-target crosshair shots, keep the camera Y
+            }
+            else if (_currentTarget != null)
             {
                 Vector3 targetPos = _currentTarget.GlobalPosition;
                 if (_currentTarget is InteractableObject io) targetPos += new Vector3(0, 1.0f, 0);
@@ -270,9 +292,12 @@ public partial class ArcherySystem
                 }
             }
 
-            float loftRad = Mathf.DegToRad(loftDeg);
-            launchDir.Y = Mathf.Sin(loftRad);
-            launchDir = launchDir.Normalized();
+            if (!skipLoftOverride)
+            {
+                float loftRad = Mathf.DegToRad(loftDeg);
+                launchDir.Y = Mathf.Sin(loftRad);
+                launchDir = launchDir.Normalized();
+            }
 
             // Apply Accuracy Deviation
             float rotationDeg = -accuracyError * 0.75f;
@@ -315,6 +340,10 @@ public partial class ArcherySystem
         }
         _stage = DrawStage.ShotComplete;
         EmitSignal(SignalName.DrawStageChanged, (int)_stage);
+
+        // Reset flags
+        _isNextShotPiercing = false;
+        _isNextShotFlat = false;
 
         PrepareNextShot();
 

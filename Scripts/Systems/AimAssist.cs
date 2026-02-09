@@ -108,7 +108,14 @@ public partial class AimAssist : Node3D
 
         if (!_isLocked)
         {
-            GlobalPosition = _archerySystem.BallPosition;
+            // Track arrow position, or fall back to player chest
+            var arrow = _archerySystem.GetNodeOrNull<ArrowController>("Arrow");
+            if (arrow != null)
+                GlobalPosition = arrow.GlobalPosition;
+            else if (_archerySystem.GetParent() is PlayerController pc)
+                GlobalPosition = pc.GlobalPosition + (pc.GlobalBasis * (new Vector3(0, 1.3f, 0) + new Vector3(0, 0, 0.5f)));
+            else
+                GlobalPosition = Vector3.Zero;
 
             if (_archerySystem.CurrentTarget != null)
             {

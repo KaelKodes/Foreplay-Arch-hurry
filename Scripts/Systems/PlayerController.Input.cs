@@ -16,7 +16,7 @@ public partial class PlayerController
         {
             if (_archerySystem != null)
             {
-                Vector3 teePos = _archerySystem.TeePosition;
+                Vector3 teePos = _archerySystem.SpawnPosition;
                 // Teleport slightly behind and above the tee
                 Vector3 offset = new Vector3(0, 0, -1.0f); // Face down-range (+Z)
                 TeleportTo(teePos + offset, teePos + Vector3.Forward * 10.0f);
@@ -49,15 +49,48 @@ public partial class PlayerController
             HandleAttackInput(attackBtn, isRPGMode);
         }
 
-        // Right Click: Set Target (RPG Mode)
         if (isRPGMode && @event is InputEventMouseButton rightBtn && rightBtn.ButtonIndex == MouseButton.Right && rightBtn.Pressed)
         {
             Node3D unit = CheckUnitRaycast();
             if (unit != null)
             {
-                _archerySystem?.SetTarget(unit);
+                _hardLockTarget = unit; // Set hard lock on right click in RPG mode
                 GetViewport().SetInputAsHandled();
             }
+        }
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (!IsLocal) return;
+
+        if (@event is InputEventKey key)
+        {
+            if (key.Keycode == Key.Alt)
+            {
+                _isAltPressed = key.Pressed;
+                UpdateMouseCapture();
+            }
+        }
+    }
+
+    private void UpdateMouseCapture()
+    {
+        if (!IsLocal) return;
+
+        bool shouldCapture = false;
+        if (CurrentState == PlayerState.WalkMode || CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher)
+        {
+            if (!_isAltPressed && (GetViewport() == null || GetViewport().GuiGetFocusOwner() == null))
+            {
+                shouldCapture = true;
+            }
+        }
+
+        if (shouldCapture != _isMouseCaptured)
+        {
+            _isMouseCaptured = shouldCapture;
+            Input.MouseMode = shouldCapture ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.Visible;
         }
     }
 
@@ -210,16 +243,4 @@ public partial class PlayerController
         PlayerInteraction.HandleProximityPrompts(this, _archerySystem);
     }
 
-    private void HandleTargetingHotkeys()
-    {
-        if (_archerySystem == null) return;
-
-        // Tab targeting: Tab to cycle forward, Shift+Tab to cycle backward
-        if (Input.IsActionJustPressed("ui_focus_next") || (Input.IsKeyPressed(Key.Tab) && _inputCooldown <= 0))
-        {
-            bool reverse = Input.IsKeyPressed(Key.Shift);
-            _archerySystem.CycleTarget(reverse);
-            _inputCooldown = 0.2f; // prevent rapid cycling in PhysicsProcess
-        }
-    }
 }

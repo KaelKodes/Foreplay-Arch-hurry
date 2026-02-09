@@ -53,28 +53,6 @@ public static class PlayerInteraction
         return null;
     }
 
-    /// <summary>
-    /// Find the nearest golf cart within range.
-    /// </summary>
-    public static GolfCart FindNearestCart(SceneTree tree, Vector3 playerPos, float maxDistance)
-    {
-        GolfCart nearestCart = null;
-        float minDist = maxDistance;
-
-        foreach (Node node in tree.GetNodesInGroup("carts"))
-        {
-            if (node is GolfCart cart && !cart.IsBeingDriven)
-            {
-                float d = playerPos.DistanceTo(cart.GlobalPosition);
-                if (d < minDist)
-                {
-                    minDist = d;
-                    nearestCart = cart;
-                }
-            }
-        }
-        return nearestCart;
-    }
 
     /// <summary>
     /// Check for interactable objects using a forward raycast from the player's body.

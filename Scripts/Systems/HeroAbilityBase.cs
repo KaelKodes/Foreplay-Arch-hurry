@@ -75,6 +75,7 @@ public abstract partial class HeroAbilityBase : Node
 {
     [Export] public string AbilityName { get; set; } = "";
     [Export] public string Description { get; set; } = "";
+    [Export] public AbilityType Type { get; set; } = AbilityType.Auto;
     [Export] public float BaseDamage { get; set; } = 10f;
     [Export] public float BaseCooldown { get; set; } = 5f;
     [Export] public float BaseManaCost { get; set; } = 20f;

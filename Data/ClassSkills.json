@@ -45,7 +45,7 @@
           ]
         },
         "Vault": {
-          "description": "Graceful evasion that leaves your enemies chasing ghosts.",
+          "description": "A nimble backward leap to reposition and evade danger.",
           "animationPath": "res://Assets/Erika/sword and shield jump (2).fbx",
           "branches": [
             "Aerial Shot",

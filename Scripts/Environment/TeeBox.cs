@@ -22,7 +22,7 @@ public partial class TeeBox : InteractableObject
 
     private void RegisterInitialPosition()
     {
-        if (_archerySystem != null) _archerySystem.SetTeePosition(GlobalPosition);
+        if (_archerySystem != null) _archerySystem.SetSpawnPosition(GlobalPosition);
     }
 
     public override string GetInteractionPrompt()
@@ -47,7 +47,7 @@ public partial class TeeBox : InteractableObject
             // Update Reset Position
             if (_archerySystem != null)
             {
-                _archerySystem.SetTeePosition(GlobalPosition);
+                _archerySystem.SetSpawnPosition(GlobalPosition);
                 // Also could reset player/ball here if desired
             }
         }
@@ -67,7 +67,7 @@ public partial class TeeBox : InteractableObject
                 // Simple debounce or verify
                 _isMoving = false;
                 SetPhysics(true);
-                if (_archerySystem != null) _archerySystem.SetTeePosition(GlobalPosition);
+                if (_archerySystem != null) _archerySystem.SetSpawnPosition(GlobalPosition);
             }
         }
     }

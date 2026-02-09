@@ -15,13 +15,19 @@ public static class RangerAbilities
         switch (slot)
         {
             case 0: // Rapid Fire (1) - Slot 0
-                // Just fires faster? Or normal shot?
-                // GenericHeroAbility was using QuickFire.
+                archery.SetNextShotFlat(true);
                 archery.QuickFire(0f);
                 break;
 
             case 1: // Piercing Shot (2) - Slot 1
+                // Sync the player's current target (smart/tab) into the archery system
+                // so ExecuteShot auto-aims at it. If no target, fires at crosshair.
+                if (caster.CurrentTarget != null)
+                {
+                    archery.SetTarget(caster.CurrentTarget);
+                }
                 archery.SetNextShotPiercing(true);
+                archery.SetNextShotFlat(true);
                 archery.QuickFire(0f);
                 break;
 
@@ -45,10 +51,10 @@ public static class RangerAbilities
         }
         else
         {
-            // Default: 12m in front of player
+            // Default: 6m in front of player (Reduced from 12m)
             Vector3 fwd = -caster.GlobalTransform.Basis.Z;
             fwd.Y = 0;
-            targetPos = caster.GlobalPosition + fwd.Normalized() * 12.0f;
+            targetPos = caster.GlobalPosition + fwd.Normalized() * 6.0f;
         }
 
         // Create the effect object (it's a pure code Node3D)
@@ -67,51 +73,6 @@ public static class RangerAbilities
     private static void CastVault(PlayerController caster)
     {
         caster.PerformVault();
-
-        // Decoy Logic
-        // Spawn a decoy at previous position?
-        // PerformVault moves the player immediately? 
-        // Actually PerformVault sets velocity/state, movement happens over time.
-        // So current position IS the start position.
-
-        SpawnDecoy(caster);
-    }
-
-    private static void SpawnDecoy(PlayerController caster)
-    {
-        // "Ghost" Decoy Implementation
-        // For now, we use a mesh instance but style it to look like a ghost.
-        // Ideally, this would be a PackedScene "Decoy.tscn" with health and aggro logic.
-
-        var decoy = new MeshInstance3D();
-        decoy.Mesh = new CapsuleMesh();
-
-        // Make it look ghostly (Transparent Blue)
-        var mat = new StandardMaterial3D();
-        mat.AlbedoColor = new Color(0, 0.5f, 1f, 0.4f); // Cyan/Blue transparent
-        mat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        mat.EmissionEnabled = true;
-        mat.Emission = new Color(0, 0.2f, 0.8f);
-        mat.EmissionEnergyMultiplier = 0.5f;
-        decoy.MaterialOverride = mat;
-
-        caster.GetTree().CurrentScene.AddChild(decoy);
-
-        // Position at caster's location (before they vaulted away)
-        decoy.GlobalPosition = caster.GlobalPosition;
-        decoy.GlobalRotation = caster.GlobalRotation;
-        decoy.Name = "RangerDecoy";
-
-        GD.Print($"[RangerAbilities] Decoy Spawned at {decoy.GlobalPosition}");
-
-        // Auto-destroy decoy after 3s
-        var timer = caster.GetTree().CreateTimer(3.0f);
-        timer.Timeout += () =>
-        {
-            if (GodotObject.IsInstanceValid(decoy))
-            {
-                decoy.QueueFree();
-            }
-        };
+        GD.Print($"[RangerAbilities] Vault executed");
     }
 }
