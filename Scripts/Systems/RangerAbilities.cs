@@ -51,10 +51,39 @@ public static class RangerAbilities
         }
         else
         {
-            // Default: 6m in front of player (Reduced from 12m)
-            Vector3 fwd = -caster.GlobalTransform.Basis.Z;
-            fwd.Y = 0;
-            targetPos = caster.GlobalPosition + fwd.Normalized() * 6.0f;
+            // No target: raycast from crosshair (screen center) to find aim point
+            var cam = caster.GetViewport().GetCamera3D();
+            if (cam != null)
+            {
+                var screenCenter = caster.GetViewport().GetVisibleRect().Size / 2;
+                Vector3 rayFrom = cam.ProjectRayOrigin(screenCenter);
+                Vector3 rayDir = cam.ProjectRayNormal(screenCenter);
+
+                // Raycast to find ground/terrain
+                var spaceState = caster.GetWorld3D().DirectSpaceState;
+                var query = PhysicsRayQueryParameters3D.Create(rayFrom, rayFrom + rayDir * 100f);
+                query.CollideWithBodies = true;
+                query.Exclude = new Godot.Collections.Array<Rid> { caster.GetRid() };
+                var result = spaceState.IntersectRay(query);
+
+                if (result.Count > 0)
+                {
+                    targetPos = (Vector3)result["position"];
+                }
+                else
+                {
+                    // No hit: place 15m along camera forward at player height
+                    targetPos = caster.GlobalPosition + rayDir * 15.0f;
+                    targetPos.Y = caster.GlobalPosition.Y;
+                }
+            }
+            else
+            {
+                // Fallback: 6m in front of player
+                Vector3 fwd = -caster.GlobalTransform.Basis.Z;
+                fwd.Y = 0;
+                targetPos = caster.GlobalPosition + fwd.Normalized() * 6.0f;
+            }
         }
 
         // Create the effect object (it's a pure code Node3D)
