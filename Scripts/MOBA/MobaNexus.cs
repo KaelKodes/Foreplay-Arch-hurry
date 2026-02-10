@@ -17,6 +17,7 @@ public partial class MobaNexus : InteractableObject
 	{
 		Health = MaxHealth;
 		AddToGroup("nexus");
+		AddToGroup("targetables");
 		AddToGroup($"team_{Team.ToString().ToLower()}");
 
 		_teamColorMesh = FindMeshRecursive(this);
@@ -38,6 +39,10 @@ public partial class MobaNexus : InteractableObject
 	{
 		if (IsDestroyed) return;
 		Health -= damage;
+		if (_lastAttacker is PlayerController pc)
+		{
+			pc.RegisterDealtDamage(damage);
+		}
 		if (Health <= 0) OnDestroyed();
 	}
 
@@ -61,6 +66,7 @@ public partial class MobaNexus : InteractableObject
 		EmitSignal(SignalName.NexusDestroyed, (int)Team);
 		var gameManager = GetTree().GetFirstNodeInGroup("moba_game_manager") as MobaGameManager;
 		gameManager?.OnNexusDestroyed(this);
+		RemoveFromGroup("targetables");
 		Visible = false;
 	}
 

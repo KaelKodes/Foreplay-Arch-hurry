@@ -113,9 +113,9 @@ public partial class ArcherySystem
         return TargetingHelper.CalculateOptimalLoft(start, target, velocity, ArcheryConstants.GRAVITY);
     }
 
-    public void StartCharge()
+    public bool StartCharge()
     {
-        if (_bowCooldownRemaining > 0) return;
+        if (_bowCooldownRemaining > 0) return false;
 
         _stage = DrawStage.Drawing;
         _timer = 0.0f;
@@ -123,6 +123,7 @@ public partial class ArcherySystem
         _lockedPower = -1.0f;
         _lockedAccuracy = -1.0f;
         EmitSignal(SignalName.DrawStageChanged, (int)_stage);
+        return true;
     }
 
     public void UpdateChargeProgress(float percent)
@@ -142,6 +143,7 @@ public partial class ArcherySystem
         if (holdTime >= 2.5f) finalPower = isRPG ? 35f : 200f;
         else if (holdTime >= 1.5f) finalPower = isRPG ? 32f : 150f;
         else if (holdTime >= 0.75f) finalPower = isRPG ? 28f : 100f;
+
 
         _lockedPower = finalPower;
         _lockedAccuracy = isRPG ? ArcheryConstants.PERFECT_ACCURACY_VALUE : 100f;
@@ -172,12 +174,22 @@ public partial class ArcherySystem
 
         _lockedPower = 30.0f; // Calibrated for RPG mode visibility (reduced from 85)
         _lockedAccuracy = ArcheryConstants.PERFECT_ACCURACY_VALUE; // Perfect center (fix for "firing to the right")
-        _stage = DrawStage.Executing;
+
+        _stage = DrawStage.Drawing;
+        _forcedDrawTime = 0.25f; // Short mandatory draw for animation snappy-ness
 
         if (isRPG) _isNextShotFlat = true;
 
         EmitSignal(SignalName.DrawStageChanged, (int)_stage);
-        ExecuteShot();
+        // ExecuteShot() is now called by _Process when _forcedDrawTime reaches 0
+    }
+
+    public void PlayAbilityAnimation(bool skipArrow = false)
+    {
+        _shouldSkipArrow = skipArrow;
+        _stage = DrawStage.Drawing;
+        _forcedDrawTime = 0.25f;
+        EmitSignal(SignalName.DrawStageChanged, (int)_stage);
     }
 
     public void SetNextShotPiercing(bool enabled)
@@ -226,7 +238,7 @@ public partial class ArcherySystem
         }
 
         // --- NEW: Force Perfect for Locked Targets ---
-        if (_currentTarget != null)
+        if (CurrentTarget != null)
         {
             accuracyError = 0.0f;
             _lockedAccuracy = ArcheryConstants.PERFECT_ACCURACY_VALUE;
@@ -234,120 +246,128 @@ public partial class ArcherySystem
 
         if (_arrow != null)
         {
-            Vector3 launchDir;
-            if (_currentTarget != null)
+            if (_shouldSkipArrow)
             {
-                // Snap aiming to target
-                Vector3 targetPos = _currentTarget.GlobalPosition;
-                if (_currentTarget is InteractableObject io)
-                {
-                    targetPos = io.GlobalPosition + new Vector3(0, 1.0f, 0);
-                }
-                launchDir = (targetPos - _arrow.GlobalPosition).Normalized();
+                GD.Print($"[ArcherySystem] Executing shot WITHOUT physical arrow. Skip: {_shouldSkipArrow}");
             }
             else
             {
-                if (isRPG && _currentPlayer != null && _camera != null)
+                Vector3 launchDir;
+                if (CurrentTarget != null)
                 {
-                    // NEW: For flat shots without a target, follow crosshair (camera forward) exactly
-                    if (_isNextShotFlat)
-                        launchDir = -_camera.GlobalBasis.Z;
+                    // Snap aiming to target
+                    Vector3 targetPos = CurrentTarget.GlobalPosition;
+                    if (CurrentTarget is InteractableObject io)
+                    {
+                        targetPos = io.GlobalPosition + new Vector3(0, 1.0f, 0);
+                    }
+                    launchDir = (targetPos - _arrow.GlobalPosition).Normalized();
+                }
+                else
+                {
+                    if (isRPG && _currentPlayer != null && _camera != null)
+                    {
+                        // NEW: For flat shots without a target, follow crosshair (camera forward) exactly
+                        if (_isNextShotFlat)
+                            launchDir = -_camera.GlobalBasis.Z;
+                        else
+                        {
+                            launchDir = _currentPlayer.GlobalBasis.Z;
+                            launchDir.Y = 0;
+                            launchDir = launchDir.Normalized();
+                        }
+                    }
                     else
                     {
-                        launchDir = _currentPlayer.GlobalBasis.Z;
-                        launchDir.Y = 0;
-                        launchDir = launchDir.Normalized();
+                        Vector3 camFwd = -_camera.GlobalBasis.Z;
+                        launchDir = (_camera != null) ? new Vector3(camFwd.X, 0, camFwd.Z).Normalized() : Vector3.Forward;
                     }
                 }
-                else
+
+                // Apply Loft
+                float loftDeg = 12.0f;
+                bool skipLoftOverride = false;
+
+                if (_isNextShotFlat)
                 {
-                    Vector3 camFwd = -_camera.GlobalBasis.Z;
-                    launchDir = (_camera != null) ? new Vector3(camFwd.X, 0, camFwd.Z).Normalized() : Vector3.Forward;
+                    loftDeg = 0.0f; // Perfect direct line (for targeted shots)
+                    skipLoftOverride = true; // For no-target crosshair shots, keep the camera Y
                 }
-            }
-
-            // Apply Loft
-            float loftDeg = 12.0f;
-            bool skipLoftOverride = false;
-
-            if (_isNextShotFlat)
-            {
-                loftDeg = 0.0f; // Perfect direct line (for targeted shots)
-                skipLoftOverride = true; // For no-target crosshair shots, keep the camera Y
-            }
-            else if (_currentTarget != null)
-            {
-                Vector3 targetPos = _currentTarget.GlobalPosition;
-                if (_currentTarget is InteractableObject io) targetPos += new Vector3(0, 1.0f, 0);
-
-                loftDeg = CalculateOptimalLoft(_arrow.GlobalPosition, targetPos, velocityMag);
-            }
-            else
-            {
-                switch (_currentMode)
+                else if (CurrentTarget != null)
                 {
-                    case ArcheryShotMode.Standard: loftDeg = 12.0f; break;
-                    case ArcheryShotMode.Long: loftDeg = 25.0f; break;
-                    case ArcheryShotMode.Max: loftDeg = 45.0f; break;
-                }
-            }
+                    Vector3 targetPos = CurrentTarget.GlobalPosition;
+                    if (CurrentTarget is InteractableObject io) targetPos += new Vector3(0, 1.0f, 0);
 
-            if (!skipLoftOverride)
-            {
-                float loftRad = Mathf.DegToRad(loftDeg);
-                launchDir.Y = Mathf.Sin(loftRad);
-                launchDir = launchDir.Normalized();
-            }
-
-            // Apply Accuracy Deviation
-            float rotationDeg = -accuracyError * 0.75f;
-            launchDir = launchDir.Rotated(Vector3.Up, Mathf.DegToRad(rotationDeg));
-
-            // Apply Wind
-            if (_windSystem != null && _windSystem.IsWindEnabled)
-            {
-                Vector3 wind = _windSystem.WindDirection * _windSystem.WindSpeedMph;
-                _arrow.SetWind(wind);
-            }
-            else if (_arrow != null)
-            {
-                _arrow.SetWind(Vector3.Zero);
-            }
-
-            if (Multiplayer.MultiplayerPeer != null && !Multiplayer.IsServer())
-            {
-                RpcId(1, nameof(RequestLaunchArrow), _arrow.Name, _arrow.GlobalPosition, _arrow.GlobalRotation, launchDir * velocityMag, Vector3.Zero, _isNextShotPiercing);
-            }
-            else
-            {
-                if (Multiplayer.MultiplayerPeer != null)
-                {
-                    _arrow.Rpc(nameof(ArrowController.Launch), _arrow.GlobalPosition, _arrow.GlobalRotation, launchDir * velocityMag, Vector3.Zero, _isNextShotPiercing);
+                    loftDeg = CalculateOptimalLoft(_arrow.GlobalPosition, targetPos, velocityMag);
                 }
                 else
                 {
-                    _arrow.Launch(_arrow.GlobalPosition, _arrow.GlobalRotation, launchDir * velocityMag, Vector3.Zero, _isNextShotPiercing);
+                    switch (_currentMode)
+                    {
+                        case ArcheryShotMode.Standard: loftDeg = 12.0f; break;
+                        case ArcheryShotMode.Long: loftDeg = 25.0f; break;
+                        case ArcheryShotMode.Max: loftDeg = 45.0f; break;
+                    }
+                }
+
+                if (!skipLoftOverride)
+                {
+                    float loftRad = Mathf.DegToRad(loftDeg);
+                    launchDir.Y = Mathf.Sin(loftRad);
+                    launchDir = launchDir.Normalized();
+                }
+
+                // Apply Accuracy Deviation
+                float rotationDeg = -accuracyError * 0.75f;
+                launchDir = launchDir.Rotated(Vector3.Up, Mathf.DegToRad(rotationDeg));
+
+                // Apply Wind
+                if (_windSystem != null && _windSystem.IsWindEnabled)
+                {
+                    Vector3 wind = _windSystem.WindDirection * _windSystem.WindSpeedMph;
+                    _arrow.SetWind(wind);
+                }
+                else if (_arrow != null)
+                {
+                    _arrow.SetWind(Vector3.Zero);
+                }
+
+                if (Multiplayer.MultiplayerPeer != null && !Multiplayer.IsServer())
+                {
+                    RpcId(1, nameof(RequestLaunchArrow), _arrow.Name, _arrow.GlobalPosition, _arrow.GlobalRotation, launchDir * velocityMag, Vector3.Zero, _isNextShotPiercing);
+                }
+                else
+                {
+                    if (Multiplayer.MultiplayerPeer != null)
+                    {
+                        _arrow.Rpc(nameof(ArrowController.Launch), _arrow.GlobalPosition, _arrow.GlobalRotation, launchDir * velocityMag, Vector3.Zero, _isNextShotPiercing);
+                    }
+                    else
+                    {
+                        _arrow.Launch(_arrow.GlobalPosition, _arrow.GlobalRotation, launchDir * velocityMag, Vector3.Zero, _isNextShotPiercing);
+                    }
                 }
             }
+
+            EmitSignal(SignalName.ShotResult, _lockedPower, _lockedAccuracy);
+
+            if (MobaGameManager.Instance == null && !isRPG)
+            {
+                ArrowCount--;
+                UpdateArrowLabel();
+            }
+            _stage = DrawStage.ShotComplete;
+            EmitSignal(SignalName.DrawStageChanged, (int)_stage);
+
+            // Reset flags
+            _isNextShotPiercing = false;
+            _isNextShotFlat = false;
+            _shouldSkipArrow = false;
+
+            PrepareNextShot();
+
+            _bowCooldownRemaining = BowCooldownTime;
+            EmitSignal(SignalName.BowCooldownUpdated, _bowCooldownRemaining, BowCooldownTime);
         }
-
-        EmitSignal(SignalName.ShotResult, _lockedPower, _lockedAccuracy);
-
-        if (MobaGameManager.Instance == null && !isRPG)
-        {
-            ArrowCount--;
-            UpdateArrowLabel();
-        }
-        _stage = DrawStage.ShotComplete;
-        EmitSignal(SignalName.DrawStageChanged, (int)_stage);
-
-        // Reset flags
-        _isNextShotPiercing = false;
-        _isNextShotFlat = false;
-
-        PrepareNextShot();
-
-        _bowCooldownRemaining = BowCooldownTime;
-        EmitSignal(SignalName.BowCooldownUpdated, _bowCooldownRemaining, BowCooldownTime);
     }
 }

@@ -79,7 +79,7 @@ public partial class CameraController : Camera3D
         }
     }
 
-    public override void _PhysicsProcess(double delta)
+    public override void _Process(double delta)
     {
         // Smooth zoom interpolation
         _zoomDistance = Mathf.Lerp(_zoomDistance, _targetZoomDistance, (float)delta * ZoomSmoothSpeed);

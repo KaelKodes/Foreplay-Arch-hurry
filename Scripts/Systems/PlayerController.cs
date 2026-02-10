@@ -31,6 +31,11 @@ public partial class PlayerController : CharacterBody3D
     private Vector3 _dashDir = Vector3.Zero;
     private uint _originalMask;
     private bool _isVaulting = false;
+    public bool SynchronizedVaulting
+    {
+        get => _isVaulting;
+        set => _isVaulting = value;
+    }
 
     // Multiplayer Properties
     [Export] public int PlayerIndex { get; set; } = 0;
@@ -149,6 +154,7 @@ public partial class PlayerController : CharacterBody3D
     private SwordController _sword;
     private BowController _standaloneBow;
     private float _inputCooldown = 0.0f;
+    private float _abilityBusyTimer = 0f;
     private Archery.DrawStage _lastArcheryStage = Archery.DrawStage.Idle;
 
     private string _currentModelId = "Ranger";
@@ -175,8 +181,14 @@ public partial class PlayerController : CharacterBody3D
     private Node3D _hardLockTarget;
     private Node3D _fluidTarget;
     private Node3D _lastTarget;
+    private Node3D _lastLockTarget;
     private bool _isMouseCaptured = false;
     private bool _isAltPressed = false;
+
+    // Performance Optimization: Phase 2
+    private float _targetPingTimer = 0f;
+    private const float TargetPingInterval = 0.2f;
+    private List<Node3D> _cachedPotentialTargets = new List<Node3D>();
 
     public Node3D CurrentTarget => (_hardLockTarget != null && TargetingHelper.IsTargetDead(_hardLockTarget)) ? null : (_hardLockTarget ?? _fluidTarget);
     public Node3D HardLockTarget => _hardLockTarget;
@@ -207,6 +219,8 @@ public partial class PlayerController : CharacterBody3D
         }
 
         _archerySystem = GetNodeOrNull<ArcherySystem>("ArcherySystem");
+        AddToGroup("player");
+        AddToGroup("targetables");
         _meleeSystem = GetNodeOrNull<MeleeSystem>("MeleeSystem");
 
         if (_archerySystem == null && !ArcherySystemPath.IsEmpty)
@@ -338,6 +352,20 @@ public partial class PlayerController : CharacterBody3D
 
         if (!IsLocal) return;
 
+        // ── Tick ability cooldowns ────────────────────────────────
+        if (_abilityBusyTimer > 0f)
+        {
+            _abilityBusyTimer -= (float)delta;
+            if (_abilityBusyTimer < 0f) _abilityBusyTimer = 0f;
+        }
+        foreach (var ability in _abilities.Values)
+            ability.UpdateCooldown((float)delta);
+
+        if (CurrentState == PlayerState.WalkMode || CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher)
+        {
+            HandleBodyMovement(delta);
+        }
+
         UpdateSyncProperties(delta);
 
         if (_inputCooldown > 0) _inputCooldown -= (float)delta;
@@ -349,11 +377,10 @@ public partial class PlayerController : CharacterBody3D
         HandleCombatCharge(delta);
 
         // Fluid Smart Targeting update
-        UpdateFluidTargeting();
+        UpdateFluidTargeting((float)delta);
 
         if (CurrentState == PlayerState.WalkMode || CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher)
         {
-            HandleBodyMovement(delta);
             HandleTargetingHotkeys();
         }
 
@@ -364,7 +391,8 @@ public partial class PlayerController : CharacterBody3D
                 HandleCombatInput(delta);
                 break;
             case PlayerState.WalkMode:
-                PlayerInteraction.HandleProximityPrompts(this, _archerySystem);
+                // No proximity prompts anymore (User Request)
+                _archerySystem?.SetPrompt(false);
                 break;
             case PlayerState.BuildMode:
                 HandleBuildModeInput(delta);
@@ -395,7 +423,8 @@ public partial class PlayerController : CharacterBody3D
         CollisionMask = 3;
         _velocity.Y = JumpForce * 0.7f;
         _isJumping = true;
-        _modelManager?.UpdateCustomAnimations(false, false, true, false, false);
+
+        GD.Print("[PlayerController] Vault started");
     }
 
     public void OnPerkSelected(string perkId)
@@ -449,6 +478,27 @@ public partial class PlayerController : CharacterBody3D
         {
             _lifestealTimer -= dt;
             if (_lifestealTimer <= 0) LifestealPercent = 0f;
+        }
+    }
+
+    public void Heal(float amount)
+    {
+        if (amount <= 0) return;
+
+        var stats = _archerySystem?.PlayerStats;
+        if (stats != null)
+        {
+            stats.CurrentHealth = Mathf.Clamp(stats.CurrentHealth + (int)amount, 0, stats.MaxHealth);
+            GD.Print($"[Player {PlayerIndex}] Healed for {amount}. HP: {stats.CurrentHealth}/{stats.MaxHealth}");
+        }
+    }
+
+    public void RegisterDealtDamage(float damage)
+    {
+        if (LifestealPercent > 0)
+        {
+            float healAmount = damage * LifestealPercent;
+            Heal(healAmount);
         }
     }
 }

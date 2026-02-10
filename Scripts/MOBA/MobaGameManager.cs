@@ -227,11 +227,6 @@ public partial class MobaGameManager : Node
         _minionContainer.AddChild(minion);
         minion.GlobalPosition = spawnPos + offset;
 
-        // Ground snap: Force Y=0 for flat MOBA map
-        // (Raycast was hitting minion's own CollisionShape3D at Y=0.9)
-        minion.GlobalPosition = new Vector3(minion.GlobalPosition.X, 0f, minion.GlobalPosition.Z);
-
-
         return minion;
     }
 

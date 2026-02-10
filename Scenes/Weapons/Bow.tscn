@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=4 uid="uid://dok380vlowhb6"]
 
-[ext_resource type="Texture2D" uid="uid://c2rwh8yli7pn1" path="res://Assets/ErikaBow/Erika Archer With Bow Arrow_3.png" id="1_4ecq2"]
-[ext_resource type="Texture2D" uid="uid://cdrihqw1ikgwd" path="res://Assets/ErikaBow/Erika Archer With Bow Arrow_4.png" id="2_www5h"]
+[ext_resource type="Texture2D" uid="uid://caaoxj5mneyih" path="res://Assets/Heroes/Ranger/Animations/Erika Archer With Bow Arrow_3.png" id="1_4ecq2"]
+[ext_resource type="Texture2D" uid="uid://d3fkvkbqy3br2" path="res://Assets/Heroes/Ranger/Animations/Erika Archer With Bow Arrow_4.png" id="2_www5h"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_s0ijo"]
 resource_name = "Bow_MAT"

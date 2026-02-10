@@ -24,6 +24,10 @@ public partial class MobaTower : InteractableObject
     private Node _lastAttacker;
     private float _attackTimer = 0f;
     private float _hpBarTimer = 0f;
+
+    // AI Throttling
+    private float _aiUpdateTimer = 0f;
+    private const float AiUpdateInterval = 0.2f; // 5Hz is plenty for towers
     private MeshInstance3D _teamColorMesh;
 
     private ProgressBar _hpBar;
@@ -35,6 +39,7 @@ public partial class MobaTower : InteractableObject
     {
         Health = MaxHealth;
         AddToGroup("towers");
+        AddToGroup("targetables");
         AddToGroup($"team_{Team.ToString().ToLower()}");
 
         _teamColorMesh = FindMeshRecursive(this);
@@ -54,8 +59,15 @@ public partial class MobaTower : InteractableObject
         _attackTimer -= dt;
         UpdateHpBarVisibility(dt);
 
+        _aiUpdateTimer -= dt;
         if (_currentTarget == null || !IsValidTarget(_currentTarget))
-            _currentTarget = FindBestTarget();
+        {
+            if (_aiUpdateTimer <= 0)
+            {
+                _aiUpdateTimer = AiUpdateInterval;
+                _currentTarget = FindBestTarget();
+            }
+        }
 
         if (_currentTarget != null && _attackTimer <= 0)
         {
@@ -77,6 +89,12 @@ public partial class MobaTower : InteractableObject
         _hpBarTimer = 0f;
         if (_hpSprite != null) _hpSprite.Visible = true;
         UpdateHpBar();
+
+        if (_lastAttacker is PlayerController pc)
+        {
+            pc.RegisterDealtDamage(damage);
+        }
+
         if (Health <= 0) OnDestroyed();
     }
 
@@ -182,6 +200,7 @@ public partial class MobaTower : InteractableObject
 
         var gameManager = GetTree().GetFirstNodeInGroup("moba_game_manager") as MobaGameManager;
         gameManager?.OnTowerDestroyed(this);
+        RemoveFromGroup("targetables");
         Visible = false;
         SetPhysicsProcess(false);
     }

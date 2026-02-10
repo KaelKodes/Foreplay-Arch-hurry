@@ -48,6 +48,8 @@ public partial class MobaHUD : CanvasLayer
 	// State
 	private string _heroClass = "Ranger";  // Default; updated externally
 	private bool _isRpgMode = false;
+	private float _uiUpdateTimer = 0f;
+	private const float UiUpdateInterval = 0.05f; // 20Hz is enough for UI
 
 	public override void _Ready()
 	{
@@ -346,8 +348,13 @@ public partial class MobaHUD : CanvasLayer
             _modeSignalConnected = true;
         }
 
-        // Update player stats from StatsService
-        PollPlayerStats();
+        // Throttled UI polling (20Hz)
+        _uiUpdateTimer -= (float)delta;
+        if (_uiUpdateTimer <= 0)
+        {
+            _uiUpdateTimer = UiUpdateInterval;
+            PollPlayerStats();
+        }
     }
 
     private bool _modeSignalConnected = false;

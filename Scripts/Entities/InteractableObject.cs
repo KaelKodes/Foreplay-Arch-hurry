@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 namespace Archery;
 
+[Tool]
 public partial class InteractableObject : Node3D
 {
     [Export] public string ObjectName = "Object";
@@ -12,6 +13,10 @@ public partial class InteractableObject : Node3D
     [Export] public bool IsTargetable = false;
     [Export] public MobaTeam Team = MobaTeam.None;
     [Export] public string ModelPath = "";
+
+    [ExportGroup("Collision")]
+    [Export] public bool AutoGenerateCollision = true;
+    [Export] public bool RebuildCollisionTrigger { get => false; set { if (value) CallDeferred(nameof(AddDynamicCollision)); } }
     public string ScenePath { get; set; } = "";
     public bool IsSelected { get; private set; } = false;
 
@@ -25,6 +30,19 @@ public partial class InteractableObject : Node3D
 
     public override void _Ready()
     {
+        if (Engine.IsEditorHint())
+        {
+            // In editor, we only auto-generate if requested and missing
+            if (AutoGenerateCollision)
+            {
+                var existing = GetNodeOrNull<StaticBody3D>("StaticBody3D");
+                if (existing == null) AddDynamicCollision();
+            }
+            return;
+        }
+
+        if (IsTargetable) AddToGroup("targetables");
+
         _mesh = FindMeshRecursive(this);
         CreateGizmo();
 
@@ -38,14 +56,17 @@ public partial class InteractableObject : Node3D
             TryApplyTexturesToModel(this, ModelPath);
         }
 
-        // Skip auto-collision if this node is already a physics body or has a manual shape
-        bool hasNativeCollision = GetNodeOrNull<CollisionShape3D>("CollisionShape3D") != null ||
-                                 GetNodeOrNull<StaticBody3D>("StaticBody3D") != null ||
-                                 IsClass("CollisionObject3D");
-
-        if (!hasNativeCollision)
+        if (AutoGenerateCollision)
         {
-            AddDynamicCollision();
+            // Skip auto-collision if this node is already a physics body or has a manual shape
+            bool hasNativeCollision = GetNodeOrNull<CollisionShape3D>("CollisionShape3D") != null ||
+                                     GetNodeOrNull<StaticBody3D>("StaticBody3D") != null ||
+                                     IsClass("CollisionObject3D");
+
+            if (!hasNativeCollision)
+            {
+                AddDynamicCollision();
+            }
         }
     }
 
@@ -55,11 +76,20 @@ public partial class InteractableObject : Node3D
         UpdateVisuals(isHovered ? new Color(1.5f, 1.5f, 1.5f) : Colors.White);
     }
 
-    public void SetSelected(bool selected)
+    public void SetSelected(bool selected, bool isLocked = false)
     {
         IsSelected = selected;
-        UpdateVisuals(selected ? Colors.Cyan : Colors.White, selected);
-        if (_gizmoRing != null) _gizmoRing.Visible = selected;
+        Color ringColor = isLocked ? Colors.Cyan : new Color(1, 1, 1, 0.8f);
+        UpdateVisuals(selected ? ringColor : Colors.White, selected);
+
+        if (_gizmoRing != null)
+        {
+            _gizmoRing.Visible = selected;
+            if (selected && _gizmoRing.MaterialOverride is StandardMaterial3D mat)
+            {
+                mat.AlbedoColor = ringColor;
+            }
+        }
     }
 
     private void UpdateVisuals(Color color, bool isSelected = false)
@@ -87,15 +117,22 @@ public partial class InteractableObject : Node3D
 
     public void AddDynamicCollision()
     {
+        // Clean up old generated body if it exists
+        var existing = GetNodeOrNull<StaticBody3D>("StaticBody3D");
+        if (existing != null)
+        {
+            existing.QueueFree();
+            // In editor, we need to handle this immediately if possible, or wait for next frame
+        }
+
         Aabb combinedAabb = new Aabb();
         bool hasAabb = false;
 
-        void Encapsulate(Node node, Transform3D parentTransform)
+        void Encapsulate(Node node, Transform3D localTransform)
         {
-            Transform3D currentTransform = parentTransform;
-            if (node is Node3D node3D) currentTransform = parentTransform * node3D.Transform;
+            Transform3D currentTransform = localTransform;
+            if (node is Node3D node3D) currentTransform = localTransform * node3D.Transform;
 
-            // ONLY include visible meshes in the dynamic collision box
             if (node is VisualInstance3D vi && vi.Visible)
             {
                 Aabb transformedAabb = currentTransform * vi.GetAabb();
@@ -105,20 +142,37 @@ public partial class InteractableObject : Node3D
             foreach (Node child in node.GetChildren()) Encapsulate(child, currentTransform);
         }
 
-        foreach (Node child in GetChildren()) Encapsulate(child, Transform3D.Identity);
+        foreach (Node child in GetChildren())
+        {
+            if (child.Name == "StaticBody3D") continue; // Don't include the collider in its own bounds
+            Encapsulate(child, Transform3D.Identity);
+        }
 
         if (hasAabb)
         {
             var staticBody = new StaticBody3D();
             staticBody.Name = "StaticBody3D";
+            AddChild(staticBody);
+
             var colShape = new CollisionShape3D();
+            colShape.Name = "CollisionShape3D";
+            staticBody.AddChild(colShape);
+
             var box = new BoxShape3D();
             if (combinedAabb.Size.Length() < 0.1f) combinedAabb.Size = new Vector3(1, 1, 1);
             box.Size = combinedAabb.Size;
             colShape.Shape = box;
             colShape.Position = combinedAabb.GetCenter();
-            staticBody.AddChild(colShape);
-            AddChild(staticBody);
+
+            // CRITICAL: Set owner AFTER adding to tree so they persist in the editor
+            if (Engine.IsEditorHint() && GetTree() != null)
+            {
+                var root = GetTree().EditedSceneRoot;
+                staticBody.Owner = root;
+                colShape.Owner = root;
+            }
+
+            GD.Print($"[InteractableObject] Generated collision for {ObjectName} ({combinedAabb.Size})");
         }
     }
 
@@ -174,11 +228,25 @@ public partial class InteractableObject : Node3D
         torus.InnerRadius = 1.8f; torus.OuterRadius = 2.0f;
         _gizmoRing.Mesh = torus;
         var mat = new StandardMaterial3D();
-        mat.AlbedoColor = new Color(0, 1, 1, 0.5f);
+        mat.AlbedoColor = new Color(1, 1, 1, 0.8f); // Default to white/soft
         mat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+        mat.ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded; // Make it glow properly
         _gizmoRing.MaterialOverride = mat;
         _gizmoRing.Visible = false;
         AddChild(_gizmoRing);
+    }
+
+    public virtual Vector3 GetTargetCenter()
+    {
+        // Default to a 1.2m offset for humanoids if no mesh is found
+        if (_mesh == null) return GlobalPosition + new Vector3(0, 1.2f, 0);
+
+        // Try to find the center of the visual AABB
+        Aabb aabb = _mesh.GetAabb();
+        Vector3 center = aabb.GetCenter();
+
+        // Return global position of the center
+        return _mesh.ToGlobal(center);
     }
 
     protected MeshInstance3D FindMeshRecursive(Node node)

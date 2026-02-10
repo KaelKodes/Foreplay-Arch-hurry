@@ -25,8 +25,12 @@ public static class MonsterVisuals
 
         // GD.Print($"[MonsterVisuals] --- Filtering visuals for Species: '{species}' ---");
 
-        // Reset scene transform before processing
-        if (scene is Node3D scene3D) scene3D.Transform = Transform3D.Identity;
+        // [DEACTIVATED] Reset scene transform before processing (Preserve editor settings!)
+        // if (scene is Node3D scene3D)
+        // {
+        //     scene3D.Position = Vector3.Zero;
+        //     scene3D.Rotation = Vector3.Zero;
+        // }
 
         // Step 1: Hide EVERYTHING deep
         HideAllRecursive(scene);
@@ -37,8 +41,8 @@ public static class MonsterVisuals
 
         if (found)
         {
-            // GD.Print($"[MonsterVisuals] Successfully isolated Species: {species}");
-            CenterAndGroundVisuals(scene, species);
+            // [DEACTIVATED] Let the artist/editor control position
+            // CenterAndGroundVisuals(scene, species); 
             onCollisionUpdate?.Invoke();
         }
         else

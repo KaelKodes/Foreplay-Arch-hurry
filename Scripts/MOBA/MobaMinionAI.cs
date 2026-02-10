@@ -19,6 +19,11 @@ public partial class MobaMinionAI : Node
     // Direction toward enemy base: Blue pushes -Z, Red pushes +Z
     private float _laneDirection = -1f;
 
+    // AI Throttling
+    private float _aiUpdateTimer = 0f;
+    private const float AiUpdateInterval = 0.1f;
+    private Vector3 _cachedSeparation = Vector3.Zero;
+
     public override void _Ready()
     {
         _minion = GetParent() as MobaMinion;
@@ -42,21 +47,31 @@ public partial class MobaMinionAI : Node
         float dt = (float)delta;
         _attackTimer -= dt;
 
-        // Find or validate target
-        bool needsRescan = _currentTarget == null || !IsValidTarget(_currentTarget);
+        // Throttled "Thinking" Block (10Hz)
+        _aiUpdateTimer -= dt;
+        if (_aiUpdateTimer <= 0)
+        {
+            _aiUpdateTimer = AiUpdateInterval;
 
-        // If targeting a structure, check if a minion is now in range
-        if (!needsRescan && (_currentTarget is MobaTower || _currentTarget is MobaNexus))
-        {
-            Node3D potentialMinion = FindBestTarget();
-            if (potentialMinion != null && potentialMinion is MobaMinion)
+            // Find or validate target
+            bool needsRescan = _currentTarget == null || !IsValidTarget(_currentTarget);
+
+            // If targeting a structure, check if a minion is now in range
+            if (!needsRescan && (_currentTarget is MobaTower || _currentTarget is MobaNexus))
             {
-                _currentTarget = potentialMinion;
+                Node3D potentialMinion = FindBestTarget();
+                if (potentialMinion != null && potentialMinion is MobaMinion)
+                {
+                    _currentTarget = potentialMinion;
+                }
             }
-        }
-        else if (needsRescan)
-        {
-            _currentTarget = FindBestTarget();
+            else if (needsRescan)
+            {
+                _currentTarget = FindBestTarget();
+            }
+
+            // Update separation force at the same 10Hz interval
+            _cachedSeparation = GetSeparationVector();
         }
 
         if (_currentTarget != null)
@@ -186,20 +201,43 @@ public partial class MobaMinionAI : Node
         Vector3 direction = (targetPos - _minion.GlobalPosition).Normalized();
         direction.Y = 0; // Keep on horizontal plane
 
-        Vector3 velocity = direction * _minion.MoveSpeed;
+        // Apply cached separation force to prevent overlapping
+        Vector3 moveDir = (direction + _cachedSeparation * 1.5f).Normalized();
+
+        Vector3 velocity = moveDir * _minion.MoveSpeed;
         _minion.ApplyMovement(velocity, dt);
 
-        // Double check Y-position to prevent drift
-        _minion.GlobalPosition = new Vector3(_minion.GlobalPosition.X, 0f, _minion.GlobalPosition.Z);
-
-        // Face movement direction
-        if (direction.LengthSquared() > 0.01f)
+        // Face movement direction (use the actual steering direction)
+        if (moveDir.LengthSquared() > 0.01f)
         {
-            float targetAngle = Mathf.Atan2(direction.X, direction.Z);
+            float targetAngle = Mathf.Atan2(moveDir.X, moveDir.Z);
             float currentAngle = _minion.Rotation.Y;
             float newAngle = Mathf.LerpAngle(currentAngle, targetAngle, TurnSpeed * dt);
             _minion.Rotation = new Vector3(0, newAngle, 0);
         }
+    }
+
+    private Vector3 GetSeparationVector()
+    {
+        Vector3 separation = Vector3.Zero;
+        float radius = 1.5f; // Personal space radius
+        var minions = GetTree().GetNodesInGroup("minions");
+
+        foreach (var node in minions)
+        {
+            if (node is MobaMinion other && other != _minion && other.Health > 0)
+            {
+                float dist = _minion.GlobalPosition.DistanceTo(other.GlobalPosition);
+                if (dist < radius && dist > 0.001f)
+                {
+                    Vector3 diff = _minion.GlobalPosition - other.GlobalPosition;
+                    diff.Y = 0;
+                    // Stronger push the closer they are
+                    separation += diff.Normalized() * (1.0f - dist / radius);
+                }
+            }
+        }
+        return separation;
     }
 
     private void FaceTarget(Node3D target, float dt)

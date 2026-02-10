@@ -3,14 +3,15 @@
     "Archer": {
       "displayName": "Windrunner Archer",
       "animations": {
-        "idle": "res://Assets/Erika/standing idle 01.fbx",
-        "walk": "res://Assets/Erika/standing walk forward.fbx",
-        "run": "res://Assets/Erika/standing run forward.fbx"
+        "idle": "res://Assets/Heroes/Ranger/Animations/standing idle 01.fbx",
+        "walk": "res://Assets/Heroes/Ranger/Animations/standing walk forward.fbx",
+        "run": "res://Assets/Heroes/Ranger/Animations/standing run forward.fbx"
       },
       "abilities": {
         "Rapid Fire": {
           "description": "A flurry of arrows that turns the battlefield into a pincushion.",
-          "animationPath": "res://Assets/ErikaBow/standing draw arrow.fbx",
+          "animationPath": "res://Assets/Heroes/Ranger/Animations/standing draw arrow.fbx",
+          "cooldown": 1.2,
           "branches": [
             "Volley",
             "Fleet Footwork",
@@ -22,7 +23,8 @@
         },
         "Piercing Shot": {
           "description": "Charges a powerful shot that passes through all enemies in its path.",
-          "animationPath": "res://Assets/ErikaBow/standing draw arrow.fbx",
+          "animationPath": "res://Assets/Heroes/Ranger/Animations/standing draw arrow.fbx",
+          "cooldown": 1.5,
           "branches": [
             "Long-Range Bore",
             "Shattering Point",
@@ -34,7 +36,8 @@
         },
         "Rain of Arrows": {
           "description": "Command the sky to rain destruction on your foes.",
-          "animationPath": "res://Assets/ErikaBow/standing draw arrow.fbx",
+          "animationPath": "res://Assets/Heroes/Ranger/Animations/standing draw arrow.fbx",
+          "cooldown": 2.0,
           "branches": [
             "Arctic Wind",
             "Corrosive Rain",
@@ -46,7 +49,8 @@
         },
         "Vault": {
           "description": "A nimble backward leap to reposition and evade danger.",
-          "animationPath": "res://Assets/Erika/sword and shield jump (2).fbx",
+          "animationPath": "res://Assets/Heroes/Ranger/Animations/sword and shield jump (2).fbx",
+          "cooldown": 0.8,
           "branches": [
             "Aerial Shot",
             "Smoke Screen",
@@ -61,14 +65,15 @@
     "Warrior": {
       "displayName": "Iron Vanguard",
       "animations": {
-        "idle": "res://Assets/Erika/sword and shield idle.fbx",
-        "walk": "res://Assets/Erika/sword and shield walk.fbx",
-        "run": "res://Assets/Erika/sword and shield run.fbx"
+        "idle": "res://Assets/Heroes/Warrior/animations/sword and shield idle.fbx",
+        "walk": "res://Assets/Heroes/Warrior/animations/sword and shield walk.fbx",
+        "run": "res://Assets/Heroes/Warrior/animations/sword and shield run.fbx"
       },
       "abilities": {
         "Shield Slam": {
           "description": "A forceful bash that leaves enemies reeling.",
-          "animationPath": "res://Assets/Erika/sword and shield attack.fbx",
+          "animationPath": "res://Assets/Heroes/Warrior/animations/sword and shield attack.fbx",
+          "cooldown": 1.5,
           "branches": [
             "Echoing Impact",
             "Concussive Force",
@@ -80,7 +85,8 @@
         },
         "Intercept": {
           "description": "Bridge the gap instantly or boost a charging ally.",
-          "animationPath": "res://Assets/Erika/sword and shield run.fbx",
+          "animationPath": "res://Assets/Heroes/Warrior/animations/sword and shield run.fbx",
+          "cooldown": 1.0,
           "branches": [
             "Relentless Pursuit",
             "Blazing Path",
@@ -92,7 +98,8 @@
         },
         "Demoralizing Shout": {
           "description": "Assert dominance. Command the battlefield.",
-          "animationPath": "res://Assets/Erika/sword and shield power up.fbx",
+          "animationPath": "res://Assets/Heroes/Warrior/animations/sword and shield power up.fbx",
+          "cooldown": 2.0,
           "branches": [
             "Terrifying Presence",
             "Battle Aura",
@@ -104,7 +111,8 @@
         },
         "Avatar of War": {
           "description": "Ascend into divine fury. Become the legend.",
-          "animationPath": "res://Assets/Erika/sword and shield power up.fbx",
+          "animationPath": "res://Assets/Heroes/Warrior/animations/sword and shield power up.fbx",
+          "cooldown": 3.0,
           "branches": [
             "Colossus",
             "Unyielding",
@@ -119,14 +127,15 @@
     "Cleric": {
       "displayName": "High Priest",
       "animations": {
-        "idle": "res://Assets/Necromancer/standing idle.fbx",
-        "walk": "res://Assets/Necromancer/Standing Walk Forward.fbx",
-        "run": "res://Assets/Necromancer/Standing Run Forward.fbx"
+        "idle": "res://Assets/Heroes/Necromancer/Animations/standing idle.fbx",
+        "walk": "res://Assets/Heroes/Necromancer/Animations/Standing Walk Forward.fbx",
+        "run": "res://Assets/Heroes/Necromancer/Animations/Standing Run Forward.fbx"
       },
       "abilities": {
         "High Remedy": {
           "description": "The most powerful single-target heal in the game.",
-          "animationPath": "res://Assets/Necromancer/Standing 2H Cast Spell 01.fbx",
+          "animationPath": "res://Assets/Heroes/Necromancer/Animations/Standing 2H Cast Spell 01.fbx",
+          "cooldown": 2.0,
           "branches": [
             "Divine Overflow",
             "Quickening Grace",
@@ -138,7 +147,8 @@
         },
         "Celestial Buff": {
           "description": "Bolster your allies with holy protection.",
-          "animationPath": "res://Assets/Necromancer/Standing 2H Cast Spell 01.fbx",
+          "animationPath": "res://Assets/Heroes/Necromancer/Animations/Standing 2H Cast Spell 01.fbx",
+          "cooldown": 2.0,
           "branches": [
             "Symbol of Fortitude",
             "Aura of Retribution",
@@ -150,7 +160,8 @@
         },
         "Judgement": {
           "description": "A holy strike that weakens the enemy's resolve.",
-          "animationPath": "res://Assets/Necromancer/Standing 1H Magic Attack 01.fbx",
+          "animationPath": "res://Assets/Heroes/Necromancer/Animations/Standing 1H Magic Attack 01.fbx",
+          "cooldown": 1.5,
           "branches": [
             "Blinding Flare",
             "Searing Brand",
@@ -162,7 +173,8 @@
         },
         "Divine Intervention": {
           "description": "The ultimate insurance policy against death.",
-          "animationPath": "res://Assets/Necromancer/Standing 2H Magic Area Attack 01.fbx",
+          "animationPath": "res://Assets/Heroes/Necromancer/Animations/Standing 2H Magic Area Attack 01.fbx",
+          "cooldown": 3.0,
           "branches": [
             "Second Life",
             "Guardian Angel",
@@ -177,14 +189,15 @@
     "Necromancer": {
       "displayName": "Soul-Reaver Necromancer",
       "animations": {
-        "idle": "res://Assets/Necromancer/standing idle.fbx",
-        "walk": "res://Assets/Necromancer/Standing Walk Forward.fbx",
-        "run": "res://Assets/Necromancer/Standing Run Forward.fbx"
+        "idle": "res://Assets/Heroes/Necromancer/Animations/standing idle.fbx",
+        "walk": "res://Assets/Heroes/Necromancer/Animations/Standing Walk Forward.fbx",
+        "run": "res://Assets/Heroes/Necromancer/Animations/Standing Run Forward.fbx"
       },
       "abilities": {
         "Lifetap": {
           "description": "Steal the very essence of your enemies to fuel your own heart.",
-          "animationPath": "res://Assets/Necromancer/Standing 1H Magic Attack 01.fbx",
+          "animationPath": "res://Assets/Heroes/Necromancer/Animations/Standing 1H Magic Attack 01.fbx",
+          "cooldown": 1.2,
           "branches": [
             "Soul Siphon",
             "Blood Blast",
@@ -196,7 +209,8 @@
         },
         "Plague of Darkness": {
           "description": "Cast a rotting decay that spreads through the enemy lines.",
-          "animationPath": "res://Assets/Necromancer/Standing 2H Magic Area Attack 02.fbx",
+          "animationPath": "res://Assets/Heroes/Necromancer/Animations/Standing 2H Magic Area Attack 02.fbx",
+          "cooldown": 2.0,
           "branches": [
             "Virulent Strain",
             "Enveloping Gloom",
@@ -208,7 +222,8 @@
         },
         "Summon Undead": {
           "description": "Raise a Skeleton Knight from the grave to do your bidding.",
-          "animationPath": "res://Assets/Necromancer/Standing 2H Cast Spell 01.fbx",
+          "animationPath": "res://Assets/Heroes/Necromancer/Animations/Standing 2H Cast Spell 01.fbx",
+          "cooldown": 3.0,
           "branches": [
             "Knight's Plate",
             "Flaming Blade",
@@ -220,7 +235,8 @@
         },
         "Lich Form": {
           "description": "The ultimate transformation. Sacrifice your blood for infinite power.",
-          "animationPath": "res://Assets/Necromancer/Standing 2H Magic Area Attack 01.fbx",
+          "animationPath": "res://Assets/Heroes/Necromancer/Animations/Standing 2H Magic Area Attack 01.fbx",
+          "cooldown": 5.0,
           "branches": [
             "Dark Pact",
             "Skeletal Command",

@@ -60,8 +60,82 @@ public partial class CharacterModelManager
 
 				// Apply Mesh Configuration (Hiding/Scaling)
 				ApplyMeshConfig(_currentCustomModel, model);
+
+				// Handle Weapon Override (Theft)
+				if (!string.IsNullOrEmpty(model.WeaponOverridePath))
+				{
+					HandleWeaponTheft(_currentCustomModel, model);
+				}
 			}
 		}
+	}
+
+	private void HandleWeaponTheft(Node3D characterInstance, CharacterRegistry.CharacterModel model)
+	{
+		string weaponFbxPath = model.WeaponOverridePath;
+		if (!ResourceLoader.Exists(weaponFbxPath)) return;
+
+		var scn = GD.Load<PackedScene>(weaponFbxPath);
+		if (scn == null) return;
+
+		var weaponModel = scn.Instantiate<Node3D>();
+
+		// 1. Hide default weapons on character
+		HideBuiltinWeapons(characterInstance);
+
+		// 2. Find the weapon mesh in the source
+		MeshInstance3D meshToSteal = FindWeaponMeshRecursive(weaponModel);
+		if (meshToSteal != null)
+		{
+			// 3. Find the hand bone on character
+			var skeleton = FindSkeletonRecursive(characterInstance);
+			if (skeleton != null)
+			{
+				// Create BoneAttachment
+				var attachment = new BoneAttachment3D();
+				attachment.Name = "StolenWeaponAttachment";
+				skeleton.AddChild(attachment);
+
+				// Try common hand bone names
+				string boneName = "RightHand";
+				if (skeleton.FindBone("mixamorig_RightHand") != -1) boneName = "mixamorig_RightHand";
+				else if (skeleton.FindBone("hand.R") != -1) boneName = "hand.R";
+
+				attachment.BoneName = boneName;
+
+				// Move mesh to attachment
+				meshToSteal.GetParent()?.RemoveChild(meshToSteal);
+				meshToSteal.Owner = null; // Unset owner to prevent scene inconsistency
+				attachment.AddChild(meshToSteal);
+				meshToSteal.Owner = attachment;
+				meshToSteal.AddToGroup("stolen_weapons");
+
+				// Apply custom offsets
+				meshToSteal.Position = model.WeaponPositionOffset;
+				meshToSteal.RotationDegrees = model.WeaponRotationOffset;
+
+				GD.Print($"[CharacterModelManager] Successfully stole weapon {meshToSteal.Name} from {weaponFbxPath} and attached to {boneName}");
+			}
+		}
+
+		weaponModel.QueueFree();
+	}
+
+	private MeshInstance3D FindWeaponMeshRecursive(Node node)
+	{
+		if (node is MeshInstance3D mi)
+		{
+			string name = mi.Name.ToString().ToLower();
+			if (name.Contains("sword") || name.Contains("blade") || name.Contains("weapon") || name.Contains("greatsword"))
+				return mi;
+		}
+
+		foreach (Node child in node.GetChildren())
+		{
+			var found = FindWeaponMeshRecursive(child);
+			if (found != null) return found;
+		}
+		return null;
 	}
 
 	private void ApplyMeshConfig(Node3D modelInstance, CharacterRegistry.CharacterModel modelData)
@@ -82,8 +156,12 @@ public partial class CharacterModelManager
 			var meshNode = modelInstance.FindChild(meshName, true, false) as Node3D;
 			if (meshNode != null)
 			{
-				// Apply Scale
-				meshNode.Scale = new Vector3(cfg.Scale[0], cfg.Scale[1], cfg.Scale[2]);
+				// Apply Scale (Only if not default to avoid overriding natural model scales)
+				Vector3 targetScale = new Vector3(cfg.Scale[0], cfg.Scale[1], cfg.Scale[2]);
+				if (targetScale != Vector3.One)
+				{
+					meshNode.Scale = targetScale;
+				}
 
 				// Apply Visibility based on Category
 				// Items/Body/Hidden are static. Weapons are dynamic.

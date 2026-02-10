@@ -32,6 +32,7 @@ public static class RangerAbilities
                 break;
 
             case 2: // Rain of Arrows (3) - Slot 2
+                archery.PlayAbilityAnimation(true);
                 CastRainOfArrows(caster, archery);
                 break;
 

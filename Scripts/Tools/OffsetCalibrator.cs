@@ -6,7 +6,7 @@ using Archery;
 public partial class OffsetCalibrator : Node
 {
     [Export] public NodePath TargetPath;
-    [Export] public float MoveSpeed = 0.2f; // Slower default for precision
+    [Export] public float MoveSpeed = 0.2f;
     [Export] public float RotateSpeed = 25.0f;
 
     private Node3D _target;
@@ -18,14 +18,24 @@ public partial class OffsetCalibrator : Node
 
     public override void _Process(double delta)
     {
+        // Only run for the local player to avoid multiple instances fighting for input
+        var parent = GetParent();
+        if (parent is PlayerController pc && !pc.IsLocal) return;
+
         // Continuous search if no target
         if (_target == null)
         {
             TryFindTarget();
-            if (_target == null) return;
+            if (_target == null)
+            {
+                if (Input.IsAnythingPressed() && Time.GetTicksMsec() % 1000 < 20)
+                {
+                    GD.Print("[OffsetCalibrator] Keys pressed but NO TARGET found.");
+                }
+                return;
+            }
         }
 
-        // If target became invalid (deleted), clear it
         if (!IsInstanceValid(_target))
         {
             _target = null;
@@ -41,97 +51,91 @@ public partial class OffsetCalibrator : Node
 
         if (isPrecision)
         {
-            moveSpd *= 0.05f; // Extra precise with Shift
+            moveSpd *= 0.05f;
             rotSpd *= 0.1f;
         }
 
         Vector3 cameraRelativeMove = Vector3.Zero;
         Vector3 localRotation = Vector3.Zero;
 
-        // Input Handling
-        // Camera-Relative Movement Directions
-        // Up/Down Arrow = Up/Down on Screen (Camera Y)
-        // Left/Right Arrow = Left/Right on Screen (Camera X)
-        // PgUp/PgDn = Forward/Backward/Depth (Camera -Z)
-
         if (Input.IsKeyPressed(Key.Up)) cameraRelativeMove.Y += 1;
         if (Input.IsKeyPressed(Key.Down)) cameraRelativeMove.Y -= 1;
         if (Input.IsKeyPressed(Key.Left)) cameraRelativeMove.X -= 1;
         if (Input.IsKeyPressed(Key.Right)) cameraRelativeMove.X += 1;
-        if (Input.IsKeyPressed(Key.Pageup)) cameraRelativeMove.Z -= 1; // Away/Depth
-        if (Input.IsKeyPressed(Key.Pagedown)) cameraRelativeMove.Z += 1; // Toward
+        if (Input.IsKeyPressed(Key.Pageup)) cameraRelativeMove.Z -= 1;
+        if (Input.IsKeyPressed(Key.Pagedown)) cameraRelativeMove.Z += 1;
 
-        // Rotation Input (Still Local for now, usually clearer for rotation)
         if (isRotate)
         {
-            if (Input.IsKeyPressed(Key.Up)) localRotation.X += 1; // Pitch
+            if (Input.IsKeyPressed(Key.Up)) localRotation.X += 1;
             if (Input.IsKeyPressed(Key.Down)) localRotation.X -= 1;
-            if (Input.IsKeyPressed(Key.Left)) localRotation.Y += 1; // Yaw
+            if (Input.IsKeyPressed(Key.Left)) localRotation.Y += 1;
             if (Input.IsKeyPressed(Key.Right)) localRotation.Y -= 1;
-            if (Input.IsKeyPressed(Key.Pageup)) localRotation.Z += 1; // Roll
+            if (Input.IsKeyPressed(Key.Pageup)) localRotation.Z += 1;
             if (Input.IsKeyPressed(Key.Pagedown)) localRotation.Z -= 1;
+        }
+
+        // Reset Key
+        if (Input.IsKeyPressed(Key.Delete) || Input.IsKeyPressed(Key.Backspace))
+        {
+            _target.Position = Vector3.Zero;
+            _target.RotationDegrees = Vector3.Zero;
+            GD.Print("[OffsetCalibrator] Reset target transform to zero.");
+            return;
         }
 
         // Apply
         if (cameraRelativeMove != Vector3.Zero || localRotation != Vector3.Zero)
         {
-            // Special Case: Arrow Calibration via ArcherySystem
-            if (_target is ArrowController)
+            Camera3D cam = GetViewport().GetCamera3D();
+
+            if (isRotate && localRotation != Vector3.Zero)
             {
-                var archerySys = GetArcherySystem();
-                if (archerySys != null && _target.IsInsideTree())
+                float rotRad = Mathf.DegToRad(rotSpd);
+                if (cam != null)
                 {
-                    Camera3D cam = GetViewport().GetCamera3D();
-                    if (cam != null && !isRotate)
-                    {
-                        // 1. Convert Camera-Relative Input to World Space Vector
-                        Vector3 worldMove = Vector3.Zero;
-                        worldMove += cam.GlobalBasis.X * cameraRelativeMove.X; // Left/Right
-                        worldMove += cam.GlobalBasis.Y * cameraRelativeMove.Y; // Up/Down
-                        worldMove += cam.GlobalBasis.Z * cameraRelativeMove.Z; // Depth (Forward/Back)
+                    if (localRotation.Y != 0) _target.GlobalRotate(cam.GlobalBasis.Y, localRotation.Y * rotRad);
+                    if (localRotation.X != 0) _target.GlobalRotate(cam.GlobalBasis.X, localRotation.X * rotRad);
+                    if (localRotation.Z != 0) _target.GlobalRotate(cam.GlobalBasis.Z, localRotation.Z * rotRad);
+                }
+                else
+                {
+                    _target.RotateObjectLocal(Vector3.Up, localRotation.Y * rotRad);
+                    _target.RotateObjectLocal(Vector3.Right, localRotation.X * rotRad);
+                    _target.RotateObjectLocal(Vector3.Back, localRotation.Z * rotRad);
+                }
+            }
+            else if (cameraRelativeMove != Vector3.Zero)
+            {
+                if (cam != null)
+                {
+                    Vector3 worldMove = Vector3.Zero;
+                    worldMove += cam.GlobalBasis.X * cameraRelativeMove.X;
+                    worldMove += cam.GlobalBasis.Y * cameraRelativeMove.Y;
+                    worldMove += cam.GlobalBasis.Z * cameraRelativeMove.Z;
 
-                        // 2. Convert World Move to Target's Local Space
-                        // We want: LocalOffset += LocalBasis.Inverse * WorldMove
-                        // Because: GlobalPos = Parent * (Basis * Offset). 
-                        // Actually ArcherySystem logic is: t.Origin += t.Basis * Offset.
-                        // So world displacement D = t.Basis * deltaOffset
-                        // deltaOffset = t.Basis.Inverse * D
-
-                        // Use Current Arrow GlobalBasis because that represents 't.Basis' (mostly)
-                        // Or better, use the Arrow's current global rotation.
-                        Vector3 deltaOffset = _target.GlobalBasis.Inverse() * (worldMove * moveSpd);
-                        archerySys.DebugArrowOffsetPosition += deltaOffset;
-                    }
-                    else if (isRotate)
+                    if (_target is ArrowController)
                     {
-                        // Apply Rotation normally (Local)
-                        archerySys.DebugArrowOffsetRotation += localRotation * rotSpd;
+                        var archerySys = GetArcherySystem();
+                        if (archerySys != null)
+                        {
+                            Vector3 deltaOffset = _target.GlobalBasis.Inverse() * (worldMove * moveSpd);
+                            archerySys.DebugArrowOffsetPosition += deltaOffset;
+                        }
                     }
                     else
                     {
-                        // Fallback if no camera (rare)
-                        archerySys.DebugArrowOffsetPosition += cameraRelativeMove * moveSpd;
+                        _target.GlobalPosition += worldMove * moveSpd;
                     }
-                    return;
                 }
-            }
-
-            // Standard Object Fallback
-            if (isRotate)
-            {
-                _target.RotateObjectLocal(Vector3.Up, localRotation.Y * rotSpd);
-                _target.RotateObjectLocal(Vector3.Right, localRotation.X * rotSpd);
-                _target.RotateObjectLocal(Vector3.Back, localRotation.Z * rotSpd);
-            }
-            else
-            {
-                // Move standard targets in Global Space for ease? Or Local? 
-                // Let's keep Standard targets simple for now.
-                _target.TranslateObjectLocal(cameraRelativeMove * moveSpd);
+                else
+                {
+                    _target.TranslateObjectLocal(cameraRelativeMove * moveSpd);
+                }
             }
         }
 
-        if (Input.IsKeyPressed(Key.Enter))
+        if (Input.IsActionJustPressed("ui_accept") || Input.IsKeyPressed(Key.Enter))
         {
             PrintTransform();
         }
@@ -139,8 +143,7 @@ public partial class OffsetCalibrator : Node
 
     private ArcherySystem GetArcherySystem()
     {
-        var sys = GetTree().CurrentScene.FindChild("ArcherySystem", true, false) as ArcherySystem;
-        return sys;
+        return GetTree().CurrentScene.FindChild("ArcherySystem", true, false) as ArcherySystem;
     }
 
     private void TryFindTarget()
@@ -154,11 +157,19 @@ public partial class OffsetCalibrator : Node
         var arrows = GetTree().GetNodesInGroup("arrows");
         if (arrows.Count > 0)
         {
-            foreach (var node in arrows)
+            _target = arrows[0] as Node3D;
+            if (_target != null) return;
+        }
+
+        var stolen = GetTree().GetNodesInGroup("stolen_weapons");
+        if (stolen.Count > 0)
+        {
+            foreach (var node in stolen)
             {
-                if (node is Node3D n3d)
+                if (node is Node3D n3d && n3d.IsInsideTree())
                 {
                     _target = n3d;
+                    GD.Print($"[OffsetCalibrator] Targeting stolen weapon: {_target.Name}");
                     return;
                 }
             }
@@ -177,12 +188,13 @@ public partial class OffsetCalibrator : Node
                 Vector3 p = sys.DebugArrowOffsetPosition;
                 Vector3 r = sys.DebugArrowOffsetRotation;
                 GD.Print($"[CALIBRATION OFFSET] Position: new Vector3({p.X:F3}f, {p.Y:F3}f, {p.Z:F3}f); | Rotation: new Vector3({r.X:F3}f, {r.Y:F3}f, {r.Z:F3}f);");
-                return;
             }
         }
-
-        Vector3 p2 = _target.Position;
-        Vector3 r2 = _target.RotationDegrees;
-        GD.Print($"[CALIBRATION] Position: new Vector3({p2.X:F3}f, {p2.Y:F3}f, {p2.Z:F3}f); | Rotation: new Vector3({r2.X:F3}f, {r2.Y:F3}f, {r2.Z:F3}f);");
+        else
+        {
+            Vector3 p2 = _target.Position;
+            Vector3 r2 = _target.RotationDegrees;
+            GD.Print($"[CALIBRATION] Position: new Vector3({p2.X:F3}f, {p2.Y:F3}f, {p2.Z:F3}f); | Rotation: new Vector3({r2.X:F3}f, {r2.Y:F3}f, {r2.Z:F3}f);");
+        }
     }
 }

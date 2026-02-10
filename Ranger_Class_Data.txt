@@ -72,7 +72,7 @@ ABILITIES (4 Core Skills)
    Level-Up Bonus:  +1s duration
                     +10% attack speed
 
-   Animation Path:  res://Assets/ErikaBow/standing draw arrow.fbx
+   Animation Path:  res://Assets/Heroes/Ranger/Animations/standing draw arrow.fbx
 
    Upgrade Branches (6 Perks):
      • Volley
@@ -99,7 +99,7 @@ ABILITIES (4 Core Skills)
    Level-Up Bonus:  +30% AD scaling
                     +5u range
 
-   Animation Path:  res://Assets/ErikaBow/standing draw arrow.fbx
+   Animation Path:  res://Assets/Heroes/Ranger/Animations/standing draw arrow.fbx
 
    Upgrade Branches (6 Perks):
      • Long-Range Bore
@@ -128,7 +128,7 @@ ABILITIES (4 Core Skills)
    Level-Up Bonus:  +1s duration (2 more ticks)
                     +1u radius
 
-   Animation Path:  res://Assets/ErikaBow/standing draw arrow.fbx
+   Animation Path:  res://Assets/Heroes/Ranger/Animations/standing draw arrow.fbx
 
    Upgrade Branches (6 Perks):
      • Arctic Wind
@@ -156,7 +156,7 @@ ABILITIES (4 Core Skills)
    Level-Up Bonus:  -2s cooldown
                     Decoy gains 10% player HP
 
-   Animation Path:  res://Assets/Erika/sword and shield jump (2).fbx
+   Animation Path:  res://Assets/Heroes/Ranger/Animations/sword and shield jump (2).fbx
 
    Upgrade Branches (6 Perks):
      • Aerial Shot
@@ -181,19 +181,19 @@ Every 2 levels in an ability, player chooses 1 of 3 random perks from pool:
 ANIMATIONS
 ──────────────────────────────────────────────────────────────────────────────
 Idle:               "standing idle 01"
-                    res://Assets/Erika/standing idle 01.fbx
+                    res://Assets/Heroes/Ranger/Animations/standing idle 01.fbx
 
 Walk:               "standing walk forward"
-                    res://Assets/Erika/standing walk forward.fbx
+                    res://Assets/Heroes/Ranger/Animations/standing walk forward.fbx
 
 Run:                "standing run forward"
-                    res://Assets/Erika/standing run forward.fbx
+                    res://Assets/Heroes/Ranger/Animations/standing run forward.fbx
 
 
 MODEL PATHS
 ──────────────────────────────────────────────────────────────────────────────
-Melee Scene:        res://Assets/Erika/Erika Archer.fbx
-Archery Scene:      res://Assets/ErikaBow/Erika Archer With Bow Arrow.fbx
+Melee Scene:        res://Assets/Heroes/Ranger/Animations/Erika Archer With Bow Arrow.fbx
+Archery Scene:      res://Assets/Heroes/Ranger/Animations/Erika Archer With Bow Arrow.fbx
 
 Skeleton:           Shared skeleton (not custom)
                     Binary-compatible with Warrior and Cleric models

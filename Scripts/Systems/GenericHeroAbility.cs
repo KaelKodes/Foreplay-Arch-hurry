@@ -19,6 +19,12 @@ public partial class GenericHeroAbility : HeroAbilityBase
             case "warrior":
                 WarriorAbilities.ExecuteAbility(caster, AbilitySlot);
                 break;
+            case "necromancer":
+                NecromancerAbilities.ExecuteAbility(caster, AbilitySlot);
+                break;
+            case "cleric":
+                ClericAbilities.ExecuteAbility(caster, AbilitySlot);
+                break;
             default:
                 GD.Print($"[Ability] {caster.CurrentModelId} ability {AbilitySlot + 1} triggered (No implementation yet)");
                 break;

@@ -213,26 +213,7 @@ public partial class MeleeSystem : Node
 		if (_currentPlayer != null && _currentPlayer.IsLocal)
 		{
 			// Apply Lifesteal if active
-			if (_currentPlayer.GetType().GetProperty("LifestealPercent")?.GetValue(_currentPlayer) is float ls && ls > 0)
-			{
-				float healAmount = damage * ls;
-				if (_currentPlayer.GetType().GetProperty("CurrentHealth") != null)
-				{
-					var stats = _currentPlayer.GetType().GetProperty("PlayerStats")?.GetValue(_currentPlayer);
-					if (stats != null)
-					{
-						var curHealthProp = stats.GetType().GetProperty("CurrentHealth");
-						var maxHealthProp = stats.GetType().GetProperty("MaxHealth");
-						if (curHealthProp != null && maxHealthProp != null)
-						{
-							int cur = (int)curHealthProp.GetValue(stats);
-							int max = (int)maxHealthProp.GetValue(stats);
-							curHealthProp.SetValue(stats, Mathf.Clamp(cur + (int)healAmount, 0, max));
-							GD.Print($"[MeleeSystem] Lifesteal heal: {healAmount:F1}");
-						}
-					}
-				}
-			}
+			_currentPlayer.RegisterDealtDamage(damage);
 
 			if (IsAnySlam)
 			{

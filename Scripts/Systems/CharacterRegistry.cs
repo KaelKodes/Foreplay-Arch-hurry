@@ -29,6 +29,10 @@ public partial class CharacterRegistry : Node
         public Vector3 PositionOffset { get; set; } = Vector3.Zero;
         public Vector3 ModelScale { get; set; } = Vector3.One;
 
+        public string WeaponOverridePath { get; set; } = ""; // Path to FBX/GLB for external weapon theft
+        public Vector3 WeaponPositionOffset { get; set; } = Vector3.Zero;
+        public Vector3 WeaponRotationOffset { get; set; } = Vector3.Zero;
+
         // Mesh Configuration
         public Dictionary<string, CharacterConfig.MeshConfig> Meshes { get; set; } = new();
 
@@ -101,8 +105,8 @@ public partial class CharacterRegistry : Node
         {
             Id = "Ranger",
             DisplayName = "Ranger",
-            MeleeScenePath = "res://Assets/Erika/Erika Archer.fbx",
-            ArcheryScenePath = "res://Assets/ErikaBow/Erika Archer With Bow Arrow.fbx",
+            MeleeScenePath = "res://Assets/Heroes/Ranger/Animations/Erika Archer With Bow Arrow.fbx",
+            ArcheryScenePath = "res://Assets/Heroes/Ranger/Animations/Erika Archer With Bow Arrow.fbx",
             IsCustomSkeleton = false,
             AnimationMap = new Dictionary<string, string> {
                 { "Idle", "standing idle 01" },
@@ -116,48 +120,72 @@ public partial class CharacterRegistry : Node
         {
             Id = "Warrior",
             DisplayName = "Warrior",
-            MeleeScenePath = "res://assets/warrior/Paladin WProp J Nordstrom.fbx",
-            ArcheryScenePath = "res://assets/warrior/Paladin WProp J Nordstrom.fbx",
+            MeleeScenePath = "res://Assets/Heroes/Warrior/animations/Paladin WProp J Nordstrom.fbx",
+            ArcheryScenePath = "res://Assets/Heroes/Warrior/animations/Paladin WProp J Nordstrom.fbx",
             IsCustomSkeleton = true,
             AnimationSources = new Dictionary<string, string> {
                 // Core locomotion
-                { "Idle", "res://assets/warrior/sword and shield idle.fbx" },
-                { "Walk", "res://assets/warrior/sword and shield walk.fbx" },
-                { "Run", "res://assets/warrior/sword and shield run.fbx" },
-                { "Jump", "res://assets/warrior/sword and shield jump.fbx" },
+                { "Idle", "res://Assets/Heroes/Warrior/animations/sword and shield idle.fbx" },
+                { "Walk", "res://Assets/Heroes/Warrior/animations/sword and shield walk.fbx" },
+                { "Run", "res://Assets/Heroes/Warrior/animations/sword and shield run.fbx" },
+                { "Jump", "res://Assets/Heroes/Warrior/animations/sword and shield jump.fbx" },
                 // Melee combat — basic attack
-                { "MeleeAttack1", "res://assets/warrior/sword and shield slash.fbx" },
+                { "MeleeAttack1", "res://Assets/Heroes/Warrior/animations/sword and shield slash.fbx" },
                 // Melee combat — charged tiers
-                { "PowerSlash", "res://assets/warrior/sword and shield slash (4).fbx" },
-                { "SlashCombo", "res://assets/warrior/sword and shield slash (2).fbx" },
+                { "PowerSlash", "res://Assets/Heroes/Warrior/animations/sword and shield slash (4).fbx" },
+                { "SlashCombo", "res://Assets/Heroes/Warrior/animations/sword and shield slash (2).fbx" },
                 // Extra slash variants
-                { "MeleeAttack2", "res://assets/warrior/sword and shield slash (3).fbx" },
-                { "MeleeAttack3", "res://assets/warrior/sword and shield attack.fbx" },
+                { "MeleeAttack2", "res://Assets/Heroes/Warrior/animations/sword and shield slash (3).fbx" },
+                { "MeleeAttack3", "res://Assets/Heroes/Warrior/animations/sword and shield attack.fbx" },
                 // Archery slots (Warrior doesn't use a bow — reuse melee anims)
-                { "ArcheryIdle", "res://assets/warrior/sword and shield idle.fbx" },
-                { "ArcheryDraw", "res://assets/warrior/sword and shield idle.fbx" },
-                { "ArcheryFire", "res://assets/warrior/sword and shield slash.fbx" },
+                { "ArcheryIdle", "res://Assets/Heroes/Warrior/animations/sword and shield idle.fbx" },
+                { "ArcheryDraw", "res://Assets/Heroes/Warrior/animations/sword and shield idle.fbx" },
+                { "ArcheryFire", "res://Assets/Heroes/Warrior/animations/sword and shield slash.fbx" },
                 // Death
-                { "Death", "res://assets/warrior/sword and shield death.fbx" },
+                { "Death", "res://Assets/Heroes/Warrior/animations/sword and shield death.fbx" },
                 // Abilities
-                { "Kick", "res://assets/warrior/sword and shield kick.fbx" },
-                { "PowerUp", "res://assets/warrior/sword and shield power up.fbx" },
-                { "Casting", "res://assets/warrior/sword and shield casting.fbx" },
+                { "Kick", "res://Assets/Heroes/Warrior/animations/sword and shield kick.fbx" },
+                { "PowerUp", "res://Assets/Heroes/Warrior/animations/sword and shield power up.fbx" },
+                { "Casting", "res://Assets/Heroes/Warrior/animations/sword and shield casting.fbx" },
                 // Extra combat anims
-                { "Block", "res://assets/warrior/sword and shield block.fbx" },
-                { "BlockIdle", "res://assets/warrior/sword and shield block idle.fbx" },
-                { "Impact", "res://assets/warrior/sword and shield impact.fbx" }
+                { "Block", "res://Assets/Heroes/Warrior/animations/sword and shield block.fbx" },
+                { "BlockIdle", "res://Assets/Heroes/Warrior/animations/sword and shield block idle.fbx" },
+                { "Impact", "res://Assets/Heroes/Warrior/animations/sword and shield impact.fbx" }
             }
         });
 
-        // Cleric (Formerly Warrior.fbx - Shared Skeleton)
+        // Cleric (Custom Greatsword User - now using Custom Skeleton logic)
         AvailableModels.Add(new CharacterModel
         {
             Id = "Cleric",
             DisplayName = "Cleric",
-            MeleeScenePath = "res://Assets/CharacterMeshes/Warrior.fbx",
-            ArcheryScenePath = "res://Assets/CharacterMeshes/Warrior.fbx",
-            IsCustomSkeleton = false
+            MeleeScenePath = "res://Assets/Heroes/Cleric/Animations/Knight D Pelegrini.fbx",
+            ArcheryScenePath = "res://Assets/Heroes/Cleric/Animations/Knight D Pelegrini.fbx",
+            IsCustomSkeleton = true,
+            PositionOffset = new Vector3(0, -0.18f, 0),
+            WeaponOverridePath = "res://Assets/Heroes/Cleric/Animations/GreatswordT-Pose.fbx",
+            WeaponPositionOffset = new Vector3(-0.816f, -0.062f, -1.272f),
+            WeaponRotationOffset = new Vector3(-46.647f, 132.593f, 50.388f),
+            AnimationSources = new Dictionary<string, string> {
+                { "Idle", "res://Assets/Heroes/Cleric/Animations/great sword idle.fbx" },
+                { "Walk", "res://Assets/Heroes/Cleric/Animations/great sword walk.fbx" },
+                { "Run", "res://Assets/Heroes/Cleric/Animations/great sword run.fbx" },
+                { "Jump", "res://Assets/Heroes/Cleric/Animations/great sword jump.fbx" },
+                // Melee combat
+                { "MeleeAttack1", "res://Assets/Heroes/Cleric/Animations/great sword slash.fbx" },
+                { "PowerSlash", "res://Assets/Heroes/Cleric/Animations/great sword slash (4).fbx" },
+                { "SlashCombo", "res://Assets/Heroes/Cleric/Animations/great sword slash (2).fbx" },
+                // Ability slots
+                { "CastingSlot1", "res://Assets/Heroes/Cleric/Animations/great sword casting.fbx" },
+                { "IdleSlot2", "res://Assets/Heroes/Cleric/Animations/great sword idle (2).fbx" },
+                { "SpinSlot3", "res://Assets/Heroes/Cleric/Animations/great sword high spin attack.fbx" },
+                { "CastingSlot4", "res://Assets/Heroes/Cleric/Animations/great sword casting.fbx" },
+                // Misc
+                { "Death", "res://Assets/Heroes/Cleric/Animations/two handed sword death.fbx" },
+                { "Block", "res://Assets/Heroes/Cleric/Animations/great sword blocking.fbx" },
+                { "BlockIdle", "res://Assets/Heroes/Cleric/Animations/great sword blocking (2).fbx" },
+                { "Impact", "res://Assets/Heroes/Cleric/Animations/great sword impact.fbx" }
+            }
         });
 
         // Necromancer (Mixamo rig - uses his own custom skeleton logic)
@@ -165,21 +193,29 @@ public partial class CharacterRegistry : Node
         {
             Id = "Necromancer",
             DisplayName = "Necromancer",
-            MeleeScenePath = "res://Assets/Necromancer/Vampire A Lusth.fbx",
-            ArcheryScenePath = "res://Assets/Necromancer/Vampire A Lusth.fbx",
+            MeleeScenePath = "res://Assets/Heroes/Necromancer/Animations/Vampire A Lusth.fbx",
+            ArcheryScenePath = "res://Assets/Heroes/Necromancer/Animations/Vampire A Lusth.fbx",
             IsCustomSkeleton = true,
+            PositionOffset = new Vector3(0, -0.1f, 0),
             AnimationSources = new Dictionary<string, string> {
-                { "Idle", "res://Assets/Necromancer/standing idle.fbx" },
-                { "Walk", "res://Assets/Necromancer/Standing Walk Forward.fbx" },
-                { "Run", "res://Assets/Necromancer/Standing Run Forward.fbx" },
-                { "Jump", "res://Assets/Necromancer/Standing Jump.fbx" },
-                { "MeleeAttack1", "res://Assets/Necromancer/Standing 1H Magic Attack 01.fbx" },
-                { "MeleeAttack2", "res://Assets/Necromancer/Standing 1H Magic Attack 02.fbx" },
-                { "MeleeAttack3", "res://Assets/Necromancer/Standing 1H Magic Attack 03.fbx" },
-                { "ArcheryIdle", "res://Assets/Necromancer/standing idle.fbx" }, // Use Idle for Bow Aim
-                { "ArcheryDraw", "res://Assets/Necromancer/standing 1H cast spell 01.fbx" },
-                { "ArcheryFire", "res://Assets/Necromancer/Standing 1H Magic Attack 01.fbx" },
-                { "Death", "res://Assets/Necromancer/Standing React Death Backward.fbx" }
+                { "Idle", "res://Assets/Heroes/Necromancer/Animations/standing idle.fbx" },
+                { "Walk", "res://Assets/Heroes/Necromancer/Animations/Standing Walk Forward.fbx" },
+                { "Run", "res://Assets/Heroes/Necromancer/Animations/Standing Run Forward.fbx" },
+                { "Jump", "res://Assets/Heroes/Necromancer/Animations/Standing Jump.fbx" },
+                // Melee/Combat logic
+                { "MeleeAttack1", "res://Assets/Heroes/Necromancer/Animations/Standing 1H Magic Attack 01.fbx" },
+                { "PowerSlash", "res://Assets/Heroes/Necromancer/Animations/Standing 1H Magic Attack 03.fbx" },
+                { "SlashCombo", "res://Assets/Heroes/Necromancer/Animations/Standing 2H Magic Attack 05.fbx" },
+                // Ability Slots
+                { "Kick", "res://Assets/Heroes/Necromancer/Animations/Standing 1H Magic Attack 01.fbx" },
+                { "MeleeAttack3", "res://Assets/Heroes/Necromancer/Animations/Standing 2H Magic Area Attack 01.fbx" },
+                { "PowerUp", "res://Assets/Heroes/Necromancer/Animations/Standing 2H Magic Attack 03.fbx" },
+                { "Casting", "res://Assets/Heroes/Necromancer/Animations/Standing 2H Magic Area Attack 02.fbx" },
+                // Misc
+                { "ArcheryIdle", "res://Assets/Heroes/Necromancer/Animations/standing idle.fbx" },
+                { "ArcheryDraw", "res://Assets/Heroes/Necromancer/Animations/standing 1H cast spell 01.fbx" },
+                { "ArcheryFire", "res://Assets/Heroes/Necromancer/Animations/Standing 1H Magic Attack 01.fbx" },
+                { "Death", "res://Assets/Heroes/Necromancer/Animations/Standing React Death Backward.fbx" }
             }
         });
 

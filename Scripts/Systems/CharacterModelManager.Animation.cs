@@ -18,15 +18,18 @@ public partial class CharacterModelManager
         string target = "Idle";
 
         // Define which animations should be allowed to finish before switching back to movement/idle
-        bool isActionAnim = _lastPlayedAnim.StartsWith("MeleeAttack") ||
-                           _lastPlayedAnim == "BowAttack" ||
-                           _lastPlayedAnim == "PowerSlash" ||
-                           _lastPlayedAnim == "SlashCombo" ||
-                           _lastPlayedAnim == "Kick" ||
-                           _lastPlayedAnim == "PowerUp" ||
-                           _lastPlayedAnim == "Casting" ||
-                           _lastPlayedAnim == "Impact" ||
-                           _lastPlayedAnim == "Death";
+        string lowAnim = _lastPlayedAnim.ToLower();
+        bool isActionAnim = lowAnim.StartsWith("meleeattack") ||
+                           lowAnim == "bowattack" ||
+                           lowAnim == "powerslash" ||
+                           lowAnim == "slashcombo" ||
+                           lowAnim.Contains("slot") ||
+                           lowAnim.Contains("attack") ||
+                           lowAnim.Contains("casting") ||
+                           lowAnim == "kick" ||
+                           lowAnim == "powerup" ||
+                           lowAnim == "impact" ||
+                           lowAnim == "death";
 
         // Prioritize Attack/Action -> Movement -> Idle
         if (swinging)
@@ -158,17 +161,6 @@ public partial class CharacterModelManager
         var skeleton = FindSkeletonRecursive(_currentCustomModel);
         if (skeleton == null) return;
 
-        // 1. Iterate through required standard animations
-        string[] standardAnims = new string[] {
-            "Idle", "Walk", "Run", "Jump",
-            "MeleeAttack1", "MeleeAttack2", "MeleeAttack3",
-            "PowerSlash", "SlashCombo", // Charged tiers
-            "ArcheryIdle", "ArcheryDraw", "ArcheryFire",
-            "Death",
-            // Ability animations
-            "Kick", "PowerUp", "Block", "BlockIdle", "Impact", "Casting"
-        };
-
         // Map standard names to what SetupErikaAnimations uses
         var fileMap = new Dictionary<string, string> {
             { "Idle", "standing idle 01" },
@@ -189,7 +181,7 @@ public partial class CharacterModelManager
 
         // 0. Load Erika's skeleton as a rest-pose reference
         Skeleton3D erikaSkeleton = null;
-        const string erikaPath = "res://Assets/Erika/Erika Archer.fbx";
+        const string erikaPath = "res://Assets/Heroes/Ranger/Animations/Erika Archer With Bow Arrow.fbx";
         if (ResourceLoader.Exists(erikaPath))
         {
             var erikaScn = GD.Load<PackedScene>(erikaPath);
@@ -197,10 +189,10 @@ public partial class CharacterModelManager
             erikaSkeleton = FindSkeletonRecursive(erikaInst);
         }
 
-        foreach (var animName in standardAnims)
+        // Load all defined animation sources
+        foreach (var animName in model.AnimationSources.Keys)
         {
-            string source = "standard";
-            if (model.AnimationSources.ContainsKey(animName)) source = model.AnimationSources[animName];
+            string source = model.AnimationSources[animName];
 
             if (source == "standard")
             {

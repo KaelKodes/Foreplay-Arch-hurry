@@ -358,13 +358,13 @@ public partial class CharacterImportWizard : Control
 	private void RetargetAnimationToCustom(Animation newAnim, Skeleton3D skeleton, Dictionary<string, string> boneMap, AnimationPlayer player)
 	{
 		// 0. Load Erika's rest pose
-		Skeleton3D erikaSkeleton = null;
-		const string erikaPath = "res://Assets/Erika/Erika Archer.fbx";
-		if (ResourceLoader.Exists(erikaPath))
-		{
-			var erikaScn = GD.Load<PackedScene>(erikaPath);
-			var erikaInst = erikaScn.Instantiate();
-			erikaSkeleton = FindSkeletonRecursive(erikaInst);
+        Skeleton3D erikaSkeleton = null;
+        const string erikaPath = "res://Assets/Heroes/Ranger/Animations/Erika Archer With Bow Arrow.fbx";
+        if (ResourceLoader.Exists(erikaPath))
+        {
+            var erikaScn = GD.Load<PackedScene>(erikaPath);
+            var erikaInst = erikaScn.Instantiate();
+            erikaSkeleton = FindSkeletonRecursive(erikaInst);
 
 			// Calculate path relative to AnimationPlayer's root
 			Node rootNode = player.GetNode(player.RootNode);

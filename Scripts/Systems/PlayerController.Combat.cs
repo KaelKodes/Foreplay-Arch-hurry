@@ -46,6 +46,18 @@ public partial class PlayerController
         var ability = _abilities[index];
         if (ability == null) return;
 
+        // ── Cooldown Gate ─────────────────────────────────────────
+        if (ability.IsOnCooldown)
+        {
+            GD.Print($"[Ability] {ability.AbilityName ?? $"Slot {index}"} on cooldown ({ability.CooldownRemaining:F1}s remaining)");
+            return;
+        }
+        if (_abilityBusyTimer > 0f)
+        {
+            GD.Print($"[Ability] Busy (animation lock {_abilityBusyTimer:F1}s remaining)");
+            return;
+        }
+
         // Logic based on AbilityType (RoR2 inspired)
         switch (ability.Type)
         {
@@ -66,34 +78,45 @@ public partial class PlayerController
                 break;
 
             case AbilityType.Instant:
-                // Instant: No auto-snap, fires where crosshair/camera is looking
                 ability.Execute(this);
                 break;
 
             case AbilityType.Aim:
-                // Aim: Starts a hold phase (handled by Input + Execute release)
                 ability.Execute(this);
                 break;
 
             case AbilityType.Aura:
-                // Aura: Casts around self
                 ability.Execute(this);
                 break;
         }
+
+        // ── Start Cooldown & Animation Lock ───────────────────────
+        ability.StartCooldown();
+        _abilityBusyTimer = ability.CurrentCooldown;
     }
 
-    private void UpdateFluidTargeting()
+
+    private void UpdateFluidTargeting(float delta)
     {
         if (!IsLocal) return;
 
-        // Sticky Targeting: If we have a target (hard or soft), check if it's still in the cone
-        if (_hardLockTarget != null)
+        bool alliesOnly = Input.IsKeyPressed(Key.Ctrl);
+
+        // Throttled Broad-Phase Discovery (Targeting Ping)
+        _targetPingTimer -= delta;
+        if (_targetPingTimer <= 0)
         {
-            if (!TargetingHelper.IsTargetInCone(this, GetViewport(), _hardLockTarget, 15.0f))
-            {
-                _hardLockTarget = null;
-                GD.Print("[PlayerController] Hard Lock dropped (looked away)");
-            }
+            _targetPingTimer = TargetPingInterval;
+            _cachedPotentialTargets = TargetingHelper.GetSortedTargets(this, Team, alliesOnly, 100f);
+        }
+
+        // Sticky Targeting: Locked target persists even if looking away
+        // (Fluid target still drops if looking away)
+        if (_hardLockTarget != null && TargetingHelper.IsTargetDead(_hardLockTarget))
+        {
+            _hardLockTarget = null;
+            if (_archerySystem != null) _archerySystem.ClearTarget();
+            GD.Print("[PlayerController] Hard Lock cleared (Target Died)");
         }
 
         if (_fluidTarget != null && _hardLockTarget == null)
@@ -105,19 +128,31 @@ public partial class PlayerController
         }
 
         // Search for new fluid target if needed
-        if (_hardLockTarget == null)
+        if (_hardLockTarget != null)
         {
-            bool alliesOnly = Input.IsKeyPressed(Key.Ctrl);
-            _fluidTarget = TargetingHelper.GetFluidTarget(this, GetViewport(), alliesOnly: alliesOnly, attackerTeam: Team);
+            // FORCE smart target to be the hard lock target
+            _fluidTarget = _hardLockTarget;
+        }
+        else
+        {
+            _fluidTarget = TargetingHelper.GetFluidTargetWithList(this, GetViewport(), _cachedPotentialTargets);
         }
 
         // Update Visual Feedback (Targeting Ring)
-        Node3D current = CurrentTarget;
-        if (current != _lastTarget)
+        Node3D currentTarget = CurrentTarget;
+        bool lockStateChanged = _hardLockTarget != _lastLockTarget;
+
+        if (currentTarget != _lastTarget || lockStateChanged)
         {
-            if (_lastTarget is InteractableObject lastIo) lastIo.SetSelected(false);
-            if (current is InteractableObject currIo) currIo.SetSelected(true);
-            _lastTarget = current;
+            bool isLocked = currentTarget == _hardLockTarget;
+            if (GodotObject.IsInstanceValid(_lastTarget) && _lastTarget is InteractableObject lastIo) lastIo.SetSelected(false);
+            if (GodotObject.IsInstanceValid(currentTarget) && currentTarget is InteractableObject currIo) currIo.SetSelected(true, isLocked);
+
+            _lastTarget = currentTarget;
+            _lastLockTarget = _hardLockTarget;
+
+            // Sync ArcherySystem target for accurate shot logic
+            if (_archerySystem != null) _archerySystem.SetTarget(currentTarget);
         }
 
         // Update camera with current target (visual feedback or bias if needed, but bias was removed)
@@ -129,16 +164,25 @@ public partial class PlayerController
 
     private void HandleTargetingHotkeys()
     {
-        if (Input.IsActionJustPressed("ui_focus_next")) // Tab
+        bool matchesFocusNext = Input.IsActionJustPressed("ui_focus_next");
+        bool matchesFocusPrev = Input.IsActionJustPressed("ui_focus_prev");
+
+        if (matchesFocusNext || matchesFocusPrev)
         {
-            bool allies = Input.IsKeyPressed(Key.Ctrl);
+            // Tab (FocusNext) cycles Enemies, Shift+Tab (FocusPrev) cycles Allies
+            bool allies = matchesFocusPrev;
             _hardLockTarget = TargetingHelper.GetNextTabTarget(this, _hardLockTarget, allies, attackerTeam: Team);
-            GD.Print($"[PlayerController] Hard Lock{(allies ? " (Ally)" : "")}: {(_hardLockTarget != null ? _hardLockTarget.Name : "Cleared")}");
+
+            GD.Print($"[PlayerController] Hard Lock {(allies ? "(Ally)" : "(Enemy)")}: {(_hardLockTarget != null ? _hardLockTarget.Name : "Cleared")}");
+
+            // Sync with ArcherySystem immediately
+            if (_archerySystem != null) _archerySystem.SetTarget(_hardLockTarget);
         }
 
         if (Input.IsActionJustPressed("ui_cancel")) // Escape or similar to clear lock
         {
             _hardLockTarget = null;
+            if (_archerySystem != null) _archerySystem.ClearTarget();
         }
     }
 
@@ -167,12 +211,36 @@ public partial class PlayerController
         foreach (var ability in _abilities.Values) ability.QueueFree();
         _abilities.Clear();
 
+        // Per-class, per-slot cooldowns (synced to animation durations)
+        float[] cooldowns = GetAbilityCooldowns(classId);
+
         for (int i = 0; i < 4; i++)
         {
             var placeholder = new GenericHeroAbility();
             placeholder.AbilitySlot = i;
+            placeholder.BaseCooldown = cooldowns[i];
             AddChild(placeholder);
             _abilities[i] = placeholder;
         }
     }
+
+    /// <summary>
+    /// Returns 4 cooldown values (one per ability slot) tuned to animation durations.
+    /// </summary>
+    private static float[] GetAbilityCooldowns(string classId)
+    {
+        return (classId?.ToLower()) switch
+        {
+            // Ranger: Rapid Fire, Piercing Shot, Rain of Arrows, Vault
+            "ranger" => new float[] { 1.2f, 1.5f, 2.0f, 0.8f },
+            // Warrior: Shield Slam, Intercept, Demoralizing Shout, Avatar of War
+            "warrior" => new float[] { 1.5f, 1.0f, 2.0f, 3.0f },
+            // Cleric: High Remedy, Celestial Buff, Judgement, Divine Intervention
+            "cleric" => new float[] { 2.0f, 2.0f, 1.5f, 3.0f },
+            // Necromancer: Lifetap, Plague of Darkness, Summon Undead, Lich Form
+            "necromancer" => new float[] { 1.2f, 2.0f, 3.0f, 5.0f },
+            _ => new float[] { 1.5f, 1.5f, 1.5f, 1.5f },
+        };
+    }
+
 }

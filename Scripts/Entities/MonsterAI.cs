@@ -30,6 +30,9 @@ public partial class MonsterAI : Node
     private float _attackTimer = 0f;
     private bool _isHelping = false; // Constraint: can't CoH if helping
 
+    // Performance Optimization: Throttled Separation
+    private Vector3 _cachedSeparation = Vector3.Zero;
+
     // Throttle AI updates for performance
     private float _aiUpdateInterval = 0.1f;
     private float _aiUpdateTimer = 0f;
@@ -74,6 +77,12 @@ public partial class MonsterAI : Node
         else
         {
             UpdateWanderState(dt);
+        }
+
+        // Throttled separation update (10Hz)
+        if (_aiUpdateTimer <= 0)
+        {
+            _cachedSeparation = GetSeparationForce();
         }
     }
 
@@ -279,15 +288,44 @@ public partial class MonsterAI : Node
 
     private void Move(float delta, float speed)
     {
-        Vector3 velocity = new Vector3(_moveDirection.X * speed, -9.8f * delta, _moveDirection.Z * speed);
+        // Apply cached separation force to avoid overlapping with other monsters
+        Vector3 moveDir = (_moveDirection + _cachedSeparation * 1.5f).Normalized();
+
+        Vector3 velocity = new Vector3(moveDir.X * speed, -9.8f * delta, moveDir.Z * speed);
         _monster.ApplyMovement(velocity, delta);
 
-        if (_moveDirection.LengthSquared() > 0.01f)
+        if (moveDir.LengthSquared() > 0.01f)
         {
-            float targetAngle = Mathf.Atan2(_moveDirection.X, _moveDirection.Z);
+            float targetAngle = Mathf.Atan2(moveDir.X, moveDir.Z);
             float currentAngle = _monster.Rotation.Y;
             float newAngle = Mathf.LerpAngle(currentAngle, targetAngle, TurnSpeed * delta);
             _monster.Rotation = new Vector3(0, newAngle, 0);
         }
+    }
+
+    private Vector3 GetSeparationForce()
+    {
+        Vector3 separation = Vector3.Zero;
+        float radius = 1.5f; // Personal space
+        var neighbors = GetTree().GetNodesInGroup("monster_ai");
+
+        foreach (var node in neighbors)
+        {
+            if (node is MonsterAI otherAI && otherAI != this)
+            {
+                var otherMonster = otherAI.GetParent() as Monsters;
+                if (otherMonster == null || otherMonster.Health <= 0) continue;
+
+                float dist = _monster.GlobalPosition.DistanceTo(otherMonster.GlobalPosition);
+                if (dist < radius && dist > 0.001f)
+                {
+                    Vector3 diff = _monster.GlobalPosition - otherMonster.GlobalPosition;
+                    diff.Y = 0;
+                    // Stronger push the closer they are
+                    separation += diff.Normalized() * (1.0f - dist / radius);
+                }
+            }
+        }
+        return separation;
     }
 }

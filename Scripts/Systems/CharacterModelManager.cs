@@ -13,26 +13,26 @@ public partial class CharacterModelManager : Node
 
     private static readonly Dictionary<string, string> ErikaAnimationFiles = new()
     {
-        { "standing idle 01", "res://Assets/Erika/standing idle 01.fbx" },
-        { "standing walk forward", "res://Assets/Erika/standing walk forward.fbx" },
-        { "standing walk back", "res://Assets/Erika/standing walk back.fbx" },
-        { "standing walk left", "res://Assets/Erika/standing walk left.fbx" },
-        { "standing walk right", "res://Assets/Erika/standing walk right.fbx" },
-        { "standing run forward", "res://Assets/Erika/standing run forward.fbx" },
-        { "standing run back", "res://Assets/Erika/standing run back.fbx" },
-        { "standing run left", "res://Assets/Erika/standing run left.fbx" },
-        { "standing run right", "res://Assets/Erika/standing run right.fbx" },
-        { "standing jump", "res://Assets/Erika/sword and shield jump (2).fbx" },
-        { "melee attack", "res://Assets/Erika/sword and shield slash.fbx" },
-        { "melee perfect attack", "res://Assets/Erika/sword and shield attack (3).fbx" },
-        { "melee triple attack", "res://Assets/Erika/sword and shield slash (2).fbx" },
-        { "archery draw", "res://Assets/ErikaBow/standing draw arrow.fbx" },
-        { "archery aim idle", "res://Assets/ErikaBow/standing aim overdraw.fbx" },
-        { "archery recoil", "res://Assets/ErikaBow/standing aim recoil.fbx" },
-        { "archery walk forward", "res://Assets/ErikaBow/standing aim walk forward.fbx" },
-        { "archery walk back", "res://Assets/ErikaBow/standing aim walk back.fbx" },
-        { "archery walk left", "res://Assets/ErikaBow/standing aim walk left.fbx" },
-        { "archery walk right", "res://Assets/ErikaBow/standing aim walk right.fbx" }
+        { "standing idle 01", "res://Assets/Heroes/Ranger/Animations/standing idle 01.fbx" },
+        { "standing walk forward", "res://Assets/Heroes/Ranger/Animations/standing walk forward.fbx" },
+        { "standing walk back", "res://Assets/Heroes/Ranger/Animations/standing walk back.fbx" },
+        { "standing walk left", "res://Assets/Heroes/Ranger/Animations/standing walk left.fbx" },
+        { "standing walk right", "res://Assets/Heroes/Ranger/Animations/standing walk right.fbx" },
+        { "standing run forward", "res://Assets/Heroes/Ranger/Animations/standing run forward.fbx" },
+        { "standing run back", "res://Assets/Heroes/Ranger/Animations/standing run back.fbx" },
+        { "standing run left", "res://Assets/Heroes/Ranger/Animations/standing run left.fbx" },
+        { "standing run right", "res://Assets/Heroes/Ranger/Animations/standing run right.fbx" },
+        { "standing jump", "res://Assets/Heroes/Ranger/Animations/sword and shield jump (2).fbx" },
+        { "melee attack", "res://Assets/Heroes/Ranger/Animations/sword and shield slash.fbx" },
+        { "melee perfect attack", "res://Assets/Heroes/Ranger/Animations/sword and shield attack (3).fbx" },
+        { "melee triple attack", "res://Assets/Heroes/Ranger/Animations/sword and shield slash (2).fbx" },
+        { "archery draw", "res://Assets/Heroes/Ranger/Animations/standing draw arrow.fbx" },
+        { "archery aim idle", "res://Assets/Heroes/Ranger/Animations/standing aim overdraw.fbx" },
+        { "archery recoil", "res://Assets/Heroes/Ranger/Animations/standing aim recoil.fbx" },
+        { "archery walk forward", "res://Assets/Heroes/Ranger/Animations/standing aim walk forward.fbx" },
+        { "archery walk back", "res://Assets/Heroes/Ranger/Animations/standing aim walk back.fbx" },
+        { "archery walk left", "res://Assets/Heroes/Ranger/Animations/standing aim walk left.fbx" },
+        { "archery walk right", "res://Assets/Heroes/Ranger/Animations/standing aim walk right.fbx" }
     };
     private AnimationTree _animTree;
     private AnimationPlayer _meleeAnimPlayer;

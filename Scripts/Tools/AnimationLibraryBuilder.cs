@@ -5,7 +5,7 @@ using System.Collections.Generic;
 [Tool]
 public partial class AnimationLibraryBuilder : Node
 {
-	[Export] public string AnimationsDir = "res://Assets/Erika/";
+	[Export] public string AnimationsDir = "res://Assets/Heroes/Ranger/Animations/";
 	[Export] public NodePath TargetAnimationPlayer = "../Erika/AnimationPlayer";
 
 	private bool _runImport = false;

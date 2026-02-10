@@ -31,15 +31,8 @@ public partial class MobaMinion : Monsters
     {
         base._Ready();
 
-        // ── Fix Floating ──
-        // The base class (Monsters) calls CenterAndGroundVisuals which offsets the mesh.
-        // For MOBA minions, we want to respect the scene-defined position or force ground.
-        var scene = GetNodeOrNull<Node3D>("Visuals/scene");
-        if (scene != null)
-        {
-            scene.Position = Vector3.Zero;
-        }
-        GlobalPosition = new Vector3(GlobalPosition.X, 0f, GlobalPosition.Z);
+        // The base class (Monsters) calls CenterAndGroundVisuals (now disabled)
+        // We now trust the spawn position/editor position entirely.
 
         // Add to team + minion groups for targeting
         AddToGroup("minions");

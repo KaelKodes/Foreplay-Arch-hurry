@@ -116,77 +116,15 @@ public partial class ArcherySystem
         EmitSignal(SignalName.ShotModeChanged, (int)_currentMode);
     }
 
-    public void CycleTarget(bool alliesOnly = false)
-    {
-        if (_currentPlayer == null) return;
-
-        // Simple proximity-based target cycle
-        var targets = new System.Collections.Generic.List<Node3D>();
-
-        // Search for targetables with the specified filter
-        FindTargetablesRecursive(GetTree().Root, targets, alliesOnly);
-
-        if (targets.Count == 0)
-        {
-            ClearTarget();
-            return;
-        }
-
-        // Sort by proximity to player
-        targets.Sort((a, b) => a.GlobalPosition.DistanceSquaredTo(_currentPlayer.GlobalPosition).CompareTo(b.GlobalPosition.DistanceSquaredTo(_currentPlayer.GlobalPosition)));
-
-        int currentIndex = (_currentTarget != null) ? targets.IndexOf(_currentTarget) : -1;
-        int nextIndex = (currentIndex + 1) % targets.Count;
-
-        // Deselect old target
-        if (_currentTarget is InteractableObject oldIO) oldIO.SetSelected(false);
-
-        _currentTarget = targets[nextIndex];
-        GD.Print($"[ArcherySystem] Target Locked: {_currentTarget.Name} (AlliesOnly: {alliesOnly})");
-
-        // Select new target
-        if (_currentTarget is InteractableObject newIO) newIO.SetSelected(true);
-
-        EmitSignal(SignalName.TargetChanged, _currentTarget);
-
-        if (_camera != null && _camera is CameraController camCtrl)
-        {
-            camCtrl.SetLockedTarget(_currentTarget);
-        }
-    }
-
-    private void FindTargetablesRecursive(Node node, System.Collections.Generic.List<Node3D> results, bool alliesOnly)
-    {
-        MobaTeam team = _currentPlayer?.Team ?? MobaTeam.None;
-        TargetingHelper.FindTargetablesRecursive(node, results, team, alliesOnly);
-    }
 
     public void SetTarget(Node3D target)
     {
-        if (_currentPlayer == null) return;
-        if (target == _currentTarget) return;
-
-        // Deselect old target
-        if (_currentTarget is InteractableObject oldIO) oldIO.SetSelected(false);
-
-        _currentTarget = target;
-
-        if (_currentTarget != null)
-        {
-            GD.Print($"[ArcherySystem] Target Locked: {_currentTarget.Name}");
-            // Select new target
-            if (_currentTarget is InteractableObject newIO) newIO.SetSelected(true);
-        }
-        else
-        {
-            GD.Print("[ArcherySystem] Target Cleared");
-        }
-
-        EmitSignal(SignalName.TargetChanged, _currentTarget);
+        // This is now purely for visual/shot sync if needed, but PlayerController is the source of truth.
+        EmitSignal(SignalName.TargetChanged, target);
 
         if (_camera != null && _camera is CameraController camCtrl)
         {
-            camCtrl.SetLockedTarget(_currentTarget);
+            camCtrl.SetLockedTarget(target);
         }
     }
 

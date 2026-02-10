@@ -89,6 +89,30 @@ public abstract partial class HeroAbilityBase : Node
     public float CurrentDamage => BaseDamage * DamageMultiplier;
     public float CurrentCooldown => Mathf.Max(0.1f, BaseCooldown - CooldownReduction);
 
+    // ─── Runtime Cooldown Tracking ────────────────────────────────
+    public float CooldownRemaining { get; private set; } = 0f;
+    public bool IsOnCooldown => CooldownRemaining > 0f;
+
+    /// <summary>
+    /// Starts the cooldown timer using CurrentCooldown (respects CDR).
+    /// </summary>
+    public void StartCooldown()
+    {
+        CooldownRemaining = CurrentCooldown;
+    }
+
+    /// <summary>
+    /// Tick down the cooldown. Call from PlayerController._PhysicsProcess.
+    /// </summary>
+    public void UpdateCooldown(float delta)
+    {
+        if (CooldownRemaining > 0f)
+        {
+            CooldownRemaining -= delta;
+            if (CooldownRemaining < 0f) CooldownRemaining = 0f;
+        }
+    }
+
     public int CurrentLevel { get; set; } = 1;
     public List<AbilityPerk> ActivePerks { get; private set; } = new();
     public int AbilitySlot { get; set; }

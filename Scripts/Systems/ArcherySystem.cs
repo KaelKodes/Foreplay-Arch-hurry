@@ -73,16 +73,18 @@ public partial class ArcherySystem : Node
 	private ArcheryShotMode _currentMode = ArcheryShotMode.Standard;
 	public ArcheryShotMode CurrentMode => _currentMode;
 	private PlayerController _currentPlayer;
-	private Node3D _currentTarget;
-	public Node3D CurrentTarget => _currentTarget;
+	public Node3D CurrentTarget => _currentPlayer?.CurrentTarget;
 
 	// Bow cooldown
-	private const float BowCooldownTime = 2.0f;
+	private const float BowCooldownTime = 0.5f;
 	private float _bowCooldownRemaining = 0f;
 	public bool IsBowOnCooldown => _bowCooldownRemaining > 0;
 
 	private bool _isNextShotPiercing = false;
 	private bool _isNextShotFlat = false;
+	public bool IsLastShotMelee { get; private set; } = false;
+	private float _forcedDrawTime = 0.0f;
+	private bool _shouldSkipArrow = false;
 
 	[Signal] public delegate void DrawStageChangedEventHandler(int newStage);
 	[Signal] public delegate void ArcheryValuesUpdatedEventHandler(float currentBarValue, float lockedPower, float lockedAccuracy);
@@ -231,6 +233,11 @@ public partial class ArcherySystem : Node
 			if (_bowCooldownRemaining <= 0)
 			{
 				_bowCooldownRemaining = 0;
+				if (_stage == DrawStage.ShotComplete)
+				{
+					_stage = DrawStage.Idle;
+					EmitSignal(SignalName.DrawStageChanged, (int)_stage);
+				}
 			}
 		}
 
@@ -239,14 +246,29 @@ public partial class ArcherySystem : Node
 			UpdateArrowPose();
 		}
 
+		// Forced Draw Logic (for Snappy Abilities 1-3)
+		if (_currentPlayer != null && _currentPlayer.IsLocal && _forcedDrawTime > 0)
+		{
+			_forcedDrawTime -= (float)delta;
+			if (_forcedDrawTime <= 0)
+			{
+				_forcedDrawTime = 0;
+				if (_stage == DrawStage.Drawing)
+				{
+					ExecuteShot();
+				}
+			}
+		}
+
 		// Auto-cycle target if it dies (RPG Mode only)
-		if (_currentPlayer != null && _currentPlayer.IsLocal && _currentTarget != null)
+		if (_currentPlayer != null && _currentPlayer.IsLocal && CurrentTarget != null)
 		{
 			bool isRPG = ToolManager.Instance != null && ToolManager.Instance.CurrentMode == ToolManager.HotbarMode.RPG;
-			if (isRPG && TargetingHelper.IsTargetDead(_currentTarget))
+			if (isRPG && TargetingHelper.IsTargetDead(CurrentTarget))
 			{
 				GD.Print($"[ArcherySystem] Current Target Dead. Auto-cycling...");
-				CycleTarget(false); // Cycle to next enemy
+				// Cycle to next enemy using PlayerController logic
+				_currentPlayer.PropagateCall("HandleTargetingHotkeys");
 			}
 		}
 	}

@@ -33,6 +33,7 @@ public partial class PlayerController
         // X key: Clear Target
         if (isRPGMode && @event is InputEventKey xKey && xKey.Pressed && !xKey.Echo && xKey.Keycode == Key.X)
         {
+            _hardLockTarget = null;
             _archerySystem?.ClearTarget();
             GetViewport().SetInputAsHandled();
         }
@@ -51,10 +52,21 @@ public partial class PlayerController
 
         if (isRPGMode && @event is InputEventMouseButton rightBtn && rightBtn.ButtonIndex == MouseButton.Right && rightBtn.Pressed)
         {
-            Node3D unit = CheckUnitRaycast();
-            if (unit != null)
+            // NEW: Lock onto fluid target if available, otherwise fallback to raycast
+            Node3D target = _fluidTarget ?? CheckUnitRaycast();
+
+            if (target != null)
             {
-                _hardLockTarget = unit; // Set hard lock on right click in RPG mode
+                _hardLockTarget = target;
+                if (_archerySystem != null) _archerySystem.SetTarget(_hardLockTarget);
+                GD.Print($"[PlayerController] Right-Click Lock: {target.Name}");
+
+                // NEW: Interaction Trigger on Right Click (Simplified System)
+                if (target is InteractableObject io)
+                {
+                    io.OnInteract(this);
+                }
+
                 GetViewport().SetInputAsHandled();
             }
         }
@@ -157,9 +169,11 @@ public partial class PlayerController
 
             if (isRPGMode && isRangerMatch && !_isChargingAttack)
             {
-                _isChargingAttack = true;
-                _attackHoldTimer = 0f;
-                _archerySystem?.StartCharge();
+                if (_archerySystem != null && _archerySystem.StartCharge())
+                {
+                    _isChargingAttack = true;
+                    _attackHoldTimer = 0f;
+                }
             }
             else if (isRPGMode && !isRangerMatch && !_isChargingAttack)
             {
@@ -176,7 +190,13 @@ public partial class PlayerController
                 if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
                     _meleeSystem.StartCharge();
                 else if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
-                    _archerySystem.StartCharge();
+                {
+                    if (_archerySystem.StartCharge())
+                    {
+                        _isChargingAttack = true;
+                        _attackHoldTimer = 0f;
+                    }
+                }
             }
         }
         else // Released
@@ -244,7 +264,6 @@ public partial class PlayerController
             Rotation = new Vector3(0, Mathf.LerpAngle(Rotation.Y, targetAngle, 10.0f * (float)delta), 0);
         }
 
-        PlayerInteraction.HandleProximityPrompts(this, _archerySystem);
     }
 
 }

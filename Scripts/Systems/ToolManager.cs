@@ -114,7 +114,7 @@ public partial class ToolManager : Node
         {
             "warrior" => "Warrior",
             "ranger" => "Ranger",
-            "necromancer" => "Necro",
+            "necromancer" => "Necromancer",
             "cleric" => "Cleric",
             _ => "Warrior"
         };
@@ -139,7 +139,7 @@ public partial class ToolManager : Node
 
         for (int i = 0; i < RPGAbilityCount && i < abilities.Length; i++)
         {
-            string iconPath = $"res://Assets/ui/HeroeSpells/{folder}/{abilities[i]}.png";
+            string iconPath = $"res://Assets/Heroes/{folder}/Spellicons/{abilities[i]}.png";
             _rpgSlots[i] = new ToolItem(ToolType.None, abilities[i], iconPath, "");
         }
 

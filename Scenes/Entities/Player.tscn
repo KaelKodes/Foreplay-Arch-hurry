@@ -5,15 +5,15 @@
 [ext_resource type="Script" uid="uid://nxdsvm1xh80" path="res://Scripts/Systems/CameraController.cs" id="3_camera"]
 [ext_resource type="Script" uid="uid://dlp1onvaj5e78" path="res://Scripts/Systems/ArcherySystem.cs" id="4_archery"]
 [ext_resource type="Script" uid="uid://ha2xnikjs1el" path="res://Scripts/Systems/MeleeSystem.cs" id="5_melee"]
-[ext_resource type="PackedScene" uid="uid://bsd4cc2uvsgfj" path="res://Assets/Erika/Erika Archer.fbx" id="6_erika"]
+[ext_resource type="PackedScene" uid="uid://d1c3lenldwhvw" path="res://Assets/Heroes/Ranger/Animations/Erika Archer With Bow Arrow.fbx" id="6_erika"]
 [ext_resource type="Script" uid="uid://dkw22bhot3ia8" path="res://Scripts/Tools/DebugAnimations.cs" id="7_td8ue"]
 [ext_resource type="Script" uid="uid://ors0o81bd8d5" path="res://Scripts/Tools/AnimationLoader.cs" id="8_loader"]
-[ext_resource type="PackedScene" uid="uid://dl8i27ht6x4t3" path="res://Assets/ErikaBow/Erika Archer With Bow Arrow.fbx" id="9_erika_bow"]
+[ext_resource type="PackedScene" uid="uid://d1c3lenldwhvw" path="res://Assets/Heroes/Ranger/Animations/Erika Archer With Bow Arrow.fbx" id="9_erika_bow"]
 [ext_resource type="Script" uid="uid://domny25j3dgs6" path="res://Scripts/Tools/OffsetCalibrator.cs" id="10_calibrator"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_Body"]
 radius = 0.19873047
-height = 1.7449219
+height = 1.7035156
 
 [sub_resource type="StandardMaterial3D" id="Mat_AimLine"]
 transparency = 1
@@ -56,13 +56,13 @@ play_mode = 1
 
 [sub_resource type="AnimationNodeBlendSpace2D" id="AnimationNodeBlendSpace2D_ArcheryAim"]
 blend_point_0/node = SubResource("AnimationNodeAnimation_ArcheryWalkForward")
-blend_point_0/pos = Vector2(0, 1)
+blend_point_0/pos = Vector2(0, -1)
 blend_point_1/node = SubResource("AnimationNodeAnimation_ArcheryWalkBack")
-blend_point_1/pos = Vector2(0, -1)
+blend_point_1/pos = Vector2(0, 1)
 blend_point_2/node = SubResource("AnimationNodeAnimation_ArcheryWalkLeft")
-blend_point_2/pos = Vector2(-1, 0)
+blend_point_2/pos = Vector2(1, 0)
 blend_point_3/node = SubResource("AnimationNodeAnimation_ArcheryWalkRight")
-blend_point_3/pos = Vector2(1, 0)
+blend_point_3/pos = Vector2(-1, 0)
 blend_point_4/node = SubResource("AnimationNodeAnimation_rsj4h")
 blend_point_4/pos = Vector2(0, 0)
 min_space = Vector2(-1.1, -1.1)
@@ -74,11 +74,20 @@ animation = &"archery draw"
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_ArcheryRecoil"]
 animation = &"archery recoil"
 
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_RightHook"]
+animation = &"right hook"
+
 [sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_Idle"]
 animation = &"standing idle 01"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimNodeAnim_Jump"]
 animation = &"standing jump"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_VaultJump"]
+animation = &"running jump"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_VaultLand"]
+animation = &"vault land run"
 
 [sub_resource type="AnimationNodeTransition" id="AnimationNodeTransition_AttackType"]
 input_0/name = "Normal"
@@ -320,6 +329,27 @@ advance_mode = 2
 advance_mode = 2
 advance_condition = &"is_not_archery"
 
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_ToMeleeBasic"]
+advance_mode = 2
+advance_condition = &"is_melee_basic"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_MeleeBasicToAim"]
+switch_mode = 2
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_VaultToLand"]
+switch_mode = 2
+advance_mode = 2
+advance_condition = &"is_on_floor"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_LandToIdle"]
+switch_mode = 2
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_ToVault"]
+advance_mode = 2
+advance_condition = &"is_vaulting"
+
 [sub_resource type="AnimationNodeStateMachine" id="StateMachine_Root"]
 states/ArcheryAim/node = SubResource("AnimationNodeBlendSpace2D_ArcheryAim")
 states/ArcheryAim/position = Vector2(450, -50)
@@ -327,6 +357,10 @@ states/ArcheryDraw/node = SubResource("AnimationNodeAnimation_ArcheryDraw")
 states/ArcheryDraw/position = Vector2(250, -50)
 states/ArcheryRecoil/node = SubResource("AnimationNodeAnimation_ArcheryRecoil")
 states/ArcheryRecoil/position = Vector2(650, -50)
+states/VaultJump/node = SubResource("AnimationNodeAnimation_VaultJump")
+states/VaultJump/position = Vector2(100, -50)
+states/VaultLand/node = SubResource("AnimationNodeAnimation_VaultLand")
+states/VaultLand/position = Vector2(100, 50)
 states/End/position = Vector2(777, 100)
 states/Idle/node = SubResource("AnimNodeAnim_Idle")
 states/Idle/position = Vector2(250, 100)
@@ -347,7 +381,7 @@ states/RunningJump/position = Vector2(550, 250)
 states/Sprint/node = SubResource("BlendSpace2D_Sprint")
 states/Sprint/position = Vector2(650, 100)
 states/Start/position = Vector2(100, 100)
-transitions = ["Start", "Idle", SubResource("Trans_IdleToRun"), "Idle", "Run", SubResource("Trans_IdleToRun"), "Run", "Idle", SubResource("Trans_RunToIdle"), "Run", "Sprint", SubResource("Trans_RunToSprint"), "Sprint", "Run", SubResource("Trans_SprintToRun"), "Idle", "Jump", SubResource("Trans_ToJump"), "Run", "RunningJump", SubResource("Trans_ToJump"), "Sprint", "RunningJump", SubResource("Trans_ToJump"), "Jump", "Idle", SubResource("Trans_JumpToIdle"), "RunningJump", "Idle", SubResource("Trans_JumpToIdle"), "Idle", "MeleeIdle", SubResource("Trans_ToMelee"), "Run", "MeleeRun", SubResource("Trans_ToMelee"), "Sprint", "MeleeSprint", SubResource("Trans_ToMelee"), "MeleeIdle", "Idle", SubResource("Trans_FromMelee"), "MeleeRun", "Run", SubResource("Trans_FromMelee"), "MeleeSprint", "Sprint", SubResource("Trans_FromMelee"), "MeleeIdle", "MeleeRun", SubResource("Trans_MeleeIdleToRun"), "MeleeRun", "MeleeIdle", SubResource("Trans_MeleeRunToIdle"), "MeleeRun", "MeleeSprint", SubResource("Trans_MeleeRunToSprint"), "MeleeSprint", "MeleeRun", SubResource("Trans_MeleeSprintToRun"), "MeleeIdle", "Jump", SubResource("Trans_ToJump"), "MeleeRun", "RunningJump", SubResource("Trans_ToJump"), "MeleeSprint", "RunningJump", SubResource("Trans_ToJump"), "MeleeIdle", "MeleeAttack", SubResource("Trans_IdleToAttack"), "MeleeRun", "MeleeAttack", SubResource("Trans_RunToAttack"), "MeleeSprint", "MeleeAttack", SubResource("Trans_SprintToAttack"), "MeleeAttack", "MeleeIdle", SubResource("Trans_AttackToIdle"), "Idle", "ArcheryDraw", SubResource("Trans_ToArchery"), "Run", "ArcheryDraw", SubResource("Trans_ToArchery"), "Sprint", "ArcheryDraw", SubResource("Trans_ToArchery"), "MeleeIdle", "ArcheryDraw", SubResource("Trans_ToArchery"), "ArcheryDraw", "ArcheryAim", SubResource("Trans_DrawToAim"), "ArcheryAim", "ArcheryRecoil", SubResource("Trans_ToFire"), "ArcheryRecoil", "ArcheryAim", SubResource("Trans_FireToAim"), "ArcheryAim", "Idle", SubResource("Trans_FromArchery"), "ArcheryRecoil", "Idle", SubResource("Trans_FromArchery")]
+transitions = ["Start", "Idle", SubResource("Trans_IdleToRun"), "Idle", "Run", SubResource("Trans_IdleToRun"), "Run", "Idle", SubResource("Trans_RunToIdle"), "Run", "Sprint", SubResource("Trans_RunToSprint"), "Sprint", "Run", SubResource("Trans_SprintToRun"), "Idle", "Jump", SubResource("Trans_ToJump"), "Run", "RunningJump", SubResource("Trans_ToJump"), "Sprint", "RunningJump", SubResource("Trans_ToJump"), "Jump", "Idle", SubResource("Trans_JumpToIdle"), "RunningJump", "Idle", SubResource("Trans_JumpToIdle"), "Idle", "MeleeIdle", SubResource("Trans_ToMelee"), "Run", "MeleeRun", SubResource("Trans_ToMelee"), "Sprint", "MeleeSprint", SubResource("Trans_ToMelee"), "MeleeIdle", "Idle", SubResource("Trans_FromMelee"), "MeleeRun", "Run", SubResource("Trans_FromMelee"), "MeleeSprint", "Sprint", SubResource("Trans_FromMelee"), "MeleeIdle", "MeleeRun", SubResource("Trans_MeleeIdleToRun"), "MeleeRun", "MeleeIdle", SubResource("Trans_MeleeRunToIdle"), "MeleeRun", "MeleeSprint", SubResource("Trans_MeleeRunToSprint"), "MeleeSprint", "MeleeRun", SubResource("Trans_MeleeSprintToRun"), "MeleeIdle", "Jump", SubResource("Trans_ToJump"), "MeleeRun", "RunningJump", SubResource("Trans_ToJump"), "MeleeSprint", "RunningJump", SubResource("Trans_ToJump"), "MeleeIdle", "MeleeAttack", SubResource("Trans_IdleToAttack"), "MeleeRun", "MeleeAttack", SubResource("Trans_RunToAttack"), "MeleeSprint", "MeleeAttack", SubResource("Trans_SprintToAttack"), "MeleeAttack", "MeleeIdle", SubResource("Trans_AttackToIdle"), "Idle", "ArcheryDraw", SubResource("Trans_ToArchery"), "Run", "ArcheryDraw", SubResource("Trans_ToArchery"), "Sprint", "ArcheryDraw", SubResource("Trans_ToArchery"), "MeleeIdle", "ArcheryDraw", SubResource("Trans_ToArchery"), "ArcheryDraw", "ArcheryAim", SubResource("Trans_DrawToAim"), "ArcheryAim", "ArcheryRecoil", SubResource("Trans_ToFire"), "ArcheryRecoil", "ArcheryAim", SubResource("Trans_FireToAim"), "ArcheryAim", "Idle", SubResource("Trans_FromArchery"), "ArcheryRecoil", "Idle", SubResource("Trans_FromArchery"), "Idle", "VaultJump", SubResource("AnimationNodeStateMachineTransition_ToVault"), "Run", "VaultJump", SubResource("AnimationNodeStateMachineTransition_ToVault"), "VaultJump", "VaultLand", SubResource("AnimationNodeStateMachineTransition_VaultToLand"), "VaultLand", "Idle", SubResource("AnimationNodeStateMachineTransition_LandToIdle")]
 graph_offset = Vector2(110, -158)
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_Player"]
@@ -384,6 +418,9 @@ properties/9/replication_mode = 2
 properties/10/path = NodePath(".:SynchronizedMeleeStage")
 properties/10/spawn = true
 properties/10/replication_mode = 2
+properties/11/path = NodePath(".:SynchronizedVaulting")
+properties/11/spawn = true
+properties/11/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D" unique_id=1480496844]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
@@ -395,7 +432,7 @@ MeleeSystemPath = NodePath("MeleeSystem")
 AnimationTreePath = NodePath("AnimationTree")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=805989477]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.82832026, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8490234, 0)
 shape = SubResource("CapsuleShape3D_Body")
 
 [node name="AimAssist" type="Node3D" parent="." unique_id=251612744]

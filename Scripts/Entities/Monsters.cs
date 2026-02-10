@@ -70,6 +70,7 @@ public partial class Monsters : InteractableObject
 
         AddToGroup("interactables");
         AddToGroup("monsters");
+        AddToGroup("targetables");
 
         // JOIN TEAM GROUPS: Critical for MobaTower and MobaMinion discovery
         if (Team != MobaTeam.None) AddToGroup($"team_{Team.ToString().ToLower()}");
@@ -113,6 +114,11 @@ public partial class Monsters : InteractableObject
         SpawnDamageNumber(finalDamage, hitPosition);
         UpdateHealthBar();
 
+        if (_lastAttacker is PlayerController pc)
+        {
+            pc.RegisterDealtDamage(finalDamage);
+        }
+
         if (Health <= 0) Die();
         else PlayHitReaction();
     }
@@ -150,6 +156,7 @@ public partial class Monsters : InteractableObject
 		PlayAnimationRobust("Death");
 		var colShape = GetNodeOrNull<CollisionShape3D>("CollisionShape3D");
 		if (colShape != null) colShape.SetDeferred("disabled", true);
+		RemoveFromGroup("targetables");
 
 		if (_healthBar != null)
 		{

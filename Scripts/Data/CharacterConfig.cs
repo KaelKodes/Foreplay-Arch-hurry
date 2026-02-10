@@ -15,6 +15,9 @@ public class CharacterConfig
     public string Id { get; set; } = "";
     public string DisplayName { get; set; } = "";
     public string ModelPath { get; set; } = "";  // res:// path to .glb/.fbx
+    public string WeaponOverridePath { get; set; } = ""; // Path to FBX for external weapon theft
+    public float[] WeaponPositionOffset { get; set; } = new float[] { 0, 0, 0 };
+    public float[] WeaponRotationOffset { get; set; } = new float[] { 0, 0, 0 };
 
     /// <summary>
     /// Animation source: "self" (use model's own), "erika", or another model ID
