@@ -46,7 +46,7 @@ public partial class MobaMinion : Monsters
         }
 
         _mobaAI = GetNodeOrNull<MobaMinionAI>("MobaMinionAI");
-        if (_mobaAI == null)
+        if (_mobaAI == null && GetNodeOrNull("SummonedSkeletonAI") == null)
         {
             _mobaAI = new MobaMinionAI();
             _mobaAI.Name = "MobaMinionAI";
@@ -146,6 +146,17 @@ public partial class MobaMinion : Monsters
         // Armor reduces damage: effectiveDmg = raw * (100 / (100 + armor))
         float effectiveDamage = rawDamage * (100f / (100f + Armor));
         base.OnHit(effectiveDamage, hitPosition, hitNormal, attacker);
+
+        // Notify AI
+        if (_mobaAI != null)
+        {
+            _mobaAI.OnAttacked(attacker);
+        }
+
+        if (GetNodeOrNull("SummonedSkeletonAI") is SummonedSkeletonAI skelAI)
+        {
+            skelAI.OnAttacked();
+        }
     }
 
     /// <summary>

@@ -26,6 +26,7 @@ public partial class ArrowController : RigidBody3D
 	private Color _syncedColor = Colors.White;
 	private bool _colorSet = false;
 	private float _maxSpeed = 0.0f;
+	private int _pierceCount = 0;
 
 	public override void _Ready()
 	{
@@ -148,9 +149,9 @@ public partial class ArrowController : RigidBody3D
 		Sleeping = false;
 		_startPosition = GlobalPosition;
 		_pendingVelocity = velocity; // Apply in next IntegrateForces
-									 // _spin = spin; // Removed spin support to match signature
 		_windVelocity = windVector;
 		_maxSpeed = 0.0f;
+		_pierceCount = 0;
 
 		// Force wake the physics engine
 		ApplyCentralImpulse(Vector3.Zero);
@@ -201,57 +202,68 @@ public partial class ArrowController : RigidBody3D
             return;
         }
 
+        // ── 1. Team/Ally Pass-Through ────────────────────────────
+        MobaTeam otherTeam = MobaTeam.None;
+        if (body is MobaMinion minion) otherTeam = minion.Team;
+        else if (body is MobaTower tower) otherTeam = tower.Team;
+        else if (body is MobaNexus nexus) otherTeam = nexus.Team;
+        else if (body is PlayerController pc) otherTeam = pc.Team;
+
+		// If it's a valid team member and NOT an enemy, it's an ally. Pass through for free.
+        if (otherTeam != MobaTeam.None && !TeamSystem.AreEnemies(Team, otherTeam))
+        {
+            return;
+        }
+
         GD.Print($"Arrow: Hit {body.Name} (Type: {body.GetType().Name}) at {GlobalPosition}, Velocity: {LinearVelocity.Length():F1} m/s");
 
-        // Combat Logic: Check if we hit an interactable or a specific body part
+        // ── 2. Combat Damage Logic ───────────────────────────────
+        bool hitValidTarget = false;
         var monsterPart = body as MonsterPart ?? body.GetNodeOrNull<MonsterPart>("MonsterPart");
+
         if (monsterPart != null)
         {
             float damage = LinearVelocity.Length() * 0.5f;
             monsterPart.OnHit(damage, GlobalPosition, LinearVelocity.Normalized(), _playerException);
+            hitValidTarget = true;
         }
         else if (body is InteractableObject interactable)
         {
-            // Check team affiliation
-            MobaTeam otherTeam = MobaTeam.None;
-            if (body is MobaMinion minion) otherTeam = minion.Team;
-            else if (body is MobaTower tower) otherTeam = tower.Team;
-            else if (body is MobaNexus nexus) otherTeam = nexus.Team;
-            else if (body is PlayerController pc) otherTeam = pc.Team;
+			// We already checked for allies above, so if we're here and otherTeam != None, it's an enemy.
+			// If otherTeam is None, it's a neutral interactable (like a target or monster).
+			float damage = LinearVelocity.Length() * 0.5f;
+			interactable.OnHit(damage, GlobalPosition, LinearVelocity.Normalized(), _playerException);
+			hitValidTarget = true;
+		}
+		else if (body is MobaTower t)
+		{
+			float damage = LinearVelocity.Length() * 0.5f;
+			t.TakeDamage(damage);
+			hitValidTarget = true;
+		}
+		else if (body is MobaNexus n)
+		{
+			float damage = LinearVelocity.Length() * 0.5f;
+			n.TakeDamage(damage);
+			hitValidTarget = true;
+		}
+		else if (body.GetParent() is InteractableObject pi)
+		{
+			float damage = LinearVelocity.Length() * 0.5f;
+			pi.OnHit(damage, GlobalPosition, LinearVelocity.Normalized(), _playerException);
+			hitValidTarget = true;
+		}
 
-            if (TeamSystem.AreEnemies(Team, otherTeam) || Team == MobaTeam.None)
-            {
-                float damage = LinearVelocity.Length() * 0.5f; // damage scales with speed
-                interactable.OnHit(damage, GlobalPosition, LinearVelocity.Normalized(), _playerException);
-            }
-            else
-            {
-                GD.Print($"Arrow: Friendly fire ignored on {body.Name} (Team: {otherTeam})");
-            }
-        }
-        else if (body is MobaTower tower)
-        {
-            if (TeamSystem.AreEnemies(Team, tower.Team) || Team == MobaTeam.None)
-            {
-                float damage = LinearVelocity.Length() * 0.5f;
-                tower.TakeDamage(damage);
-            }
-        }
-        else if (body is MobaNexus nexus)
-        {
-            if (TeamSystem.AreEnemies(Team, nexus.Team) || Team == MobaTeam.None)
-            {
-                float damage = LinearVelocity.Length() * 0.5f;
-                nexus.TakeDamage(damage);
-            }
-        }
-        else if (body.GetParent() is InteractableObject parentInteractable)
-        {
-            // Fallback for hitboxes that are children of the InteractableObject
-            float damage = LinearVelocity.Length() * 0.5f;
-            parentInteractable.OnHit(damage, GlobalPosition, LinearVelocity.Normalized(), _playerException);
-        }
+		// ── 3. Piercing Logic ────────────────────────────────────
+		// Case 1 & 2: If we hit an enemy/monster and we have pierce remaining, continue flying.
+		if (IsPiercing && hitValidTarget && _pierceCount < 1)
+		{
+			_pierceCount++;
+			GD.Print($"Arrow: Piercing through {body.Name}. Pierce Count: {_pierceCount}");
+			return; // Continue flying
+		}
 
+		// Otherwise, stick to whatever we hit (including environmental walls which won't set hitValidTarget)
         StickToTarget(body);
     }
 

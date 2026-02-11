@@ -30,9 +30,14 @@ public partial class DatabaseManager : Node
                     Gold INTEGER DEFAULT 0,
                     Strength INTEGER DEFAULT 10,
                     Agility INTEGER DEFAULT 10,
-                    Dexterity INTEGER DEFAULT 10,
+                    Wisdom INTEGER DEFAULT 10,
                     Vitality INTEGER DEFAULT 10,
                     Intelligence INTEGER DEFAULT 10,
+                    Haste INTEGER DEFAULT 0,
+                    Concentration INTEGER DEFAULT 0,
+                    Stance INTEGER DEFAULT 0,
+                    DamageType INTEGER DEFAULT 0,
+                    ResourceType INTEGER DEFAULT 0,
                     MaxHealth INTEGER DEFAULT 100,
                     CurrentHealth INTEGER DEFAULT 100,
                     MaxStamina INTEGER DEFAULT 100,
@@ -78,25 +83,25 @@ public partial class DatabaseManager : Node
                 -- Migration: Ensure Ranger naming consistency (catch legacy Archer or Erika)
                 UPDATE Characters SET Name = 'Ranger' WHERE Name = 'Archer' OR Name = 'erika' OR Name = 'Erika';
 
-                -- Migration: Repair/Seed base stats for existing users who have default 100 HP
-                UPDATE Characters SET MaxHealth = 400, CurrentHealth = 400, MaxStamina = 275, CurrentStamina = 275, MaxMana = 270, CurrentMana = 270, Strength = 21, Agility = 35, Dexterity = 42, Vitality = 20, Intelligence = 18 WHERE Name = 'Ranger' AND MaxHealth = 100 AND Level = 1;
-                UPDATE Characters SET MaxHealth = 760, CurrentHealth = 760, MaxStamina = 200, CurrentStamina = 200, MaxMana = 180, CurrentMana = 180, Strength = 42, Agility = 20, Dexterity = 25, Vitality = 38, Intelligence = 12 WHERE Name = 'Warrior' AND MaxHealth = 100 AND Level = 1;
-                UPDATE Characters SET MaxHealth = 500, CurrentHealth = 500, MaxStamina = 190, CurrentStamina = 190, MaxMana = 675, CurrentMana = 675, Strength = 15, Agility = 18, Dexterity = 20, Vitality = 25, Intelligence = 45 WHERE Name = 'Cleric' AND MaxHealth = 100 AND Level = 1;
-                UPDATE Characters SET MaxHealth = 400, CurrentHealth = 400, MaxStamina = 175, CurrentStamina = 175, MaxMana = 750, CurrentMana = 750, Strength = 12, Agility = 15, Dexterity = 18, Vitality = 20, Intelligence = 50 WHERE Name = 'Necromancer' AND MaxHealth = 100 AND Level = 1;
+                -- Migration: Add new columns for existing DBs (safe: no-op if already exist)
+                -- SQLite doesn't support ADD COLUMN IF NOT EXISTS, so we handle errors in code
 
-                -- Seed heroes with class-specific stats if table is empty
-                -- Formulas: HP = 20 * Vitality, SP = 100 + 5 * Agility, MP = 15 * Intelligence
-                -- Values derived from growth curves (scaled by 10) + base floor.
-                INSERT OR IGNORE INTO Characters (Id, Name, Level, Experience, Gold, Strength, Agility, Dexterity, Vitality, Intelligence, MaxHealth, CurrentHealth, MaxStamina, CurrentStamina, MaxMana, CurrentMana, MaxFury, CurrentFury, IsRightHanded)
+                -- Migration: Nuke old stat values and re-seed with new system
+                DELETE FROM Characters WHERE Level = 1;
+
+                -- Seed heroes with class-specific stats
+                -- Formulas: HP = 20 * VIT, Stamina = 100 + 5 * AGI, Mana = 15 * WIS
+                -- Stance: 0=Melee, 1=Ranged | DamageType: 0=Physical, 1=Magical | ResourceType: 0=Mana, 1=Fury
+                INSERT OR IGNORE INTO Characters (Id, Name, Level, Experience, Gold, Strength, Agility, Wisdom, Vitality, Intelligence, Haste, Concentration, Stance, DamageType, ResourceType, MaxHealth, CurrentHealth, MaxStamina, CurrentStamina, MaxMana, CurrentMana, MaxFury, CurrentFury, IsRightHanded)
                 VALUES
-                    -- Ranger/Archer: High DEX/AGI. HP=400, SP=275, MP=270
-                    (1, 'Ranger',      1, 0, 0,  21, 35, 42, 20, 18,  400, 400,  275, 275,  270, 270,  100, 0,  1),
-                    -- Warrior: High STR/VIT. HP=760, SP=200, MP=180 (Uses Fury 0/100)
-                    (2, 'Warrior',     1, 0, 0,  42, 20, 25, 38, 12,  760, 760,  200, 200,  180, 180,  100, 0,  1),
-                    -- Cleric: High INT/VIT. HP=500, SP=190, MP=675
-                    (3, 'Cleric',      1, 0, 0,  15, 18, 20, 25, 45,  500, 500,  190, 190,  675, 675,  100, 0,  1),
-                    -- Necromancer: Highest INT. HP=400, SP=175, MP=750
-                    (4, 'Necromancer', 1, 0, 0,  12, 15, 18, 20, 50,  400, 400,  175, 175,  750, 750,  100, 0,  1);
+                    -- Ranger: Ranged/Physical/Mana. Fast, balanced damage. HP=400, SP=225, MP=270
+                    (1, 'Ranger',      1, 0, 0,  28, 25, 18, 20, 18,  0, 0,  1, 0, 0,  400, 400,  225, 225,  270, 270,  100, 0,  1),
+                    -- Warrior: Melee/Physical/Fury. Tanky bruiser. HP=760, SP=190, MP=0 (Fury=50)
+                    (2, 'Warrior',     1, 0, 0,  42, 18, 10, 38, 12,  0, 0,  0, 0, 1,  760, 760,  190, 190,  0, 0,  50, 0,  1),
+                    -- Cleric: Melee/Magical/Mana. Tanky caster. HP=500, SP=180, MP=525
+                    (3, 'Cleric',      1, 0, 0,  20, 16, 35, 25, 45,  0, 0,  0, 1, 0,  500, 500,  180, 180,  525, 525,  100, 0,  1),
+                    -- Necromancer: Ranged/Magical/Mana. Glass cannon. HP=400, SP=175, MP=600
+                    (4, 'Necromancer', 1, 0, 0,  12, 15, 40, 20, 50,  0, 0,  1, 1, 0,  400, 400,  175, 175,  600, 600,  100, 0,  1);
             ";
             int rowsAffected = command.ExecuteNonQuery();
             GD.Print($"[DatabaseManager] Initialization complete. Rows affected: {rowsAffected}");

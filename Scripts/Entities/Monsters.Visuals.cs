@@ -29,6 +29,7 @@ public partial class Monsters
 
     private AnimationPlayer FindPopulatedAnimationPlayerRecursive(Node node)
     {
+        if (node == null) return null;
         if (node is AnimationPlayer ap && ap.GetAnimationList().Length > 0) return ap;
         foreach (Node child in node.GetChildren())
         {
@@ -49,7 +50,31 @@ public partial class Monsters
             GetTree().CurrentScene.AddChild(dmgNum);
             dmgNum.GlobalPosition = hitPosition + new Vector3(0, 0.5f, 0);
 
-            if (dmgNum is DamageNumber dn) dn.SetDamage(damage);
+            if (dmgNum is DamageNumber dn)
+            {
+                bool isLocal = false;
+                if (_lastAttacker is PlayerController pc && pc.IsLocal) isLocal = true;
+
+                dn.SetDamage(damage, isLocal);
+            }
+        }
+    }
+
+    internal void SpawnHealNumber(float amount)
+    {
+        if (!GameSettings.ShowDamageNumbers) return;
+
+        var scene = GD.Load<PackedScene>("res://Scenes/VFX/DamageNumber.tscn");
+        if (scene != null)
+        {
+            var dmgNum = scene.Instantiate<Node3D>();
+            GetTree().CurrentScene.AddChild(dmgNum);
+            dmgNum.GlobalPosition = GlobalPosition + new Vector3(0, 1.5f, 0);
+
+            if (dmgNum is DamageNumber dn)
+            {
+                dn.SetHeal(amount);
+            }
         }
     }
 

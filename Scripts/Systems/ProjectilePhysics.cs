@@ -37,7 +37,7 @@ public static class ProjectilePhysics
         direction = direction.Normalized();
 
         // 2. Power and Velocity
-        float powerToUse = (p.PowerOverride > 0) ? p.PowerOverride : p.PlayerStats.Power;
+        float powerToUse = (p.PowerOverride > 0) ? p.PowerOverride : p.PlayerStats.Strength;
         float powerStatMult = powerToUse / 10.0f;
 
         float baseVelocity = ArcheryConstants.BASE_VELOCITY;
@@ -48,14 +48,14 @@ public static class ProjectilePhysics
         float accuracyError = p.AccuracyValue - ArcheryConstants.PERFECT_ACCURACY_VALUE;
 
         // Control reduction
-        float controlMult = 1.0f / (p.PlayerStats.Control / 10.0f);
+        float controlMult = 1.0f / (p.PlayerStats.Agility / 10.0f);
         float timingOffset = -accuracyError * 0.02f * controlMult; // Reduced error influence for archery
 
         Vector3 velocity = direction * launchPower;
         velocity = velocity.Rotated(Vector3.Up, timingOffset);
 
         // 4. Spin (Optional for arrows, but kept for "Curve Shots")
-        float touchMult = p.PlayerStats.Touch / 10.0f;
+        float touchMult = 1.0f; // Flat spin factor (Dexterity removed)
         float baselineBackspin = 50.0f * (normalizedPower * powerStatMult); // Very low backspin for arrows
 
         float totalBackspin = baselineBackspin + (p.SpinIntent.Y * 20.0f * touchMult);

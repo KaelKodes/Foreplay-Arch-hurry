@@ -116,7 +116,17 @@ public static class PlayerAnimations
         animTree.Set("parameters/conditions/is_melee", isMelee);
         animTree.Set("parameters/conditions/is_not_melee", !isMelee);
         animTree.Set("parameters/conditions/is_not_archery", !isArchery);
-        animTree.Set("parameters/conditions/is_vaulting", player.SynchronizedVaulting);
+        animTree.Set("parameters/conditions/is_not_melee", !isMelee);
+        animTree.Set("parameters/conditions/is_not_archery", !isArchery);
+
+        // Only set is_vaulting to true for the first 0.1s of the dash
+        // This prevents looping if the dash duration > animation length
+        bool isVaultingStart = player.SynchronizedVaulting;
+        if (isVaultingStart && player.CurrentDashTime < (player.DashDuration - 0.15f))
+        {
+            isVaultingStart = false; // Turn off condition after start
+        }
+        animTree.Set("parameters/conditions/is_vaulting", isVaultingStart);
 
         if (isArchery && archerySystem != null)
         {

@@ -10,6 +10,13 @@ using Archery;
 /// </summary>
 public static class WarriorAbilities
 {
+    /// <summary>Get player stats from caster's ArcherySystem (shared stat service).</summary>
+    private static Stats GetStats(PlayerController caster)
+    {
+        var archery = caster.GetNodeOrNull<ArcherySystem>("ArcherySystem");
+        return archery?.PlayerStats ?? new Stats { Strength = 10 };
+    }
+
     public static void ExecuteAbility(PlayerController caster, int slot)
     {
         var modelMgr = caster.GetNodeOrNull<CharacterModelManager>("ModelManager")
@@ -41,41 +48,39 @@ public static class WarriorAbilities
         // Play kick animation
         modelMgr?.PlayAnimation("Kick");
 
-        // Small delay to match animation strike (reduced from 0.3s for faster feel)
+        // Small delay to match animation strike
         caster.GetTree().CreateTimer(0.2f).Timeout += () =>
         {
+            var stats = GetStats(caster);
+            // 80% AD damage (matches tooltip)
+            float damage = stats.AttackDamage * 0.8f;
+
             Vector3 forward = -caster.GlobalTransform.Basis.Z;
-            // Shifted to 1.5u forward and 2.0u radius for a tight melee feel
             Vector3 center = caster.GlobalPosition + (forward * 1.5f) + (Vector3.Up * 0.5f);
             float radius = 2.0f;
 
             TargetingHelper.PerformAoEAction(caster, center, radius, (target) =>
             {
-                // Robust target identification: 
-                // 1. Check if direct hit on MonsterPart or has one attached
-                // 2. Check if direct hit on Monsters
-                // 3. Search ancestors for Monsters (for child hitboxes)
                 var monsterPart = target as MonsterPart ?? target.GetNodeOrNull<MonsterPart>("MonsterPart");
                 var monster = target as Monsters ?? target.GetParent() as Monsters ?? FindAncestor<Monsters>(target);
 
                 if (monsterPart != null)
                 {
-                    monsterPart.OnHit(25f, target.GlobalPosition, forward, caster);
-                    // Also apply stun/knockback to the owner via derived monster ref
+                    monsterPart.OnHit(damage, target.GlobalPosition, forward, caster);
                     monster?.ApplyStun(1.5f);
                 }
                 else if (monster != null)
                 {
-                    monster.OnHit(25f, target.GlobalPosition, forward, caster);
+                    monster.OnHit(damage, target.GlobalPosition, forward, caster);
                     monster.ApplyStun(1.5f);
                 }
                 else if (target is InteractableObject io)
                 {
-                    io.OnHit(25f, target.GlobalPosition, forward, caster);
+                    io.OnHit(damage, target.GlobalPosition, forward, caster);
                 }
             }, caster.Team);
 
-            GD.Print($"[WarriorAbilities] Shield Slam (Kick) executed at {center} (Radius: {radius})");
+            GD.Print($"[WarriorAbilities] Shield Slam: {damage:F0} dmg (80% of {stats.AttackDamage} AD) at {center} (Radius: {radius})");
         };
     }
 
@@ -91,13 +96,16 @@ public static class WarriorAbilities
         SceneTreeTimer timer = caster.GetTree().CreateTimer(0.4f);
         timer.Timeout += () =>
         {
+            var stats = GetStats(caster);
+            // 60% AD damage on impact
+            float damage = stats.AttackDamage * 0.6f;
+
             Vector3 forward = caster.GlobalTransform.Basis.Z;
             Vector3 center = caster.GlobalPosition + forward * 1.5f + Vector3.Up * 0.5f;
             float radius = 2.5f;
 
             TargetingHelper.PerformAoEAction(caster, center, radius, (target) =>
             {
-                float damage = 20f;
                 var monsterPart = target as MonsterPart ?? target.GetNodeOrNull<MonsterPart>("MonsterPart");
                 var monster = target as Monsters ?? target.GetParent() as Monsters ?? FindAncestor<Monsters>(target);
 
@@ -117,7 +125,7 @@ public static class WarriorAbilities
                 }
             }, caster.Team);
 
-            GD.Print($"[WarriorAbilities] Intercept impact check at {center}");
+            GD.Print($"[WarriorAbilities] Intercept impact: {damage:F0} dmg (60% of {stats.AttackDamage} AD) at {center}");
         };
 
         if (caster.CurrentTarget != null)
@@ -148,7 +156,6 @@ public static class WarriorAbilities
             }
             else if (monsterPart != null)
             {
-                // This case is largely covered by the monster search above, but kept for absolute safety
                 var owner = FindAncestor<Monsters>(target);
                 owner?.ApplyTaunt(caster, 3.0f);
                 owner?.ApplyDebuff(0.15f, 8.0f);
@@ -159,7 +166,7 @@ public static class WarriorAbilities
         var melee = caster.GetNodeOrNull<MeleeSystem>("MeleeSystem");
         if (melee != null)
         {
-            melee.EmitSignal(MeleeSystem.SignalName.PowerSlamTriggered, caster.GlobalPosition, caster.PlayerIndex);
+            melee.EmitSignal(MeleeSystem.SignalName.PowerSlamTriggered, caster.GlobalPosition, caster.PlayerIndex, new Color(1, 1, 1, 1), 4.0f);
         }
 
         GD.Print($"[WarriorAbilities] Demoralizing Shout at {caster.GlobalPosition}");
@@ -171,11 +178,9 @@ public static class WarriorAbilities
         modelMgr?.PlayAnimation("Casting");
 
         // Self-buff: 30% Lifesteal + CC Immunity for 10s
+        // Red pulse is handled automatically by PlayerController.ProcessBuffs while lifesteal is active
         caster.ApplyLifesteal(0.3f, 10.0f);
         caster.ApplyCCImmunity(10.0f);
-
-        // Visual: Make the Warrior glow red
-        modelMgr?.ApplyGlow(new Color(1.5f, 0.2f, 0.2f, 1.0f), 10.0f);
 
         GD.Print($"[WarriorAbilities] Avatar of War activated!");
     }

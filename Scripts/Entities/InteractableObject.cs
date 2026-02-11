@@ -14,6 +14,10 @@ public partial class InteractableObject : Node3D
     [Export] public MobaTeam Team = MobaTeam.None;
     [Export] public string ModelPath = "";
 
+    [ExportGroup("Targeting Visualization")]
+    [Export] public float SelectionRingRadius = 0.8f;
+    [Export] public float SelectionRingTolerance = 0.1f;
+
     [ExportGroup("Collision")]
     [Export] public bool AutoGenerateCollision = true;
     [Export] public bool RebuildCollisionTrigger { get => false; set { if (value) CallDeferred(nameof(AddDynamicCollision)); } }
@@ -92,7 +96,7 @@ public partial class InteractableObject : Node3D
         }
     }
 
-    private void UpdateVisuals(Color color, bool isSelected = false)
+    public void UpdateVisuals(Color color, bool isSelected = false)
     {
         if (_mesh == null) return;
         if (!isSelected && color == Colors.White)
@@ -225,7 +229,8 @@ public partial class InteractableObject : Node3D
     {
         _gizmoRing = new MeshInstance3D();
         var torus = new TorusMesh();
-        torus.InnerRadius = 1.8f; torus.OuterRadius = 2.0f;
+        torus.InnerRadius = SelectionRingRadius;
+        torus.OuterRadius = SelectionRingRadius + SelectionRingTolerance;
         _gizmoRing.Mesh = torus;
         var mat = new StandardMaterial3D();
         mat.AlbedoColor = new Color(1, 1, 1, 0.8f); // Default to white/soft
@@ -247,6 +252,28 @@ public partial class InteractableObject : Node3D
 
         // Return global position of the center
         return _mesh.ToGlobal(center);
+    }
+
+    private float _flashTimer = 0f;
+
+    public void FlashRed(float duration = 0.2f)
+    {
+        _flashTimer = duration;
+        UpdateVisuals(Colors.Red, true);
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_flashTimer > 0)
+        {
+            _flashTimer -= (float)delta;
+            if (_flashTimer <= 0)
+            {
+                _flashTimer = 0;
+                // Restore visuals based on current selection state
+                SetSelected(IsSelected);
+            }
+        }
     }
 
     protected MeshInstance3D FindMeshRecursive(Node node)

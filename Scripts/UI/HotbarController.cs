@@ -67,14 +67,18 @@ public partial class HotbarController : Control
             _slotContainer = hbox;
         }
 
-        // MOBA Specific Defaults
-        if (MobaGameManager.Instance != null)
+        // MOBA Specific Defaults - REMOVED to allow HUD.tscn to control layout
+        // if (MobaGameManager.Instance != null) ...
+
+        // Fallback: Load AbilityIcon.tscn if SlotScene not assigned
+        if (SlotScene == null)
         {
-            _currentLayout = HotbarLayout.Vertical8x1;
-            SetAnchorsPreset(LayoutPreset.CenterRight);
-            OffsetTop = -300; // Position vertically centered-ish
-            GD.Print("[Hotbar] MOBA Mode detected: Defaulting to Vertical Right-Side layout.");
+            SlotScene = GD.Load<PackedScene>("res://Scenes/UI/AbilityIcon.tscn");
         }
+
+        // Force layout state
+        SetAnchorsPreset(LayoutPreset.CenterBottom);
+        OffsetBottom = -20;
 
         CreateSlots();
         RebuildContainer(); // Force initial layout rebuild
@@ -94,6 +98,9 @@ public partial class HotbarController : Control
         {
             CallDeferred(nameof(DeferredSubscribe));
         }
+
+        // Always try to subscribe to player (independent of ToolManager)
+        CallDeferred(nameof(SubscribeToPlayer));
         // Style the hotbar background with MobaTheme
         var bg = GetNodeOrNull<Control>("Background");
         if (bg is ColorRect bgRect)
@@ -109,8 +116,11 @@ public partial class HotbarController : Control
         // Create ability tooltip (shared across all slots)
         _abilityTooltip = new AbilityTooltip();
         _abilityTooltip.Name = "AbilityTooltip";
+        _abilityTooltip.MouseExited += OnSlotMouseExited;
         AddChild(_abilityTooltip);
     }
+
+    private PlayerController _cachedPlayer;
 
     private void DeferredSubscribe()
     {
@@ -118,6 +128,35 @@ public partial class HotbarController : Control
         {
             ToolManager.Instance.ToolChanged += OnToolChanged;
             ToolManager.Instance.HotbarUpdated += RefreshSlots;
+        }
+
+        SubscribeToPlayer();
+    }
+
+    private void SubscribeToPlayer()
+    {
+        if (_cachedPlayer != null) return;
+
+        var playerNode = GetTree().GetFirstNodeInGroup("local_player");
+        if (playerNode is PlayerController player)
+        {
+            _cachedPlayer = player;
+            _cachedPlayer.AbilityUsed += OnAbilityUsed;
+            GD.Print("[HotbarController] Subscribed to Player AbilityUsed event.");
+        }
+        else
+        {
+            // Retry later if player isn't ready
+            GetTree().CreateTimer(0.5f).Timeout += SubscribeToPlayer;
+        }
+    }
+
+    private void OnAbilityUsed(int slotIndex, float duration)
+    {
+        if (slotIndex >= 0 && slotIndex < _slots.Length)
+        {
+            var slot = _slots[slotIndex] as AbilityIcon;
+            slot?.StartCooldown(duration);
         }
     }
 
@@ -127,6 +166,12 @@ public partial class HotbarController : Control
         {
             ToolManager.Instance.ToolChanged -= OnToolChanged;
             ToolManager.Instance.HotbarUpdated -= RefreshSlots;
+        }
+
+        if (_cachedPlayer != null)
+        {
+            _cachedPlayer.AbilityUsed -= OnAbilityUsed;
+            _cachedPlayer = null;
         }
     }
 }

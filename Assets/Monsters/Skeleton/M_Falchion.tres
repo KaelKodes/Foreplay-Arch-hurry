@@ -1,0 +1,7 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3 uid="uid://c2l3m4n5o6p8"]
+
+[ext_resource type="Texture2D" path="res://Assets/Monsters/Skeleton/Falchion_Texture.png" id="1_albedo"]
+
+[resource]
+albedo_texture = ExtResource("1_albedo")
+texture_filter = 2

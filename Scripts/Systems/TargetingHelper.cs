@@ -319,4 +319,55 @@ public static class TargetingHelper
             }
         }
     }
+
+    /// <summary>
+    /// Finds a point on the ground (Environment layer) looking from the camera.
+    /// Useful for placing traps or AoE effects.
+    /// </summary>
+    public static Vector3 GetGroundPoint(PlayerController caster, float maxRange = 50.0f)
+    {
+        var camera = caster.GetViewport().GetCamera3D();
+        if (camera == null) return caster.GlobalPosition + (-caster.GlobalBasis.Z * 5.0f);
+
+        // Get horizontal look direction from camera
+        Vector3 camForward = -camera.GlobalBasis.Z;
+        Vector3 lookForward = camForward;
+        lookForward.Y = 0;
+        if (lookForward.LengthSquared() < 0.01f) lookForward = -caster.GlobalBasis.Z; // Fallback to character if looking straight up/down
+        else lookForward = lookForward.Normalized();
+
+        var spaceState = caster.GetWorld3D().DirectSpaceState;
+        Vector3 camPos = camera.GlobalPosition;
+        Vector3 rayTarget = camPos + (camForward * 200.0f);
+
+        var query = PhysicsRayQueryParameters3D.Create(camPos, rayTarget);
+        query.CollisionMask = 1; // Environment/World layer
+        query.Exclude = new Godot.Collections.Array<Rid> { caster.GetRid() };
+
+        var result = spaceState.IntersectRay(query);
+        if (result.Count > 0)
+        {
+            Vector3 hitPos = (Vector3)result["position"];
+
+            // Validate: Is this point actually in front of where the player is looking?
+            Vector3 toHit = (hitPos - caster.GlobalPosition);
+            float forwardDot = lookForward.Dot(toHit.Normalized());
+
+            // If the hit point is behind the camera/player view relative to looking direction, default to fallback
+            if (forwardDot < 0.1f)
+            {
+                return caster.GlobalPosition + (lookForward * 5.0f);
+            }
+
+            float distToHit = toHit.Length();
+            if (distToHit <= maxRange)
+                return hitPos;
+
+            // Clamp to max range using look direction
+            return caster.GlobalPosition + (lookForward * maxRange);
+        }
+
+        // Fallback: 10m in front of camera view on ground
+        return caster.GlobalPosition + (lookForward * 10.0f);
+    }
 }

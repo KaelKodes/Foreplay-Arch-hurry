@@ -209,7 +209,7 @@ public partial class ArcherySystem
 
         // 1. Power Calculation (Incorporate Stats + Locked Power)
         float powerFactor = _lockedPower / 100.0f;
-        float powerStatMult = PlayerStats.Power / 10.0f;
+        float powerStatMult = PlayerStats.Strength / 10.0f;
 
         // Apply Forgiveness (Snap to perfect)
         if (Mathf.Abs(_lockedPower - ArcheryConstants.PERFECT_POWER_VALUE) < ArcheryConstants.TOLERANCE_POWER)

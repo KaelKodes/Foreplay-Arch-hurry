@@ -79,6 +79,10 @@ public partial class PlayerController
         if (Input.IsKeyPressed(Key.A)) inputDir.X -= 1;
         if (Input.IsKeyPressed(Key.D)) inputDir.X += 1;
 
+        // Use stat-derived speed if available, otherwise export default
+        var stats = _archerySystem?.PlayerStats;
+        float baseSpeed = stats?.DerivedMoveSpeed ?? MoveSpeed;
+
         if (inputDir.LengthSquared() > 0.1f)
         {
             inputDir = inputDir.Normalized();
@@ -87,7 +91,7 @@ public partial class PlayerController
             Vector3 camRot = _camera.GlobalRotation;
             Vector3 moveDir = inputDir.Rotated(Vector3.Up, camRot.Y);
 
-            float currentSpeed = MoveSpeed;
+            float currentSpeed = baseSpeed * _moveSpeedMultiplier;
             if (IsSprinting) currentSpeed *= 1.5f;
 
             _velocity.X = moveDir.X * currentSpeed;
@@ -99,8 +103,8 @@ public partial class PlayerController
         }
         else
         {
-            _velocity.X = Mathf.MoveToward(_velocity.X, 0, MoveSpeed);
-            _velocity.Z = Mathf.MoveToward(_velocity.Z, 0, MoveSpeed);
+            _velocity.X = Mathf.MoveToward(_velocity.X, 0, baseSpeed);
+            _velocity.Z = Mathf.MoveToward(_velocity.Z, 0, baseSpeed);
         }
 
         Velocity = _velocity;

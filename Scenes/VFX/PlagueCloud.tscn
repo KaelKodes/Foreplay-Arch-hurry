@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://b8k7m4v3l1p2"]
+
+[ext_resource type="Script" path="res://Scripts/VFX/PlagueCloud.cs" id="1_script"]
+
+[sub_resource type="Curve" id="Curve_fade"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.2, 1), 0.0, 0.0, 0, 0, Vector2(0.8, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="CurveTexture" id="CurveTexture_alpha"]
+curve = SubResource("Curve_fade")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_smoke"]
+emission_shape = 1
+emission_sphere_radius = 2.0
+gravity = Vector3(0, 0.2, 0)
+scale_min = 1.5
+scale_max = 3.0
+color = Color(0.1, 0.3, 0.1, 0.4)
+alpha_curve = SubResource("CurveTexture_alpha")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_smoke"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.133333, 0.25098, 0, 0.6)
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_smoke"]
+material = SubResource("StandardMaterial3D_smoke")
+
+[node name="PlagueCloud" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="SmokeParticles" type="GPUParticles3D" parent="."]
+amount = 40
+lifetime = 2.0
+preprocess = 0.5
+process_material = SubResource("ParticleProcessMaterial_smoke")
+draw_pass_1 = SubResource("QuadMesh_smoke")

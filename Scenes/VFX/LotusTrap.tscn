@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://f8k7m4v3l1p2"]
+
+[ext_resource type="Script" path="res://Scripts/VFX/LotusTrap.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://Textures/NatureObjects/Petal_1.gltf" path="res://Assets/Textures/NatureObjects/Petal_1.gltf" id="2_mesh"]
+
+[sub_resource type="SphereShape3D" id="SphereShape_trigger"]
+radius = 2.0
+
+[node name="LotusTrap" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="MeshInstance3D" parent="." instance=ExtResource("2_mesh")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
+
+[node name="TriggerArea" type="Area3D" parent="."]
+collision_mask = 3
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TriggerArea"]
+shape = SubResource("SphereShape_trigger")
+
+[connection signal="body_entered" from="TriggerArea" to="." method="OnBodyEntered"]

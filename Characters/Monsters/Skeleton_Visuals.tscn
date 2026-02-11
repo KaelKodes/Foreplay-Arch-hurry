@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://b2n8k4l5m6n7"]
+
+[ext_resource type="PackedScene" uid="uid://bd1pnwcmn6ay5" path="res://Assets/Monsters/Skeleton/uploads_files_4709840_Skeleton_Model_110.fbx" id="1_mesh"]
+[ext_resource type="Material" uid="uid://c1l2m3n4o5p6" path="res://Assets/Monsters/Skeleton/M_Skeleton.tres" id="2_material"]
+
+[node name="Skeleton_Visuals" instance=ExtResource("1_mesh")]
+
+[node name="M_Skeleton" parent="root/Skeleton3D" index="0"]
+surface_material_override/0 = ExtResource("2_material")
+
+[node name="M_Skeleton_Jaw" parent="root/Skeleton3D" index="1"]
+surface_material_override/0 = ExtResource("2_material")
+
+[node name="M_Skeleton_Skull" parent="root/Skeleton3D" index="2"]
+surface_material_override/0 = ExtResource("2_material")
+
+[node name="BoneAttachment3D" type="BoneAttachment3D" parent="root/Skeleton3D" index="3"]
+bone_name = &"hand.r"

@@ -17,128 +17,33 @@ public partial class HotbarController
 
         for (int i = 0; i < SlotCount; i++)
         {
-            var slot = new TextureButton();
+            // Instantiate AbilityIcon scene
+            var slotInstance = SlotScene.Instantiate<Control>();
+            var slot = slotInstance as AbilityIcon;
+
+            if (slot == null)
+            {
+                GD.PushError("[HotbarController] SlotScene is not an AbilityIcon!");
+                continue;
+            }
+
             slot.Name = $"Slot{i + 1}";
-            slot.CustomMinimumSize = new Vector2(64, 64);
-            slot.StretchMode = TextureButton.StretchModeEnum.Scale;
-            slot.IgnoreTextureSize = true;
 
-            // Create a styled slot background using MobaTheme
-            var slotPanel = new Panel();
-            slotPanel.Name = "Background";
-            var slotStyle = new StyleBoxFlat();
-            slotStyle.BgColor = new Color(0.1f, 0.1f, 0.15f, 0.9f);
-            slotStyle.CornerRadiusTopLeft = 4;
-            slotStyle.CornerRadiusTopRight = 4;
-            slotStyle.CornerRadiusBottomLeft = 4;
-            slotStyle.CornerRadiusBottomRight = 4;
-            slotStyle.BorderWidthTop = 1;
-            slotStyle.BorderWidthBottom = 1;
-            slotStyle.BorderWidthLeft = 1;
-            slotStyle.BorderWidthRight = 1;
-            slotStyle.BorderColor = MobaTheme.PanelBorder;
-            slotPanel.AddThemeStyleboxOverride("panel", slotStyle);
-            slotPanel.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            slotPanel.MouseFilter = MouseFilterEnum.Ignore;
-            slot.AddChild(slotPanel);
+            // Set Label
+            slot.SetLabel((i + 1).ToString());
 
-            // Add icon rect (layered on top of background)
-            var iconRect = new TextureRect();
-            iconRect.Name = "IconRect";
-            iconRect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            iconRect.OffsetLeft = 4;
-            iconRect.OffsetTop = 4;
-            iconRect.OffsetRight = -4;
-            iconRect.OffsetBottom = -12; // Leave room for number label
-            iconRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-            iconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-            iconRect.MouseFilter = MouseFilterEnum.Ignore;
-            slot.AddChild(iconRect);
+            // Add to container and tracker
+            _slotContainer.AddChild(slot);
+            _slots[i] = slot;
 
-            // Add number label with themed styling
-            var label = new Label();
-            label.Name = "NumberLabel";
-            label.Text = (i + 1).ToString();
-            label.HorizontalAlignment = HorizontalAlignment.Center;
-            label.VerticalAlignment = VerticalAlignment.Bottom;
-            label.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            label.AddThemeFontSizeOverride("font_size", 11);
-            label.AddThemeColorOverride("font_color", MobaTheme.TextMuted);
-            label.MouseFilter = MouseFilterEnum.Ignore;
-            slot.AddChild(label);
-
-            // Add tool name label
-            var nameLabel = new Label();
-            nameLabel.Name = "NameLabel";
-            nameLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            nameLabel.VerticalAlignment = VerticalAlignment.Center;
-            nameLabel.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            nameLabel.MouseFilter = MouseFilterEnum.Ignore;
-            slot.AddChild(nameLabel);
-
-            // Selection highlight with themed glow
-            var highlight = new ColorRect();
-            highlight.Name = "Highlight";
-            highlight.Color = new Color(0.4f, 0.6f, 1f, 0.25f);
-            highlight.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            highlight.Visible = false;
-            highlight.MouseFilter = MouseFilterEnum.Ignore;
-            slot.AddChild(highlight);
-
+            // Wire up events
             int slotIndex = i; // Capture for lambda
             slot.Pressed += () => OnSlotPressed(slotIndex);
-
-            // Ability tooltip on hover (RPG mode only)
             slot.MouseEntered += () => OnSlotMouseEntered(slotIndex);
             slot.MouseExited += () => OnSlotMouseExited();
 
-            // Add Upgrade Button (+)
-            var upgradeBtn = new Button();
-            upgradeBtn.Name = "UpgradeButton";
-            upgradeBtn.Text = "+";
-            upgradeBtn.CustomMinimumSize = new Vector2(24, 24);
-            upgradeBtn.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-            upgradeBtn.OffsetLeft = -24;
-            upgradeBtn.OffsetBottom = 24;
-            upgradeBtn.Visible = false; // Hidden by default
-            upgradeBtn.AddThemeFontSizeOverride("font_size", 14);
-            upgradeBtn.AddThemeColorOverride("font_color", MobaTheme.AccentGold);
-
-            // Styled button
-            var btnStyle = new StyleBoxFlat();
-            btnStyle.BgColor = new Color(0.2f, 0.2f, 0.2f, 0.8f);
-            btnStyle.BorderWidthBottom = 2;
-            btnStyle.BorderColor = MobaTheme.AccentGold;
-            upgradeBtn.AddThemeStyleboxOverride("normal", btnStyle);
-
-            upgradeBtn.Pressed += () => OnUpgradePressed(slotIndex);
-            slot.AddChild(upgradeBtn);
-
-            // Re-center Upgrade Button over icon
-            upgradeBtn.SetAnchorsPreset(Control.LayoutPreset.CenterTop);
-            upgradeBtn.OffsetLeft = -12;
-            upgradeBtn.OffsetTop = -12;
-            upgradeBtn.OffsetRight = 12;
-            upgradeBtn.OffsetBottom = 12;
-            // Add Level Label - Moved to top
-            var lvlLabel = new Label();
-            lvlLabel.Name = "LevelLabel";
-            lvlLabel.Text = "Lvl 1";
-            lvlLabel.HorizontalAlignment = HorizontalAlignment.Right;
-            lvlLabel.VerticalAlignment = VerticalAlignment.Top;
-            lvlLabel.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            lvlLabel.OffsetRight = -4;
-            lvlLabel.OffsetTop = 2; // Positioned at top
-            lvlLabel.AddThemeFontSizeOverride("font_size", 9);
-            lvlLabel.AddThemeColorOverride("font_color", MobaTheme.AccentGold);
-            lvlLabel.MouseFilter = MouseFilterEnum.Ignore;
-            slot.AddChild(lvlLabel);
-
-            // DRAG AND DROP SETUP
+            // Drag and Drop (if supported by AbilityIcon - might need to bubble up)
             slot.SetDragForwarding(new Godot.Callable(this, nameof(GetSlotDragData)), new Godot.Callable(this, nameof(CanDropOnSlot)), new Godot.Callable(this, nameof(DropOnSlot)));
-
-            _slotContainer.AddChild(slot);
-            _slots[i] = slot;
         }
 
         RefreshSlots();
@@ -151,29 +56,20 @@ public partial class HotbarController
         for (int i = 0; i < SlotCount && i < _slots.Length; i++)
         {
             var item = ToolManager.Instance.GetSlotItem(i);
-            var nameLabel = _slots[i].GetNodeOrNull<Label>("NameLabel");
-            var iconRect = _slots[i].GetNodeOrNull<TextureRect>("IconRect");
-            var slot = _slots[i];
+            var slot = _slots[i] as AbilityIcon;
+            if (slot == null) continue;
 
-            // Load icon if available (into the IconRect, which is layered above background)
+            // Load icon if available
             if (!string.IsNullOrEmpty(item?.IconPath) && ResourceLoader.Exists(item.IconPath))
             {
-                if (iconRect != null) iconRect.Texture = GD.Load<Texture2D>(item.IconPath);
-                if (nameLabel != null) nameLabel.Visible = false; // Hide text when icon is shown
+                slot.SetIcon(GD.Load<Texture2D>(item.IconPath));
+                // slot.SetNameVisible(false); // If we add this method later
             }
             else
             {
-                if (iconRect != null) iconRect.Texture = null;
-                if (nameLabel != null && item != null)
-                {
-                    nameLabel.Text = item.DisplayName;
-                    nameLabel.Visible = true;
-                }
+                slot.SetIcon(null);
+                // slot.SetName(item?.DisplayName ?? "");
             }
-
-            // Ensure slot background is visible
-            var bg = slot.GetNodeOrNull<Panel>("Background");
-            if (bg != null) bg.Visible = true;
         }
 
         // Ensure highlight is correct after refresh
@@ -212,34 +108,34 @@ public partial class HotbarController
 
         for (int i = 0; i < _slots.Length; i++)
         {
-            var upgradeBtn = _slots[i].GetNodeOrNull<Button>("UpgradeButton");
-            var lvlLabel = _slots[i].GetNodeOrNull<Label>("LevelLabel");
+            var slot = _slots[i] as AbilityIcon;
+            if (slot == null) continue;
 
-            if (upgradeBtn != null)
+            if (slot.UpgradeButton != null)
             {
                 int lvl = _cachedStatsService.PlayerStats.AbilityLevels[i];
                 // Only show if we have points, it's one of the first 4 slots, AND level < 6
-                upgradeBtn.Visible = hasPoints && i < 4 && lvl < 6;
+                slot.UpgradeButton.Visible = hasPoints && i < 4 && lvl < 6;
             }
 
-            if (lvlLabel != null)
+            if (slot.LevelLabel != null)
             {
                 int lvl = _cachedStatsService.PlayerStats.AbilityLevels[i];
-                lvlLabel.Text = $"Lvl {lvl}";
-                lvlLabel.Visible = true;
+                slot.LevelLabel.Text = $"Lvl {lvl}";
+                slot.LevelLabel.Visible = true;
             }
         }
     }
 
     private void HideAllUpgrades()
     {
-        foreach (var slot in _slots)
+        foreach (var btn in _slots)
         {
+            var slot = btn as AbilityIcon;
             if (slot == null) continue;
-            var upgradeBtn = slot.GetNodeOrNull<Button>("UpgradeButton");
-            var lvlLabel = slot.GetNodeOrNull<Label>("LevelLabel");
-            if (upgradeBtn != null) upgradeBtn.Visible = false;
-            if (lvlLabel != null) lvlLabel.Visible = false;
+
+            if (slot.UpgradeButton != null) slot.UpgradeButton.Visible = false;
+            if (slot.LevelLabel != null) slot.LevelLabel.Visible = false;
         }
     }
 

@@ -10,6 +10,7 @@ namespace Archery;
 public partial class MobaMinionAI : Node
 {
     [Export] public float AggroRange = 25f;
+    [Export] public float TargetLeashRange = 35f;
     [Export] public float TurnSpeed = 5f;
 
     private MobaMinion _minion;
@@ -65,7 +66,15 @@ public partial class MobaMinionAI : Node
                     _currentTarget = potentialMinion;
                 }
             }
-            else if (needsRescan)
+            // LEASH CHECK: Drop target if it's too far from where we aggro'd (or just from us)
+            else if (!needsRescan && _currentTarget.GlobalPosition.DistanceTo(_minion.GlobalPosition) > TargetLeashRange)
+            {
+                GD.Print($"[MobaMinionAI] Target {_currentTarget.Name} leashed (too far)");
+                _currentTarget = null;
+                needsRescan = true;
+            }
+
+            if (needsRescan)
             {
                 _currentTarget = FindBestTarget();
             }
@@ -238,6 +247,22 @@ public partial class MobaMinionAI : Node
             }
         }
         return separation;
+    }
+
+    public void OnAttacked(Node attacker)
+    {
+        if (attacker is not Node3D attacker3D || !IsValidTarget(attacker3D)) return;
+
+        // "Defensive Priority": If we are chasing a player or structure, and a minion/monster hits us, switch to them.
+        bool isChasingPlayer = _currentTarget is PlayerController;
+        bool isChasingStructure = _currentTarget is MobaTower || _currentTarget is MobaNexus;
+        bool attackerIsMinion = attacker is MobaMinion || attacker is Monsters;
+
+        if (attackerIsMinion && (isChasingPlayer || isChasingStructure || _currentTarget == null))
+        {
+            _currentTarget = attacker3D;
+            GD.Print($"[MobaMinionAI] {_minion.Name} switching focus to attacker: {attacker.Name}");
+        }
     }
 
     private void FaceTarget(Node3D target, float dt)

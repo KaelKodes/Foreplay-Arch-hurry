@@ -162,7 +162,7 @@ public partial class AimAssist : Node3D
         float baseVelocity = ArcheryConstants.BASE_VELOCITY;
 
         // Use REAL player stats for prediction, not hardcoded 100
-        int playerPower = _archerySystem.PlayerStats.Power;
+        int playerPower = _archerySystem.PlayerStats.Strength;
         float powerStatMult = playerPower / 10.0f;
 
         // Use locked power if available, otherwise assume "Perfect" shot (94%)

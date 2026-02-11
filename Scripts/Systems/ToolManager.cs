@@ -121,8 +121,8 @@ public partial class ToolManager : Node
 
         string[][] abilityMap = new string[][] {
             new string[] { "ShieldSlam", "Intercept", "DemoralizingShout", "AvatarOfWar" }, // Warrior
-            new string[] { "RapidFire", "PiercingShot", "RainOfArrows", "Vault" }, // Ranger
-            new string[] { "Lifetap", "PlagueOfDarkness", "SummonSkeleton", "LichForm" }, // Necro
+            new string[] { "RapidFire", "PiercingShot", "RainOfArrows", "Vault" },         // Ranger
+            new string[] { "Lifetap", "PlagueOfDarkness", "SummonSkeleton", "LotusTrap" },  // Necro
             new string[] { "HighRemedy", "CelestialBuff", "Judgement", "DivineIntervention" } // Cleric
         };
 

@@ -58,6 +58,387 @@ roughness = 0.8
 [sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
 size = Vector3(300, 1, 580.43506)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_ppobu"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_cbu03"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_nmcbh"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_cg014"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3xl1k"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_qsn2w"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_eo4ho"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_idv2l"]
+size = Vector3(4.9446983, 7.316918, 4.5384035)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_0m37w"]
+size = Vector3(5.7280846, 7.3762383, 5.2212067)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_xbtmc"]
+size = Vector3(3.6113946, 7.392199, 3.9958036)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_46i10"]
+size = Vector3(5.8020244, 10.236431, 5.370846)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_srgvk"]
+size = Vector3(6.4201407, 8.723807, 6.222001)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_qjdxd"]
+size = Vector3(5.7280846, 7.3762383, 5.2212067)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_144cy"]
+size = Vector3(3.6113946, 7.392199, 3.9958036)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_kt0ui"]
+size = Vector3(5.8020244, 10.236431, 5.370846)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_sp305"]
+size = Vector3(6.4201407, 8.723807, 6.222001)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ii1j4"]
+size = Vector3(6.4201407, 8.723807, 6.222001)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_afgsx"]
+size = Vector3(5.8020244, 10.236431, 5.370846)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_sr1rh"]
+size = Vector3(5.7280846, 7.3762383, 5.2212067)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_we4du"]
+size = Vector3(4.062846, 9.42519, 4.241077)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7cb6s"]
+size = Vector3(3.6711655, 7.00624, 4.2196503)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_vdkjm"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_umt3i"]
+size = Vector3(2.4088342, 15.927768, 2.4177632)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_x3mjl"]
+size = Vector3(2.5933108, 18.738235, 2.504668)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_jfd07"]
+size = Vector3(4.9446983, 7.316918, 4.5384035)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_fgrrh"]
+size = Vector3(5.7280846, 7.3762383, 5.2212067)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_tbn1l"]
+size = Vector3(3.6113946, 7.392199, 3.9958036)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_u2v51"]
+size = Vector3(5.8020244, 10.236431, 5.370846)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_rywdl"]
+size = Vector3(6.4201407, 8.723807, 6.222001)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2i5f6"]
+size = Vector3(4.9446983, 7.316918, 4.5384035)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_krtrv"]
+size = Vector3(5.7280846, 7.3762383, 5.2212067)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_a2biy"]
+size = Vector3(3.6113946, 7.392199, 3.9958036)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_u20kf"]
+size = Vector3(6.4201407, 8.723807, 6.222001)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_qnjlg"]
+size = Vector3(4.9446983, 7.316918, 4.5384035)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_pr1g3"]
+size = Vector3(5.7280846, 7.3762383, 5.2212067)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s5b15"]
+size = Vector3(3.6113946, 7.392199, 3.9958036)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_d7jmq"]
+size = Vector3(5.8020244, 10.236431, 5.370846)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_41yis"]
+size = Vector3(6.4201407, 8.723807, 6.222001)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8hgq3"]
+size = Vector3(4.9446983, 7.316918, 4.5384035)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_xycua"]
+size = Vector3(5.7280846, 7.3762383, 5.2212067)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_dcdc8"]
+size = Vector3(3.6113946, 7.392199, 3.9958036)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_k33a0"]
+size = Vector3(5.8020244, 10.236431, 5.370846)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_e8mmj"]
+size = Vector3(6.4201407, 8.723807, 6.222001)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3w6x4"]
+size = Vector3(4.9446983, 7.316918, 4.5384035)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ip4bo"]
+size = Vector3(5.7280846, 7.3762383, 5.2212067)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3khvx"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_q10fm"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_v1251"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_l0t1l"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_pvpb4"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_gyioj"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_d73yv"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8710x"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_g7n8f"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_efvk7"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_pwjyi"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6vota"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8ch1d"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8aw7g"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ywdv5"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_76l2s"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ylpb6"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2pa4p"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7tcie"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_jiqgk"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_opmkg"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3hpyr"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_lot4q"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_82674"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8nb7b"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_0om1w"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_p6k4y"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ed1fx"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_iwcjk"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1k4yu"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_vkx3t"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_jahvb"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_r0ouk"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ax4si"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ecb6t"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_e4ne5"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_nsehs"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6nq3j"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2xni6"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2hxwh"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_27qia"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_t0ryp"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_0spw0"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ntknl"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_uxpq3"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2vlvt"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3fpdx"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2qpe3"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_h2byl"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_pan26"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_y577f"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_fb1de"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_sncaf"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_y02ai"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7wbxr"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_y0881"]
+size = Vector3(6.1489363, 9.495478, 5.7486677)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wc4xl"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_00qun"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_n8d0f"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_pftyf"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_yp5yi"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_nl8p8"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6ihk0"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_vauiy"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2t2nc"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_igvgc"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_k3vn0"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_q8pkc"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ne6d5"]
+size = Vector3(8.356394, 16.437382, 8.413267)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_dioth"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_4knqv"]
+size = Vector3(6.729618, 11.488232, 6.378536)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_0nijf"]
+size = Vector3(7.9609423, 12.770977, 7.7324452)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_c8h7p"]
+size = Vector3(6.3875737, 13.280386, 6.4300594)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_kuqid"]
+size = Vector3(4.9446983, 7.316918, 4.5384035)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ieykj"]
+size = Vector3(3.6113946, 7.392199, 3.9958036)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_pm068"]
+size = Vector3(5.8020244, 10.236431, 5.370846)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ri78x"]
+size = Vector3(6.4201407, 8.723807, 6.222001)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_cdl6i"]
+size = Vector3(3.6113946, 7.392199, 3.9958036)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_laddn"]
+size = Vector3(4.9446983, 7.316918, 4.5384035)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ceotv"]
+size = Vector3(5.7280846, 7.3762383, 5.2212067)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8b3au"]
+size = Vector3(3.6113946, 7.392199, 3.9958036)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_w4ywy"]
+size = Vector3(5.8020244, 10.236431, 5.370846)
+
 [node name="Moba1" type="Node3D" unique_id=1113558862]
 
 [node name="MobaGameManager" type="Node" parent="." unique_id=135379831]
@@ -84,30 +465,86 @@ shape = SubResource("BoxShape3D_floor")
 [node name="DeadTree_12" parent="Floor" unique_id=97466051 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5982628, 0.8355546, -277.17526)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_12"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/DeadTree_12" unique_id=118926193]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/DeadTree_12/StaticBody3D" unique_id=566399253]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_ppobu")
 
 [node name="DeadTree_22" parent="Floor" unique_id=251029436 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.0559025, 0.8355546, -278.24335)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_22"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/DeadTree_22" unique_id=1022193575]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/DeadTree_22/StaticBody3D" unique_id=1954795522]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_cbu03")
 
 [node name="DeadTree_32" parent="Floor" unique_id=764777 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1444387, 0.8355546, -280.6901)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_32"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/DeadTree_32" unique_id=179911850]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/DeadTree_32/StaticBody3D" unique_id=1363324872]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_nmcbh")
 
 [node name="DeadTree_42" parent="Floor" unique_id=2100438022 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.4824047, 0.8355546, -279.02216)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_42"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/DeadTree_42" unique_id=1988170473]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/DeadTree_42/StaticBody3D" unique_id=1791047934]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_cg014")
 
 [node name="DeadTree_52" parent="Floor" unique_id=820529966 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.475807, 0.8355546, -277.94626)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_52"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/DeadTree_52" unique_id=360430266]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/DeadTree_52/StaticBody3D" unique_id=1916385125]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_3xl1k")
 
 [node name="DeadTree_23" parent="Floor" unique_id=1204724246 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.5701, 0.8355546, -279.8833)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_23"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/DeadTree_23" unique_id=480394394]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/DeadTree_23/StaticBody3D" unique_id=1373575412]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_qsn2w")
 
 [node name="DeadTree_33" parent="Floor" unique_id=1497828063 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.690645, 0.8355546, -279.71884)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_33"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/DeadTree_33" unique_id=113431282]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/DeadTree_33/StaticBody3D" unique_id=1623758388]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_eo4ho")
 
 [node name="Plant_72" parent="Floor" unique_id=105256594 instance=ExtResource("7_icaps")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9612905, 0.21494293, -254.50003)
@@ -127,50 +564,146 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.130789, 0.26202977, 47.22
 [node name="Pine_12" parent="Floor" unique_id=1896408635 instance=ExtResource("37_g404y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.054350376, 0.7350886, 281.18054)
 script = ExtResource("nature_script")
+ObjectName = "Pine_12"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_12" unique_id=817298024]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_12/StaticBody3D" unique_id=770556946]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.023530006, 3.4233704, -0.20773101)
+shape = SubResource("BoxShape3D_idv2l")
 
 [node name="Pine_22" parent="Floor" unique_id=1641185962 instance=ExtResource("38_ofne6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.019633, 0.7350886, 277.8174)
 script = ExtResource("nature_script")
+ObjectName = "Pine_22"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_22" unique_id=1936512236]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_22/StaticBody3D" unique_id=642238301]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.027915955, 3.4530306, -0.08309555)
+shape = SubResource("BoxShape3D_0m37w")
 
 [node name="Pine_32" parent="Floor" unique_id=1075812735 instance=ExtResource("39_5ihr2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.224477, 0.7350886, 281.33356)
 script = ExtResource("nature_script")
+ObjectName = "Pine_32"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_32" unique_id=218730477]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_32/StaticBody3D" unique_id=1808777549]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30803955, 3.461011, -0.2944368)
+shape = SubResource("BoxShape3D_xbtmc")
 
 [node name="Pine_42" parent="Floor" unique_id=1630802863 instance=ExtResource("40_b63de")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.508568, 0.7350886, 277.9782)
 script = ExtResource("nature_script")
+ObjectName = "Pine_42"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_42" unique_id=294924813]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_42/StaticBody3D" unique_id=11606048]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029175043, 4.8831267, -0.26048446)
+shape = SubResource("BoxShape3D_46i10")
 
 [node name="Pine_52" parent="Floor" unique_id=850848162 instance=ExtResource("41_ppobu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.081953, 0.7350886, 282.1754)
 script = ExtResource("nature_script")
+ObjectName = "Pine_52"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_52" unique_id=1421469252]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_52/StaticBody3D" unique_id=1805270905]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22236395, 4.126815, -0.6674037)
+shape = SubResource("BoxShape3D_srgvk")
 
 [node name="Pine_23" parent="Floor" unique_id=1144937309 instance=ExtResource("38_ofne6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.3324842, 0.7350886, 279.30368)
 script = ExtResource("nature_script")
+ObjectName = "Pine_23"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_23" unique_id=665252809]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_23/StaticBody3D" unique_id=377906616]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.027915955, 3.4530306, -0.08309555)
+shape = SubResource("BoxShape3D_qjdxd")
 
 [node name="Pine_33" parent="Floor" unique_id=1825932977 instance=ExtResource("39_5ihr2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.3175817, 0.7350886, 276.2292)
 script = ExtResource("nature_script")
+ObjectName = "Pine_33"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_33" unique_id=864354696]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_33/StaticBody3D" unique_id=582848376]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30803955, 3.461011, -0.2944368)
+shape = SubResource("BoxShape3D_144cy")
 
 [node name="Pine_43" parent="Floor" unique_id=632473198 instance=ExtResource("40_b63de")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.298296, 0.7350886, 280.47342)
 script = ExtResource("nature_script")
+ObjectName = "Pine_43"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_43" unique_id=342927002]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_43/StaticBody3D" unique_id=1645307880]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029175043, 4.8831267, -0.26048446)
+shape = SubResource("BoxShape3D_kt0ui")
 
 [node name="Pine_53" parent="Floor" unique_id=934579448 instance=ExtResource("41_ppobu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.030455, 0.7350886, 276.75778)
 script = ExtResource("nature_script")
+ObjectName = "Pine_53"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_53" unique_id=1114210847]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_53/StaticBody3D" unique_id=1189968314]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22236395, 4.126815, -0.6674037)
+shape = SubResource("BoxShape3D_sp305")
 
 [node name="Pine_54" parent="Floor" unique_id=12375216 instance=ExtResource("41_ppobu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.290386, 0.7350886, 220.83842)
 script = ExtResource("nature_script")
+ObjectName = "Pine_54"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_54" unique_id=1907248442]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_54/StaticBody3D" unique_id=1274625487]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22236395, 4.126815, -0.6674037)
+shape = SubResource("BoxShape3D_ii1j4")
 
 [node name="Pine_44" parent="Floor" unique_id=1531048681 instance=ExtResource("40_b63de")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.33331, 0.7350886, 217.05511)
 script = ExtResource("nature_script")
+ObjectName = "Pine_44"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_44" unique_id=972328878]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_44/StaticBody3D" unique_id=1987165568]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029175043, 4.8831267, -0.26048446)
+shape = SubResource("BoxShape3D_afgsx")
 
 [node name="Pine_24" parent="Floor" unique_id=495084309 instance=ExtResource("38_ofne6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.339834, 0.7350886, 213.96407)
 script = ExtResource("nature_script")
+ObjectName = "Pine_24"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor/Pine_24" unique_id=139879825]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Pine_24/StaticBody3D" unique_id=1427845326]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.027915955, 3.4530306, -0.08309555)
+shape = SubResource("BoxShape3D_sr1rh")
 
 [node name="Grass_Wispy_Tall2" parent="Floor" unique_id=286121330 instance=ExtResource("12_uo6ug")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.182503, 0.5360518, -288.20987)
@@ -245,10 +778,26 @@ spawn_path = NodePath("../Projectiles")
 [node name="CommonTree_32" parent="." unique_id=2048647099 instance=ExtResource("9_0roq1")]
 transform = Transform3D(1.7919413, 0, 0, 0, 1.4376357, 0, 0, 0, 1.5108621, -121.20813, 0.2427701, 270.8414)
 script = ExtResource("nature_script")
+ObjectName = "CommonTree_32"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="CommonTree_32" unique_id=1322820254]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CommonTree_32/StaticBody3D" unique_id=790454422]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.044957876, 4.469823, 0.059572935)
+shape = SubResource("BoxShape3D_we4du")
 
 [node name="CommonTree_52" parent="." unique_id=729737647 instance=ExtResource("10_d7dp5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.941628, 0.24277201, 236.82356)
 script = ExtResource("nature_script")
+ObjectName = "CommonTree_52"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="CommonTree_52" unique_id=710534176]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CommonTree_52/StaticBody3D" unique_id=1196873622]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.076771855, 3.2603478, -0.052622795)
+shape = SubResource("BoxShape3D_7cb6s")
 
 [node name="Grass_Common_Tall2" parent="." unique_id=38752212 instance=ExtResource("11_c5al2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.21055, 0.03136225, 244.7445)
@@ -280,6 +829,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.8853426, 0.036051817, -1.58
 [node name="DeadTree_12" parent="." unique_id=957608000 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(0.40777746, 0, 1.0365287, 0, 1.3350903, 0, -0.97006416, 0, 0.43571663, 12.667563, 0.3355546, -277.0507)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_12"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_12" unique_id=1119633737]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_12/StaticBody3D" unique_id=1439467716]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_vdkjm")
 
 [node name="Bush_Common2" parent="." unique_id=447022394 instance=ExtResource("20_pkyuh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.6022205, -0.23385262, -277.19083)
@@ -300,10 +857,26 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8561267, 1.3743052e-07, -2
 physics_interpolation_mode = 1
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.992643, 0.20147468, -0.09974289)
 script = ExtResource("nature_script")
+ObjectName = "TwistedTree_52"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="TwistedTree_52" unique_id=1628195708]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TwistedTree_52/StaticBody3D" unique_id=1802551276]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.09595966, 7.4968176, -0.12015557)
+shape = SubResource("BoxShape3D_umt3i")
 
 [node name="TwistedTree_42" parent="." unique_id=1459099008 instance=ExtResource("24_g404y")]
 transform = Transform3D(0.9016745, 0, 0, 0, 1, 0, 0, 0, 1, -11.720715, 0.20147468, 0.3736267)
 script = ExtResource("nature_script")
+ObjectName = "TwistedTree_42"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="TwistedTree_42" unique_id=1496499552]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TwistedTree_42/StaticBody3D" unique_id=266245288]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.062354088, 9.167643, -0.05397618)
+shape = SubResource("BoxShape3D_x3mjl")
 
 [node name="Rock_Medium_32" parent="." unique_id=2042929858 instance=ExtResource("25_ofne6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.621291, -0.41324505, 7.279627)
@@ -455,86 +1028,254 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.160676, 0.0017530164, 39.5
 [node name="Pine_12" parent="." unique_id=811442718 instance=ExtResource("37_g404y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.355103, 0.5110493, 70.581276)
 script = ExtResource("nature_script")
+ObjectName = "Pine_12"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_12" unique_id=943823626]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_12/StaticBody3D" unique_id=1036420658]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.023530006, 3.4233704, -0.20773101)
+shape = SubResource("BoxShape3D_jfd07")
 
 [node name="Pine_22" parent="." unique_id=249640269 instance=ExtResource("38_ofne6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.250532, 0.2350886, 74.435394)
 script = ExtResource("nature_script")
+ObjectName = "Pine_22"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_22" unique_id=1800192746]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_22/StaticBody3D" unique_id=517056080]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.027915955, 3.4530306, -0.08309555)
+shape = SubResource("BoxShape3D_fgrrh")
 
 [node name="Pine_32" parent="." unique_id=509616098 instance=ExtResource("39_5ihr2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.086475, 0.23509051, 71.05739)
 script = ExtResource("nature_script")
+ObjectName = "Pine_32"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_32" unique_id=1587412917]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_32/StaticBody3D" unique_id=974903678]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30803955, 3.461011, -0.2944368)
+shape = SubResource("BoxShape3D_tbn1l")
 
 [node name="Pine_42" parent="." unique_id=587802370 instance=ExtResource("40_b63de")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.285389, 0.23508862, 77.22252)
 script = ExtResource("nature_script")
+ObjectName = "Pine_42"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_42" unique_id=1700736356]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_42/StaticBody3D" unique_id=558074957]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029175043, 4.8831267, -0.26048446)
+shape = SubResource("BoxShape3D_u2v51")
 
 [node name="Pine_52" parent="." unique_id=654403400 instance=ExtResource("41_ppobu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.185234, 0.23508862, 76.34034)
 script = ExtResource("nature_script")
+ObjectName = "Pine_52"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_52" unique_id=2073079599]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_52/StaticBody3D" unique_id=2140300918]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22236395, 4.126815, -0.6674037)
+shape = SubResource("BoxShape3D_rywdl")
 
 [node name="Pine_13" parent="." unique_id=1008378326 instance=ExtResource("37_g404y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.718166, 0.23509051, 80.92811)
 script = ExtResource("nature_script")
+ObjectName = "Pine_13"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_13" unique_id=21604622]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_13/StaticBody3D" unique_id=1825005545]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.023530006, 3.4233704, -0.20773101)
+shape = SubResource("BoxShape3D_2i5f6")
 
 [node name="Pine_23" parent="." unique_id=1911377014 instance=ExtResource("38_ofne6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.567924, 0.2350886, 80.321434)
 script = ExtResource("nature_script")
+ObjectName = "Pine_23"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_23" unique_id=106481911]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_23/StaticBody3D" unique_id=1981777303]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.027915955, 3.4530306, -0.08309555)
+shape = SubResource("BoxShape3D_krtrv")
 
 [node name="Pine_33" parent="." unique_id=774932373 instance=ExtResource("39_5ihr2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.746867, 0.2350886, 78.26123)
 script = ExtResource("nature_script")
+ObjectName = "Pine_33"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_33" unique_id=1909089793]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_33/StaticBody3D" unique_id=1197722250]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30803955, 3.461011, -0.2944368)
+shape = SubResource("BoxShape3D_a2biy")
 
 [node name="Pine_53" parent="." unique_id=1979513297 instance=ExtResource("41_ppobu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.94722, 0.23508862, 90.30455)
 script = ExtResource("nature_script")
+ObjectName = "Pine_53"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_53" unique_id=1432290744]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_53/StaticBody3D" unique_id=1976940369]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22236395, 4.126815, -0.6674037)
+shape = SubResource("BoxShape3D_u20kf")
 
 [node name="Pine_14" parent="." unique_id=1233672272 instance=ExtResource("37_g404y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.655396, 0.2350886, 93.79007)
 script = ExtResource("nature_script")
+ObjectName = "Pine_14"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_14" unique_id=591718329]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_14/StaticBody3D" unique_id=3297361]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.023530006, 3.4233704, -0.20773101)
+shape = SubResource("BoxShape3D_qnjlg")
 
 [node name="Pine_24" parent="." unique_id=1114080184 instance=ExtResource("38_ofne6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.810163, 0.2350886, 88.808105)
 script = ExtResource("nature_script")
+ObjectName = "Pine_24"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_24" unique_id=1888029059]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_24/StaticBody3D" unique_id=199700414]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.027915955, 3.4530306, -0.08309555)
+shape = SubResource("BoxShape3D_pr1g3")
 
 [node name="Pine_34" parent="." unique_id=1710607154 instance=ExtResource("39_5ihr2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.658047, 0.2350886, 93.545074)
 script = ExtResource("nature_script")
+ObjectName = "Pine_34"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_34" unique_id=1398673349]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_34/StaticBody3D" unique_id=963038382]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30803955, 3.461011, -0.2944368)
+shape = SubResource("BoxShape3D_s5b15")
 
 [node name="Pine_43" parent="." unique_id=485611471 instance=ExtResource("40_b63de")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.718542, 0.23508862, 92.87239)
 script = ExtResource("nature_script")
+ObjectName = "Pine_43"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_43" unique_id=1831108626]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_43/StaticBody3D" unique_id=1641410772]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029175043, 4.8831267, -0.26048446)
+shape = SubResource("BoxShape3D_d7jmq")
 
 [node name="Pine_54" parent="." unique_id=2064654824 instance=ExtResource("41_ppobu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.111032, 0.23508862, 100.47893)
 script = ExtResource("nature_script")
+ObjectName = "Pine_54"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_54" unique_id=1261402211]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_54/StaticBody3D" unique_id=660159331]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22236395, 4.126815, -0.6674037)
+shape = SubResource("BoxShape3D_41yis")
 
 [node name="Pine_15" parent="." unique_id=1847263967 instance=ExtResource("37_g404y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.62484, 0.2350886, 89.61264)
 script = ExtResource("nature_script")
+ObjectName = "Pine_15"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_15" unique_id=1488922244]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_15/StaticBody3D" unique_id=930972016]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.023530006, 3.4233704, -0.20773101)
+shape = SubResource("BoxShape3D_8hgq3")
 
 [node name="Pine_25" parent="." unique_id=1425832214 instance=ExtResource("38_ofne6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.132637, 0.2350886, 87.14543)
 script = ExtResource("nature_script")
+ObjectName = "Pine_25"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_25" unique_id=432604602]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_25/StaticBody3D" unique_id=1110660551]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.027915955, 3.4530306, -0.08309555)
+shape = SubResource("BoxShape3D_xycua")
 
 [node name="Pine_35" parent="." unique_id=2125724804 instance=ExtResource("39_5ihr2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.081017, 0.2350886, 91.50664)
 script = ExtResource("nature_script")
+ObjectName = "Pine_35"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_35" unique_id=1444834959]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_35/StaticBody3D" unique_id=723866830]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30803955, 3.461011, -0.2944368)
+shape = SubResource("BoxShape3D_dcdc8")
 
 [node name="Pine_44" parent="." unique_id=631680704 instance=ExtResource("40_b63de")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.679554, 0.23508862, 96.56133)
 script = ExtResource("nature_script")
+ObjectName = "Pine_44"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_44" unique_id=1122055600]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_44/StaticBody3D" unique_id=671814194]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029175043, 4.8831267, -0.26048446)
+shape = SubResource("BoxShape3D_k33a0")
 
 [node name="Pine_55" parent="." unique_id=666537146 instance=ExtResource("41_ppobu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.303772, 0.23508862, 91.66328)
 script = ExtResource("nature_script")
+ObjectName = "Pine_55"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_55" unique_id=1501242360]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_55/StaticBody3D" unique_id=2076833064]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22236395, 4.126815, -0.6674037)
+shape = SubResource("BoxShape3D_e8mmj")
 
 [node name="Pine_16" parent="." unique_id=922251573 instance=ExtResource("37_g404y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.47203, 0.2350886, 98.15872)
 script = ExtResource("nature_script")
+ObjectName = "Pine_16"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_16" unique_id=571012762]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_16/StaticBody3D" unique_id=309559437]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.023530006, 3.4233704, -0.20773101)
+shape = SubResource("BoxShape3D_3w6x4")
 
 [node name="Pine_26" parent="." unique_id=1252420180 instance=ExtResource("38_ofne6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.72203, 0.2350886, 95.605835)
 script = ExtResource("nature_script")
+ObjectName = "Pine_26"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_26" unique_id=496727021]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_26/StaticBody3D" unique_id=1096076666]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.027915955, 3.4530306, -0.08309555)
+shape = SubResource("BoxShape3D_ip4bo")
 
 [node name="Plant_72" parent="." unique_id=1156989675 instance=ExtResource("7_icaps")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.933716, 0, 86.77254)
@@ -569,26 +1310,74 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.083687544, 0.008882612, 22
 [node name="DeadTree_13" parent="." unique_id=2115009072 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.955359, 0.33555555, -135.99901)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_13"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_13" unique_id=1300251693]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_13/StaticBody3D" unique_id=526363974]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_3khvx")
 
 [node name="DeadTree_22" parent="." unique_id=255320521 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.361748, 0.33555555, -139.48276)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_22"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_22" unique_id=42127236]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_22/StaticBody3D" unique_id=1438178131]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_q10fm")
 
 [node name="DeadTree_32" parent="." unique_id=574348365 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.898176, 0.3355546, -140.20988)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_32"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_32" unique_id=1341242382]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_32/StaticBody3D" unique_id=166408022]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_v1251")
 
 [node name="DeadTree_42" parent="." unique_id=1427930498 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.15758, 0.3355546, -151.85344)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_42"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_42" unique_id=1663392379]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_42/StaticBody3D" unique_id=818876768]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_l0t1l")
 
 [node name="DeadTree_52" parent="." unique_id=1438383247 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.81721, 0.3355546, -149.5917)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_52"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_52" unique_id=664057485]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_52/StaticBody3D" unique_id=983597398]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_pvpb4")
 
 [node name="DeadTree_23" parent="." unique_id=1733786923 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.859306, 0.3355546, -148.40416)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_23"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_23" unique_id=275162275]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_23/StaticBody3D" unique_id=1413681092]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_gyioj")
 
 [node name="Grass_Wispy_Tall10" parent="." unique_id=1591242096 instance=ExtResource("12_uo6ug")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.179379, 0.036051817, -288.0847)
@@ -596,98 +1385,290 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.179379, 0.036051817, -288.
 [node name="DeadTree_14" parent="." unique_id=2095994509 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.30763, 0.3355546, -279.5681)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_14"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_14" unique_id=1319469889]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_14/StaticBody3D" unique_id=217088141]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_d73yv")
 
 [node name="DeadTree_43" parent="." unique_id=1814158491 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.533873, 0.3355546, -232.07417)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_43"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_43" unique_id=535551587]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_43/StaticBody3D" unique_id=460263752]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_8710x")
 
 [node name="DeadTree_33" parent="." unique_id=1754896782 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.11047, 0.3355546, -279.48322)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_33"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_33" unique_id=177604762]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_33/StaticBody3D" unique_id=1671351097]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_g7n8f")
 
 [node name="DeadTree_53" parent="." unique_id=692277507 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.34776, 0.3355546, -232.83685)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_53"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_53" unique_id=954984802]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_53/StaticBody3D" unique_id=945783707]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_efvk7")
 
 [node name="DeadTree_24" parent="." unique_id=733314978 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.743355, 0.3355546, -239.40472)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_24"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_24" unique_id=1776666132]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_24/StaticBody3D" unique_id=2086235468]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_pwjyi")
 
 [node name="DeadTree_44" parent="." unique_id=1472411997 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.34811, 0.3355584, -246.42215)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_44"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_44" unique_id=976929456]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_44/StaticBody3D" unique_id=1551108816]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_6vota")
 
 [node name="DeadTree_54" parent="." unique_id=1290141685 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.174114, 0.33555079, -252.34708)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_54"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_54" unique_id=947799879]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_54/StaticBody3D" unique_id=1034961728]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_8ch1d")
 
 [node name="DeadTree_25" parent="." unique_id=1587453181 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.44505, 0.3355546, -257.92056)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_25"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_25" unique_id=1526717905]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_25/StaticBody3D" unique_id=1512129051]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_8aw7g")
 
 [node name="DeadTree_34" parent="." unique_id=1251666074 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.156845, 0.3355546, -263.63742)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_34"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_34" unique_id=203049941]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_34/StaticBody3D" unique_id=825842125]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_ywdv5")
 
 [node name="DeadTree_45" parent="." unique_id=613083694 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.881378, 0.3355546, -268.70093)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_45"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_45" unique_id=609394646]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_45/StaticBody3D" unique_id=996882671]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_76l2s")
 
 [node name="DeadTree_55" parent="." unique_id=815696242 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.34068, 0.3355546, -272.59503)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_55"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_55" unique_id=528695991]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_55/StaticBody3D" unique_id=175271357]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_ylpb6")
 
 [node name="DeadTree_15" parent="." unique_id=392631605 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.500408, 0.3355546, -256.28745)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_15"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_15" unique_id=1883995776]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_15/StaticBody3D" unique_id=1189938756]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_2pa4p")
 
 [node name="DeadTree_26" parent="." unique_id=1249386755 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.288982, 0.3355546, -235.71648)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_26"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_26" unique_id=1581737253]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_26/StaticBody3D" unique_id=1407563516]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_7tcie")
 
 [node name="DeadTree_35" parent="." unique_id=1991961170 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.049908, 0.3355584, -276.28537)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_35"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_35" unique_id=641823189]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_35/StaticBody3D" unique_id=145533299]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_jiqgk")
 
 [node name="DeadTree_46" parent="." unique_id=1297561872 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.838512, 0.3355546, -272.48837)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_46"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_46" unique_id=1640399270]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_46/StaticBody3D" unique_id=1404520798]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_opmkg")
 
 [node name="DeadTree_56" parent="." unique_id=1430503254 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.75449, 0.3355546, -268.70325)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_56"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_56" unique_id=7446671]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_56/StaticBody3D" unique_id=860893030]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_3hpyr")
 
 [node name="DeadTree_16" parent="." unique_id=1489271562 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.963165, 0.3355546, -237.51978)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_16"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_16" unique_id=931902654]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_16/StaticBody3D" unique_id=1898326049]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_lot4q")
 
 [node name="DeadTree_27" parent="." unique_id=1672221692 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.87146, 0.3355546, -265.69562)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_27"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_27" unique_id=1165655166]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_27/StaticBody3D" unique_id=969455267]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_82674")
 
 [node name="DeadTree_36" parent="." unique_id=1987361718 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.561111, 0.3355546, -260.9996)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_36"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_36" unique_id=2114695037]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_36/StaticBody3D" unique_id=1788346804]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_8nb7b")
 
 [node name="DeadTree_47" parent="." unique_id=737916308 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.993507, 0.33555079, -252.89624)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_47"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_47" unique_id=1782936872]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_47/StaticBody3D" unique_id=520012553]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_0om1w")
 
 [node name="DeadTree_57" parent="." unique_id=1939425190 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.510853, 0.3355546, -245.73462)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_57"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_57" unique_id=572240178]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_57/StaticBody3D" unique_id=1117634138]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_p6k4y")
 
 [node name="DeadTree_17" parent="." unique_id=1759147456 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.295204, 0.3355546, -240.76422)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_17"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_17" unique_id=990896418]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_17/StaticBody3D" unique_id=827543642]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_ed1fx")
 
 [node name="DeadTree_37" parent="." unique_id=1204731414 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.610641, 0.3355546, -262.1353)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_37"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_37" unique_id=1562045363]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_37/StaticBody3D" unique_id=1757537824]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_iwcjk")
 
 [node name="DeadTree_48" parent="." unique_id=1040623156 instance=ExtResource("5_07cgq")]
 transform = Transform3D(0.5812712, 0, -0.8137099, 0, 1, 0, 0.8137099, 0, 0.5812712, 31.892204, 0.3355546, -257.58527)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_48"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_48" unique_id=1479982372]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_48/StaticBody3D" unique_id=763870865]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_1k4yu")
 
 [node name="Grass_Wispy_Tall11" parent="." unique_id=1525616085 instance=ExtResource("12_uo6ug")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.936146, 0.036051817, -279.9955)
@@ -716,122 +1697,362 @@ transform = Transform3D(5.2823796, 0, 0, 0, 1.9764422, 0, 0, 0, 5.183671, 27.821
 [node name="DeadTree_18" parent="." unique_id=1186881850 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.264534, 0.3355546, -209.3104)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_18"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_18" unique_id=466859229]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_18/StaticBody3D" unique_id=600502965]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_vkx3t")
 
 [node name="DeadTree_28" parent="." unique_id=1723141596 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -59.225105, 0.3355546, -216.35335)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_28"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_28" unique_id=1946092357]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_28/StaticBody3D" unique_id=829604471]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_jahvb")
 
 [node name="DeadTree_38" parent="." unique_id=1965996361 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.04155, 0.3355546, -210.65538)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_38"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_38" unique_id=405855718]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_38/StaticBody3D" unique_id=1633366352]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_r0ouk")
 
 [node name="DeadTree_49" parent="." unique_id=1977504095 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.980537, 0.3355546, -213.18973)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_49"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_49" unique_id=1580494286]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_49/StaticBody3D" unique_id=757705344]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_ax4si")
 
 [node name="DeadTree_58" parent="." unique_id=2072802414 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.708084, 0.3355546, -213.51009)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_58"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_58" unique_id=1144815305]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_58/StaticBody3D" unique_id=1495538581]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_ecb6t")
 
 [node name="DeadTree_19" parent="." unique_id=620349969 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -73.49688, 0.3355546, -206.38905)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_19"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_19" unique_id=1176641819]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_19/StaticBody3D" unique_id=359194719]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_e4ne5")
 
 [node name="DeadTree_29" parent="." unique_id=1364771574 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.51704, 0.3355546, -197.66896)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_29"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_29" unique_id=986770110]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_29/StaticBody3D" unique_id=1205769530]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_nsehs")
 
 [node name="DeadTree_39" parent="." unique_id=224844860 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -70.775696, 0.3355546, -188.0829)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_39"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_39" unique_id=2099547011]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_39/StaticBody3D" unique_id=490323867]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_6nq3j")
 
 [node name="DeadTree_50" parent="." unique_id=2028737620 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -68.12423, 0.3355546, -179.88724)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_50"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_50" unique_id=389745174]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_50/StaticBody3D" unique_id=367193938]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_2xni6")
 
 [node name="DeadTree_59" parent="." unique_id=307515316 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.244545, 0.3355546, -171.42664)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_59"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_59" unique_id=200806426]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_59/StaticBody3D" unique_id=915618811]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_2hxwh")
 
 [node name="DeadTree_51" parent="." unique_id=297237785 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58.247406, 0.3355546, -164.4294)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_51"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_51" unique_id=1441528972]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_51/StaticBody3D" unique_id=1351049297]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_27qia")
 
 [node name="DeadTree_20" parent="." unique_id=2038326350 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.967987, 0.3355546, -157.7173)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_20"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_20" unique_id=472523010]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_20/StaticBody3D" unique_id=323906822]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_t0ryp")
 
 [node name="DeadTree_30" parent="." unique_id=887584745 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.405197, 0.3355546, -154.43546)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_30"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_30" unique_id=1960539513]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_30/StaticBody3D" unique_id=1568646724]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_0spw0")
 
 [node name="DeadTree_40" parent="." unique_id=1700450072 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.466064, 0.3355546, -151.9404)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_40"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_40" unique_id=574343625]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_40/StaticBody3D" unique_id=2012325036]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_ntknl")
 
 [node name="DeadTree_60" parent="." unique_id=1371865861 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.309025, 0.3355546, -157.19962)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_60"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_60" unique_id=1885183262]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_60/StaticBody3D" unique_id=2137720258]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_uxpq3")
 
 [node name="DeadTree_61" parent="." unique_id=1241465657 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.758799, 0.3355546, -165.1466)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_61"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_61" unique_id=598738929]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_61/StaticBody3D" unique_id=830920881]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_2vlvt")
 
 [node name="DeadTree_62" parent="." unique_id=1817077933 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.27098, 0.3355546, -174.11172)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_62"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_62" unique_id=854192930]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_62/StaticBody3D" unique_id=215891824]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_3fpdx")
 
 [node name="DeadTree_41" parent="." unique_id=1599307799 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.36117, 0.3355546, -181.22513)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_41"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_41" unique_id=935233814]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_41/StaticBody3D" unique_id=1253704554]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_2qpe3")
 
 [node name="DeadTree_31" parent="." unique_id=1878036530 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.948555, 0.3355546, -189.77222)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_31"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_31" unique_id=168072893]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_31/StaticBody3D" unique_id=1079977392]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_h2byl")
 
 [node name="DeadTree_21" parent="." unique_id=625691128 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.056564, 0.3355546, -196.07747)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_21"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_21" unique_id=466066670]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_21/StaticBody3D" unique_id=368615017]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_pan26")
 
 [node name="DeadTree_63" parent="." unique_id=321805531 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.855099, 0.3355546, -203.50914)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_63"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_63" unique_id=1621670139]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_63/StaticBody3D" unique_id=184934195]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_y577f")
 
 [node name="DeadTree_64" parent="." unique_id=281504518 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.162964, 0.3355546, -185.18327)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_64"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_64" unique_id=931423795]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_64/StaticBody3D" unique_id=1299447943]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_fb1de")
 
 [node name="DeadTree_65" parent="." unique_id=1722843880 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.90056, 0.3355546, -170.42937)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_65"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_65" unique_id=1175604952]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_65/StaticBody3D" unique_id=1631331972]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_sncaf")
 
 [node name="DeadTree_66" parent="." unique_id=193985807 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.438698, 0.3355546, -160.82741)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_66"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_66" unique_id=1839682629]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_66/StaticBody3D" unique_id=530008585]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_y02ai")
 
 [node name="DeadTree_67" parent="." unique_id=251245651 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.67086, 0.3355546, -157.37834)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_67"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_67" unique_id=298413047]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_67/StaticBody3D" unique_id=625201860]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_7wbxr")
 
 [node name="DeadTree_68" parent="." unique_id=1061518316 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.80645, 0.3355546, -206.61182)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_68"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_68" unique_id=587443108]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_68/StaticBody3D" unique_id=1612156217]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48214436, 4.4121842, -0.029165983)
+shape = SubResource("BoxShape3D_y0881")
 
 [node name="DeadTree_69" parent="." unique_id=49630761 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -68.48828, 0.3355546, -207.86859)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_69"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_69" unique_id=1087693922]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_69/StaticBody3D" unique_id=1271433333]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_wc4xl")
 
 [node name="DeadTree_70" parent="." unique_id=1494498700 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.047565, 0.3355546, -209.57735)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_70"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_70" unique_id=319300633]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_70/StaticBody3D" unique_id=74292296]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_00qun")
 
 [node name="DeadTree_71" parent="." unique_id=356472740 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.577126, 0.3355546, -212.06828)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_71"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_71" unique_id=1842726026]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_71/StaticBody3D" unique_id=131718369]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_n8d0f")
 
 [node name="DeadTree_72" parent="." unique_id=931996079 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.564663, 0.3355546, -210.62949)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_72"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_72" unique_id=1913446596]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_72/StaticBody3D" unique_id=572341254]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_pftyf")
 
 [node name="Pebble_Round_19" parent="." unique_id=554503251 instance=ExtResource("33_qsn2w")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.009132385, 0.0077979714, -87.16113)
@@ -863,87 +2084,263 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6271553, 0.005631929, -159.
 [node name="DeadTree_73" parent="." unique_id=1731944737 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.767157, 0.3355546, -191.88231)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_73"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_73" unique_id=2026901363]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_73/StaticBody3D" unique_id=30990044]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_yp5yi")
 
 [node name="DeadTree_74" parent="." unique_id=1292600716 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.937977, 0.33555079, -195.57599)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_74"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_74" unique_id=1520163276]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_74/StaticBody3D" unique_id=961125778]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_nl8p8")
 
 [node name="DeadTree_75" parent="." unique_id=169494924 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.030094, 0.3355546, -189.15102)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_75"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_75" unique_id=551489670]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_75/StaticBody3D" unique_id=680575520]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_6ihk0")
 
 [node name="DeadTree_76" parent="." unique_id=227784601 instance=ExtResource("5_07cgq")]
 transform = Transform3D(2.319025, 0, 0, 0, 2.3023353, 0, 0, 0, 1, -46.382965, 0.3355546, -184.4931)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_76"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_76" unique_id=1167945831]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_76/StaticBody3D" unique_id=274999851]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_vauiy")
 
 [node name="DeadTree_77" parent="." unique_id=1243417996 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1.4137199, 0, 0, 0, 2.149973, 0, 0, 0, 1.6122582, -58.92145, 0.3355546, -194.93013)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_77"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_77" unique_id=445512457]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_77/StaticBody3D" unique_id=1661098600]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_2t2nc")
 
 [node name="DeadTree_78" parent="." unique_id=223946211 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.38086, 0.3355546, -84.33138)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_78"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_78" unique_id=967596079]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_78/StaticBody3D" unique_id=51924772]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_igvgc")
 
 [node name="DeadTree_79" parent="." unique_id=1161955633 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -109.100876, 0.3355546, -58.3356)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_79"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_79" unique_id=580155038]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_79/StaticBody3D" unique_id=1731739763]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_k3vn0")
 
 [node name="DeadTree_80" parent="." unique_id=1720215372 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.22202, 0.3355546, -222.77524)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_80"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_80" unique_id=1228819533]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_80/StaticBody3D" unique_id=2135945854]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_q8pkc")
 
 [node name="DeadTree_81" parent="." unique_id=949986405 instance=ExtResource("6_8osvh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.53569, 0.3355546, -196.03546)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_81"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_81" unique_id=1345309026]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_81/StaticBody3D" unique_id=1986771096]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20766401, 7.8831363, -0.59059715)
+shape = SubResource("BoxShape3D_ne6d5")
 
 [node name="DeadTree_82" parent="." unique_id=521848015 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 2.297576, 0, 0, 0, 1, -121.55922, 0.3355546, -185.38718)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_82"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_82" unique_id=1779906985]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_82/StaticBody3D" unique_id=550198881]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_dioth")
 
 [node name="DeadTree_83" parent="." unique_id=1922374639 instance=ExtResource("3_4mt0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.662086, 0.3355546, -85.55979)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_83"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_83" unique_id=448928743]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_83/StaticBody3D" unique_id=1639838859]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0324652, 5.408561, 0.6663921)
+shape = SubResource("BoxShape3D_4knqv")
 
 [node name="DeadTree_84" parent="." unique_id=896025291 instance=ExtResource("5_07cgq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.048515, 0.3355546, -26.969177)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_84"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_84" unique_id=221576599]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_84/StaticBody3D" unique_id=2026232148]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6177027, 6.049934, 0.26727223)
+shape = SubResource("BoxShape3D_0nijf")
 
 [node name="DeadTree_85" parent="." unique_id=408575439 instance=ExtResource("4_ljpcx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.481766, 0.3355546, -120.75137)
 script = ExtResource("nature_script")
+ObjectName = "DeadTree_85"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="DeadTree_85" unique_id=29134744]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DeadTree_85/StaticBody3D" unique_id=578979168]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65378284, 6.3046384, -0.17167091)
+shape = SubResource("BoxShape3D_c8h7p")
 
 [node name="Pine_17" parent="." unique_id=992020859 instance=ExtResource("37_g404y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.11962, 0.2350886, 188.89491)
 script = ExtResource("nature_script")
+ObjectName = "Pine_17"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_17" unique_id=497541714]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_17/StaticBody3D" unique_id=1381454871]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.023530006, 3.4233704, -0.20773101)
+shape = SubResource("BoxShape3D_kuqid")
 
 [node name="Pine_36" parent="." unique_id=1666348089 instance=ExtResource("39_5ihr2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -102.9646, 0.2350886, 176.92952)
 script = ExtResource("nature_script")
+ObjectName = "Pine_36"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_36" unique_id=509493193]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_36/StaticBody3D" unique_id=1721961844]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30803955, 3.461011, -0.2944368)
+shape = SubResource("BoxShape3D_ieykj")
 
 [node name="Pine_45" parent="." unique_id=1841802984 instance=ExtResource("40_b63de")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.0091, 0.23507336, 221.33401)
 script = ExtResource("nature_script")
+ObjectName = "Pine_45"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_45" unique_id=101001203]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_45/StaticBody3D" unique_id=1427262741]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029175043, 4.8831267, -0.26048446)
+shape = SubResource("BoxShape3D_pm068")
 
 [node name="Pine_56" parent="." unique_id=1510798776 instance=ExtResource("41_ppobu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -103.08249, 0.23508862, 235.02304)
 script = ExtResource("nature_script")
+ObjectName = "Pine_56"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_56" unique_id=779080343]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_56/StaticBody3D" unique_id=1136231077]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22236395, 4.126815, -0.6674037)
+shape = SubResource("BoxShape3D_ri78x")
 
 [node name="Pine_37" parent="." unique_id=1561817886 instance=ExtResource("39_5ihr2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 63.160583, 0.23510386, 129.3659)
 script = ExtResource("nature_script")
+ObjectName = "Pine_37"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_37" unique_id=312587680]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_37/StaticBody3D" unique_id=1810749564]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30803955, 3.461011, -0.2944368)
+shape = SubResource("BoxShape3D_cdl6i")
 
 [node name="Pine_18" parent="." unique_id=407639005 instance=ExtResource("37_g404y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.89336, 0.2350886, 159.91795)
 script = ExtResource("nature_script")
+ObjectName = "Pine_18"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_18" unique_id=1677246995]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_18/StaticBody3D" unique_id=222782356]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.023530006, 3.4233704, -0.20773101)
+shape = SubResource("BoxShape3D_laddn")
 
 [node name="Pine_27" parent="." unique_id=1680721797 instance=ExtResource("38_ofne6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.616623, 0.2350886, 161.93388)
 script = ExtResource("nature_script")
+ObjectName = "Pine_27"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_27" unique_id=1764402363]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_27/StaticBody3D" unique_id=314262037]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.027915955, 3.4530306, -0.08309555)
+shape = SubResource("BoxShape3D_ceotv")
 
 [node name="Pine_38" parent="." unique_id=2061173857 instance=ExtResource("39_5ihr2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.34816, 1.7437785, 159.51901)
 script = ExtResource("nature_script")
+ObjectName = "Pine_38"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_38" unique_id=508256328]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_38/StaticBody3D" unique_id=775797684]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30803955, 3.461011, -0.2944368)
+shape = SubResource("BoxShape3D_8b3au")
 
 [node name="Pine_46" parent="." unique_id=1518166258 instance=ExtResource("40_b63de")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.312347, 0.23508862, 156.80237)
 script = ExtResource("nature_script")
+ObjectName = "Pine_46"
+IsMovable = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Pine_46" unique_id=51593493]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pine_46/StaticBody3D" unique_id=1580795710]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029175043, 4.8831267, -0.26048446)
+shape = SubResource("BoxShape3D_w4ywy")

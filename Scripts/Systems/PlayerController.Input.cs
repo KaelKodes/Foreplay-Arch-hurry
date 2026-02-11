@@ -30,8 +30,8 @@ public partial class PlayerController
             CycleCharacterModel();
         }
 
-        // X key: Clear Target
-        if (isRPGMode && @event is InputEventKey xKey && xKey.Pressed && !xKey.Echo && xKey.Keycode == Key.X)
+        // F key: Clear Target
+        if (isRPGMode && @event is InputEventKey fKey && fKey.Pressed && !fKey.Echo && fKey.Keycode == Key.F)
         {
             _hardLockTarget = null;
             _archerySystem?.ClearTarget();
@@ -178,17 +178,22 @@ public partial class PlayerController
             else if (isRPGMode && !isRangerMatch && !_isChargingAttack)
             {
                 // Hold-to-charge melee attacks (same as CombatMelee path)
-                _isChargingAttack = true;
-                _attackHoldTimer = 0f;
-                _meleeSystem?.StartCharge();
+                if (_meleeSystem != null && _meleeSystem.StartCharge())
+                {
+                    _isChargingAttack = true;
+                    _attackHoldTimer = 0f;
+                }
             }
             else if ((CurrentState == PlayerState.CombatMelee || CurrentState == PlayerState.CombatArcher) && !_isChargingAttack)
             {
-                _isChargingAttack = true;
-                _attackHoldTimer = 0f;
-
                 if (CurrentState == PlayerState.CombatMelee && _meleeSystem != null)
-                    _meleeSystem.StartCharge();
+                {
+                    if (_meleeSystem.StartCharge())
+                    {
+                        _isChargingAttack = true;
+                        _attackHoldTimer = 0f;
+                    }
+                }
                 else if (CurrentState == PlayerState.CombatArcher && _archerySystem != null)
                 {
                     if (_archerySystem.StartCharge())

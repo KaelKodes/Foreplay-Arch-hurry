@@ -17,6 +17,8 @@ public static class RangerAbilities
             case 0: // Rapid Fire (1) - Slot 0
                 archery.SetNextShotFlat(true);
                 archery.QuickFire(0f);
+                // +50% Haste (25 out of 50 cap) for 5 seconds, green pulse on player
+                caster.ApplyHasteBuff(25, 5.0f);
                 break;
 
             case 1: // Piercing Shot (2) - Slot 1
@@ -93,8 +95,8 @@ public static class RangerAbilities
         rain.GlobalPosition = targetPos;
 
         // Configure and Start
-        // Damage scaling: 40% of Power per arrow?
-        float damage = archery.PlayerStats.Power * 0.4f;
+        // Damage scaling: 40% of Strength per arrow?
+        float damage = archery.PlayerStats.Strength * 0.4f;
         rain.Start(archery.ArrowScene, damage, caster);
 
         GD.Print($"[RangerAbilities] Rain of Arrows cast at {targetPos}");

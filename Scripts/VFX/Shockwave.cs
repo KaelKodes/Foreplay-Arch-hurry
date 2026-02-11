@@ -34,6 +34,11 @@ public partial class Shockwave : Node3D
         }
     }
 
+    public void SetRadius(float radius)
+    {
+        _maxRadius = radius;
+    }
+
     public override void _Process(double delta)
     {
         _timer += (float)delta;

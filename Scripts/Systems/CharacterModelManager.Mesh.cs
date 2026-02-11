@@ -24,12 +24,18 @@ public partial class CharacterModelManager
 			{
 				_currentCustomModel = scn.Instantiate<Node3D>();
 				_player.AddChild(_currentCustomModel);
+
+				// CRITICAL FIX: Sanitize model to remove Physics/AI if the user loaded a full Entity scene
+				SanitizeCustomModel(_currentCustomModel);
+
 				_currentCustomModel.Transform = _meleeModel?.Transform ?? Transform3D.Identity;
 
 				// Apply custom rig offsets
 				_currentCustomModel.Position += model.PositionOffset;
 				_currentCustomModel.RotationDegrees += model.RotationOffset;
 				_currentCustomModel.Scale *= model.ModelScale;
+
+
 
 				// Find AnimPlayer
 				_customAnimPlayer = FindPopulatedAnimationPlayerRecursive(_currentCustomModel);
@@ -350,6 +356,50 @@ public partial class CharacterModelManager
 		foreach (Node child in node.GetChildren())
 		{
 			PrintNodeRecursive(child, indent + "  ");
+		}
+	}
+
+	private void SanitizeCustomModel(Node node)
+	{
+		// 1. Disable Physics Collisions
+		if (node is CollisionObject3D colObj)
+		{
+			colObj.CollisionLayer = 0;
+			colObj.CollisionMask = 0;
+			colObj.ProcessMode = Node.ProcessModeEnum.Disabled;
+			GD.Print($"[CharacterModelManager] Disabled collision on {node.Name} (Visual Model Sanitization)");
+		}
+
+		// 2. Disable CollisionShapes
+		if (node is CollisionShape3D colShape)
+		{
+			colShape.Disabled = true;
+		}
+
+		// 3. Remove AI/Logic Scripts
+		// We can't easily check "is MobaMinion" without reflection or type checking if we don't have the reference here easily,
+		// but checking the Script property or node name helps.
+		if (node.GetScript().Obj is CSharpScript cs)
+		{
+			string scriptName = cs.ResourcePath.ToLower();
+			if (scriptName.Contains("mobaminion") || scriptName.Contains("summonedskeletonai") || scriptName.Contains("monster"))
+			{
+				node.SetScript(new Variant());
+				node.ProcessMode = Node.ProcessModeEnum.Disabled;
+				GD.Print($"[CharacterModelManager] Stripped script from {node.Name} (Visual Model Sanitization)");
+			}
+		}
+
+		// 4. Remove specific AI nodes by name convention
+		if (node.Name.ToString().Contains("SummonedSkeletonAI") || node.Name.ToString().Contains("MobaMinion"))
+		{
+			node.QueueFree();
+			return; // Stop recursion for this branch if we deleted it
+		}
+
+		foreach (Node child in node.GetChildren())
+		{
+			SanitizeCustomModel(child);
 		}
 	}
 }

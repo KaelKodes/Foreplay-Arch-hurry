@@ -102,6 +102,14 @@ public abstract partial class HeroAbilityBase : Node
     }
 
     /// <summary>
+    /// Starts the cooldown with an additional multiplier (e.g. from Concentration stat).
+    /// </summary>
+    public void StartCooldown(float cdMultiplier)
+    {
+        CooldownRemaining = CurrentCooldown * cdMultiplier;
+    }
+
+    /// <summary>
     /// Tick down the cooldown. Call from PlayerController._PhysicsProcess.
     /// </summary>
     public void UpdateCooldown(float delta)

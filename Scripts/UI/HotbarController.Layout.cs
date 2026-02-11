@@ -22,9 +22,8 @@ public partial class HotbarController
         }
         else
         {
-            SetAnchorsPreset(LayoutPreset.CenterTop);
-            OffsetTop = 80;
-            OffsetBottom = 160;
+            SetAnchorsPreset(LayoutPreset.CenterBottom);
+            OffsetBottom = -20;
         }
 
         GD.Print($"[HotbarController] Mode changed: {mode}. SlotCount: {SlotCount}");
@@ -107,7 +106,8 @@ public partial class HotbarController
         if (_slotContainer == null) return;
 
         // Calculate required size based on layout
-        float slotSize = 64f;
+        float slotWidth = 64f;
+        float slotHeight = 96f; // Card layout: 64x96 (icon + labels)
         float padding = 16f; // 8px on each side
         float spacing = 4f;
 
@@ -131,8 +131,8 @@ public partial class HotbarController
                 break;
         }
 
-        float width = (cols * slotSize) + ((cols - 1) * spacing) + padding;
-        float height = (rows * slotSize) + ((rows - 1) * spacing) + padding;
+        float width = (cols * slotWidth) + ((cols - 1) * spacing) + padding;
+        float height = (rows * slotHeight) + ((rows - 1) * spacing) + padding;
 
         // Resize the Hotbar Control
         CustomMinimumSize = new Vector2(width, height);
@@ -145,6 +145,13 @@ public partial class HotbarController
             OffsetRight = -20;
             OffsetTop = -height / 2f;
             OffsetBottom = height / 2f;
+        }
+        else if ((LayoutPreset)AnchorsPreset == LayoutPreset.CenterBottom)
+        {
+            OffsetLeft = -width / 2f;
+            OffsetRight = width / 2f;
+            // Grow UPWARDS from OffsetBottom (keeping margin fixed)
+            OffsetTop = OffsetBottom - height;
         }
         else
         {

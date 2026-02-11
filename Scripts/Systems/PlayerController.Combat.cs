@@ -91,8 +91,13 @@ public partial class PlayerController
         }
 
         // ── Start Cooldown & Animation Lock ───────────────────────
-        ability.StartCooldown();
+        var stats = _archerySystem?.PlayerStats;
+        float cdMultiplier = stats?.AbilityCooldownMultiplier ?? 1.0f;
+        ability.StartCooldown(cdMultiplier);
         _abilityBusyTimer = ability.CurrentCooldown;
+
+        // Notify UI
+        EmitSignal(SignalName.AbilityUsed, index, ability.CurrentCooldown);
     }
 
 
@@ -186,7 +191,7 @@ public partial class PlayerController
         }
     }
 
-    private void OnPowerSlamTriggered(Vector3 position, int playerIndex)
+    private void OnPowerSlamTriggered(Vector3 position, int playerIndex, Color color, float radius)
     {
         var scene = GD.Load<PackedScene>("res://Scenes/VFX/Shockwave.tscn");
         if (scene != null)
@@ -196,11 +201,19 @@ public partial class PlayerController
             GetTree().CurrentScene.AddChild(wave);
             wave.GlobalPosition = position;
 
-            // Set color based on player index (syncs across multiplayer)
+            // Set color based on override or player index
             if (wave is Shockwave sw)
             {
-                Color playerColor = TargetingHelper.GetPlayerColor(playerIndex);
-                sw.SetColor(playerColor);
+                // If the color provided is strictly White (default), use the player's color instead.
+                // This preserves the team-color identity for standard warrior slams.
+                Color finalColor = color;
+                if (color == new Color(1, 1, 1, 1))
+                {
+                    finalColor = TargetingHelper.GetPlayerColor(playerIndex);
+                }
+
+                sw.SetColor(finalColor);
+                sw.SetRadius(radius);
             }
         }
     }

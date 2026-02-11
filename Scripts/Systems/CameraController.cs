@@ -8,6 +8,7 @@ public partial class CameraController : Camera3D
     [Export] public NodePath TargetPath;
     [Export] public Vector3 FollowOffset = new Vector3(0, 5, 10);
     [Export] public float SmoothSpeed = 5.0f;
+    [Export] public float RotationSmoothSpeed = 20.0f; // Controls "weight" of the camera. Lower = smoother/heavier.
 
     private Node3D _target;
     private bool _isFollowingBall = false;
@@ -18,6 +19,10 @@ public partial class CameraController : Camera3D
     private Node3D _lockedTarget;
     public Node3D LockedTarget => _lockedTarget;
     private float _lookSensitivity = 0.3f;
+
+    // Smoothed Rotation State (Radians)
+    private float _targetYaw;
+    private float _targetPitch;
 
     // Zoom settings
     private float _zoomDistance = 10f;      // Current zoom distance
@@ -35,6 +40,8 @@ public partial class CameraController : Camera3D
     public override void _Ready()
     {
         SetAsTopLevel(true); // Detach from parent transform to prevent spin
+                             // PhysicsInterpolationMode = PhysicsInterpolationModeEnum.On; // API not available
+
         if (TargetPath != null && !TargetPath.IsEmpty)
         {
             _target = GetNodeOrNull<Node3D>(TargetPath); // Use GetNodeOrNull for safety
@@ -45,6 +52,10 @@ public partial class CameraController : Camera3D
         {
             GD.Print("CameraController: Ready. No TargetPath assigned.");
         }
+
+        // Initialize target rotation to prevent snapping (Use Radians)
+        _targetYaw = Rotation.Y;
+        _targetPitch = Rotation.X;
     }
 
     public override void _Input(InputEvent @event)
@@ -69,18 +80,29 @@ public partial class CameraController : Camera3D
         bool isCaptured = Input.MouseMode == Input.MouseModeEnum.Captured;
         if (@event is InputEventMouseMotion motion && (isCaptured || Input.IsMouseButtonPressed(MouseButton.Right)))
         {
-            // Rotate camera based on mouse motion
-            RotationDegrees -= new Vector3(motion.Relative.Y, motion.Relative.X, 0) * _lookSensitivity;
+            // Update Target Rotation (Accumulate Input converted to Radians)
+            float deltaYawDeg = motion.Relative.X * _lookSensitivity;
+            float deltaPitchDeg = motion.Relative.Y * _lookSensitivity;
 
-            // Clamp pitch to prevent flipping
-            Vector3 rot = RotationDegrees;
-            rot.X = Mathf.Clamp(rot.X, -80, 80);
-            RotationDegrees = rot;
+            _targetYaw -= Mathf.DegToRad(deltaYawDeg);
+            _targetPitch -= Mathf.DegToRad(deltaPitchDeg);
+
+            // Clamp pitch immediately on the target to prevent "winding up" past limits
+            _targetPitch = Mathf.Clamp(_targetPitch, Mathf.DegToRad(-80), Mathf.DegToRad(80));
         }
     }
 
     public override void _Process(double delta)
     {
+        // Smooth rotation interpolation (Radians)
+        float currentYaw = Rotation.Y;
+        float currentPitch = Rotation.X;
+
+        float newYaw = Mathf.LerpAngle(currentYaw, _targetYaw, (float)delta * RotationSmoothSpeed);
+        float newPitch = Mathf.LerpAngle(currentPitch, _targetPitch, (float)delta * RotationSmoothSpeed);
+
+        Rotation = new Vector3(newPitch, newYaw, 0);
+
         // Smooth zoom interpolation
         _zoomDistance = Mathf.Lerp(_zoomDistance, _targetZoomDistance, (float)delta * ZoomSmoothSpeed);
 
@@ -208,6 +230,10 @@ public partial class CameraController : Camera3D
         // Match target horizontal rotation but keep specific pitch
         Vector3 targetRot = target.GlobalRotation;
         GlobalRotation = new Vector3(Mathf.DegToRad(-15), targetRot.Y, 0);
+
+        // Sync smoothing targets to prevent drift (Radians)
+        _targetPitch = Rotation.X;
+        _targetYaw = Rotation.Y;
 
         float dist = FollowOffset.Z;
         float height = FollowOffset.Y;

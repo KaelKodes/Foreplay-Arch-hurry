@@ -88,19 +88,19 @@ public partial class HotbarController
         // Update selection highlight
         for (int i = 0; i < _slots.Length; i++)
         {
-            var highlight = _slots[i].GetNodeOrNull<ColorRect>("Highlight");
-            if (highlight == null) continue;
+            var slot = _slots[i] as AbilityIcon;
+            if (slot == null || slot.HighlightOverlay == null) continue;
 
             var item = ToolManager.Instance?.GetSlotItem(i);
             // Highlight if this slot contains the active tool
             if (item != null && (int)item.Type == toolType && toolType != (int)ToolType.None)
             {
-                highlight.Visible = true;
+                slot.HighlightOverlay.Visible = true;
                 _selectedSlot = i;
             }
             else
             {
-                highlight.Visible = false;
+                slot.HighlightOverlay.Visible = false;
             }
         }
     }
@@ -127,12 +127,22 @@ public partial class HotbarController
                 slotRect.Position.X + slotRect.Size.X / 2f,
                 slotRect.Position.Y
             );
-            _abilityTooltip.ShowAbility(abilityInfo, tooltipPos);
+
+            Stats stats = _cachedStatsService?.PlayerStats;
+            _abilityTooltip.ShowAbility(abilityInfo, tooltipPos, stats);
         }
     }
 
     private void OnSlotMouseExited()
     {
+        if (_abilityTooltip != null && _abilityTooltip.Visible)
+        {
+            // If mouse moved from slot to tooltip, don't hide
+            if (_abilityTooltip.GetGlobalRect().HasPoint(GetGlobalMousePosition()))
+            {
+                return;
+            }
+        }
         _abilityTooltip?.HideTooltip();
     }
 }

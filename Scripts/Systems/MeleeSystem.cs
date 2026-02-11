@@ -25,7 +25,7 @@ public partial class MeleeSystem : Node
 	private const float PerfectPowerLine = 94f;   // The "perfect" power level
 
 	// Slam Timing (Adjust these to match animations)
-	public float PerfectSlamDelay = 2.1f; // Triple swing timing
+	public float PerfectSlamDelay = 1.3f; // Perfect slam timing (was 2.1s)
 	public float PowerSlamDelay = 1.0f;   // Big slam timing
 
 	// Attack Type Helpers (Source of truth for both Logic and Animations)
@@ -38,6 +38,11 @@ public partial class MeleeSystem : Node
 
 	private PlayerController _currentPlayer;
 
+	/// <summary>
+	/// Get player stats through ArcherySystem (the stats authority).
+	/// </summary>
+	private Stats PlayerStats => _currentPlayer?.GetNodeOrNull<ArcherySystem>("ArcherySystem")?.PlayerStats;
+
 	// --- Signals ---
 	[Signal] public delegate void ModeChangedEventHandler(bool inMeleeMode);
 	[Signal] public delegate void SwingValuesUpdatedEventHandler(float barValue, float power, int state);
@@ -45,7 +50,7 @@ public partial class MeleeSystem : Node
 	[Signal] public delegate void SwingPeakEventHandler(float power);
 	[Signal] public delegate void SwingCompleteEventHandler(float power, float accuracy, float damage);
 	[Signal] public delegate void CooldownUpdatedEventHandler(float remaining, float total);
-	[Signal] public delegate void PowerSlamTriggeredEventHandler(Vector3 position, int playerIndex);
+	[Signal] public delegate void PowerSlamTriggeredEventHandler(Vector3 position, int playerIndex, Color color, float radius);
 
 	public override void _Ready()
 	{
@@ -117,12 +122,13 @@ public partial class MeleeSystem : Node
 		_currentPlayer = player;
 	}
 
-	public void StartCharge()
+	public bool StartCharge()
 	{
-		if (CurrentState == SwingState.Cooling || CurrentState == SwingState.Finishing || CurrentState == SwingState.Executing) return;
+		if (CurrentState == SwingState.Cooling || CurrentState == SwingState.Finishing || CurrentState == SwingState.Executing) return false;
 
 		if (Multiplayer.IsServer()) Rpc(nameof(NetStartSwing));
 		else RpcId(1, nameof(RequestStartSwing));
+		return true;
 	}
 
 	public void UpdateChargeProgress(float percent)
@@ -204,47 +210,186 @@ public partial class MeleeSystem : Node
 	private void CompleteSwing()
 	{
 		float damage = CalculateDamage(LockedPower);
-		CooldownRemaining = BaseCooldown;
+		float effectiveCooldown = BaseCooldown * (PlayerStats?.AttackCooldownMultiplier ?? 1.0f);
+		CooldownRemaining = effectiveCooldown;
 		CurrentState = SwingState.Cooling;
 
 		EmitSignal(SignalName.SwingComplete, LockedPower, 0f, damage);
-		EmitSignal(SignalName.CooldownUpdated, CooldownRemaining, BaseCooldown);
+		EmitSignal(SignalName.CooldownUpdated, CooldownRemaining, effectiveCooldown);
 
 		if (_currentPlayer != null && _currentPlayer.IsLocal)
 		{
-			// Apply Lifesteal if active
-			_currentPlayer.RegisterDealtDamage(damage);
+
+			// SPECIAL: Necromancer Basic Attack (Eldritch Missiles)
+			if (_currentPlayer.CurrentModelId == "Necromancer")
+			{
+				ExecuteNecroMissiles(LockedPower);
+
+				// User: "only his charged attack will give a slam, the perfect does not"
+				if (IsTripleSwing)
+				{
+					TriggerSlam(damage, new Color(0.7f, 0.1f, 1.0f)); // Necro Purple
+				}
+				return;
+			}
+
+			// Cleric gets golden slams
+			Color? classColor = null;
+			if (_currentPlayer.CurrentModelId == "Cleric")
+				classColor = new Color(1.0f, 0.85f, 0.2f); // Golden/yellow
 
 			if (IsAnySlam)
 			{
-				// Delay the slam to match animation timing
-				// Perfect (100%) now uses Triple Flurry (2.1s)
-				// Triple (200%) now uses Spinning Slash (0.5s)
-				float delay = IsTripleSwing ? 0.5f : PerfectSlamDelay;
-				float slamDamage = damage * 2.0f; // Extra damage for slams
-				if (IsTripleSwing) slamDamage = damage * 3.0f; // Triple damage for triple swing
-
-				Vector3 slamPos = _currentPlayer.GlobalPosition;
-				int playerIndex = _currentPlayer.PlayerIndex;
-
-				SceneTreeTimer timer = GetTree().CreateTimer(delay);
-				timer.Timeout += () =>
-				{
-					if (_currentPlayer != null)
-					{
-						slamPos = _currentPlayer.GlobalPosition; // Update to current position at slam time
-						PerformAoEHitCheck(slamDamage, 4.0f, slamPos);
-						EmitSignal(SignalName.PowerSlamTriggered, slamPos, playerIndex);
-					}
-				};
+				TriggerSlam(damage, classColor);
 			}
 			else
 			{
 				PerformHitCheck(damage);
 			}
 		}
-
 		GD.Print($"[MeleeSystem] Swing complete! Damage={damage:F1} (Power: {LockedPower:F1})");
+	}
+
+	private void TriggerSlam(float damage, Color? colorOverride = null)
+	{
+		bool isCleric = _currentPlayer.CurrentModelId == "Cleric";
+
+		// Delay the slam to match animation timing
+		// Warrior: Perfect=1.3s, Charged first=0.5s
+		// Cleric:  Perfect=1.0s, Charged first=0.5s
+		float perfectDelay = isCleric ? 1.0f : PerfectSlamDelay;
+		float delay = IsTripleSwing ? 0.5f : perfectDelay;
+		float slamDamage = damage * 2.0f; // Default slam damage (perfect attack)
+		float slamRadius = isCleric ? 1.8f : 4.0f; // Cleric has 55% smaller slams
+
+		Vector3 slamPos = _currentPlayer.GlobalPosition;
+		int playerIndex = _currentPlayer.PlayerIndex;
+		Color finalColor = colorOverride ?? new Color(1.0f, 1.0f, 1.0f);
+
+		if (IsTripleSwing && isCleric)
+		{
+			// Cleric charged: 3 slams at 0.5s, 1.4s, 2.3s
+			// Damage split: 30% / 30% / 40%
+			float totalDmg = damage * 3.0f;
+			float[] slamDmgs = { totalDmg * 0.3f, totalDmg * 0.3f, totalDmg * 0.4f };
+			float[] slamTimes = { 0.5f, 1.4f, 2.3f };
+
+			for (int i = 0; i < 3; i++)
+			{
+				float dmg = slamDmgs[i];
+				SceneTreeTimer t = GetTree().CreateTimer(slamTimes[i]);
+				t.Timeout += () =>
+				{
+					if (_currentPlayer != null)
+					{
+						Vector3 pos = _currentPlayer.GlobalPosition;
+						PerformAoEHitCheck(dmg, slamRadius, pos);
+						EmitSignal(SignalName.PowerSlamTriggered, pos, playerIndex, finalColor, slamRadius);
+					}
+				};
+			}
+		}
+		else if (IsTripleSwing)
+		{
+			// Warrior charged: 2 slams at 0.5s, 2.3s
+			// Damage split: 25% / 75%
+			float firstSlamDmg = damage * 3.0f * 0.25f;
+			float secondSlamDmg = damage * 3.0f * 0.75f;
+
+			SceneTreeTimer timer = GetTree().CreateTimer(0.5f);
+			timer.Timeout += () =>
+			{
+				if (_currentPlayer != null)
+				{
+					slamPos = _currentPlayer.GlobalPosition;
+					PerformAoEHitCheck(firstSlamDmg, 4.0f, slamPos);
+					EmitSignal(SignalName.PowerSlamTriggered, slamPos, playerIndex, finalColor, slamRadius);
+				}
+			};
+
+			SceneTreeTimer timer2 = GetTree().CreateTimer(2.3f);
+			timer2.Timeout += () =>
+			{
+				if (_currentPlayer != null)
+				{
+					Vector3 pos2 = _currentPlayer.GlobalPosition;
+					PerformAoEHitCheck(secondSlamDmg, 4.0f, pos2);
+					EmitSignal(SignalName.PowerSlamTriggered, pos2, playerIndex, finalColor, slamRadius);
+				}
+			};
+		}
+		else
+		{
+			// Perfect slam (single)
+			SceneTreeTimer timer = GetTree().CreateTimer(delay);
+			timer.Timeout += () =>
+			{
+				if (_currentPlayer != null)
+				{
+					slamPos = _currentPlayer.GlobalPosition;
+					PerformAoEHitCheck(slamDamage, slamRadius, slamPos);
+					EmitSignal(SignalName.PowerSlamTriggered, slamPos, playerIndex, finalColor, slamRadius);
+				}
+			};
+		}
+	}
+
+	private void ExecuteNecroMissiles(float power)
+	{
+		int count = 1;
+		if (power >= 199f) count = 8;
+		else if (power >= 99f) count = 3;
+
+		Vector3 spawnPos = _currentPlayer.GlobalPosition + new Vector3(0, 1.5f, 0); // Out of hand
+
+		// Target acquisition
+		Node3D targetNode = _currentPlayer.CurrentTarget;
+		Vector3 targetPos;
+		if (targetNode != null)
+		{
+			targetPos = targetNode.GlobalPosition;
+		}
+		else
+		{
+			// Use crosshair logic
+			targetPos = TargetingHelper.GetGroundPoint(_currentPlayer, 30.0f);
+		}
+
+		if (count == 1)
+		{
+			FireMissile(spawnPos, targetPos, targetNode);
+		}
+		else if (count == 3)
+		{
+			// Volley of 3: Small spread
+			FireMissile(spawnPos, targetPos, targetNode);
+			FireMissile(spawnPos, targetPos + new Vector3(1, 0, 1), targetNode);
+			FireMissile(spawnPos, targetPos + new Vector3(-1, 0, -1), targetNode);
+		}
+		else if (count == 8)
+		{
+			// 8 directions - Aim further out (15m) for a grander feel
+			for (int i = 0; i < 8; i++)
+			{
+				float angle = i * (Mathf.Pi / 4f);
+				Vector3 directionalTarget = spawnPos + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * 15f;
+				FireMissile(spawnPos, directionalTarget, targetNode);
+			}
+		}
+	}
+
+	private void FireMissile(Vector3 spawnPos, Vector3 targetPos, Node3D targetNode = null)
+	{
+		var scene = GD.Load<PackedScene>("res://Scenes/VFX/EldritchMissile.tscn");
+		if (scene != null)
+		{
+			var missile = scene.Instantiate<EldritchMissile>();
+			GetTree().CurrentScene.AddChild(missile);
+			missile.GlobalPosition = spawnPos;
+
+			float damage = CalculateDamage(LockedPower) * 0.8f; // Missiles do slightly less individual damage
+			missile.Launch(targetPos, damage, _currentPlayer.Team, _currentPlayer, targetNode);
+		}
 	}
 
 	private void PerformAoEHitCheck(float damage, float radius, Vector3 center)
@@ -280,18 +425,20 @@ public partial class MeleeSystem : Node
 				Vector3 hitPos = ((Node3D)collider).GlobalPosition;
 				Vector3 dir = (hitPos - center).Normalized();
 
-				// NEW: Check for specialized body part hitbox
+				// Check for specialized body part hitbox
 				var monsterPart = collider as MonsterPart ?? collider.GetNodeOrNull<MonsterPart>("MonsterPart");
 				if (monsterPart != null)
 				{
 					monsterPart.OnHit(damage, hitPos, dir, _currentPlayer);
+					_currentPlayer.RegisterDealtDamage(damage);
 				}
 				else if (interactable != null)
 				{
 					interactable.OnHit(damage, hitPos, dir, _currentPlayer);
+					_currentPlayer.RegisterDealtDamage(damage);
 				}
-				else if (tower != null) tower.TakeDamage(damage);
-				else if (nexus != null) nexus.TakeDamage(damage);
+				else if (tower != null) { tower.TakeDamage(damage); _currentPlayer.RegisterDealtDamage(damage); }
+				else if (nexus != null) { nexus.TakeDamage(damage); _currentPlayer.RegisterDealtDamage(damage); }
 			}
 		}
 	}
@@ -303,10 +450,10 @@ public partial class MeleeSystem : Node
 
 		Vector3 forward = -_currentPlayer.GlobalTransform.Basis.Z;
 		Vector3 startPos = _currentPlayer.GlobalPosition + new Vector3(0, 1.2f, 0) + (forward * 0.5f);
-		Vector3 endPos = startPos + (forward * 2.5f); // Increased reach check
+		Vector3 endPos = startPos + (forward * 6.5f); // Increased reach check to 6.5u
 
 		var query = new PhysicsShapeQueryParameters3D();
-		query.Shape = new SphereShape3D { Radius = 1.2f }; // Wider hit area
+		query.Shape = new SphereShape3D { Radius = 1.8f }; // Wider hit area from 1.2u
 		query.Transform = new Transform3D(Basis.Identity, startPos);
 		query.Motion = endPos - startPos;
 		query.CollisionMask = 1 | 2;
@@ -339,26 +486,30 @@ public partial class MeleeSystem : Node
 					hitPos = ((Node3D)collider).GlobalPosition;
 				}
 
-				// NEW: Check for specialized body part hitbox
+				// Check for specialized body part hitbox
 				var monsterPart = collider as MonsterPart ?? collider.GetNodeOrNull<MonsterPart>("MonsterPart");
 				if (monsterPart != null)
 				{
 					monsterPart.OnHit(damage, hitPos, forward, _currentPlayer);
+					_currentPlayer.RegisterDealtDamage(damage);
 				}
 				else if (interactable != null)
 				{
 					interactable.OnHit(damage, hitPos, forward, _currentPlayer);
+					_currentPlayer.RegisterDealtDamage(damage);
 				}
-				else if (tower != null) tower.TakeDamage(damage);
-				else if (nexus != null) nexus.TakeDamage(damage);
+				else if (tower != null) { tower.TakeDamage(damage); _currentPlayer.RegisterDealtDamage(damage); }
+				else if (nexus != null) { nexus.TakeDamage(damage); _currentPlayer.RegisterDealtDamage(damage); }
 			}
 		}
 	}
 
 	private float CalculateDamage(float power)
 	{
-		float baseDamage = 15f;
-		float powerMultiplier = 0.5f + (power / 100f); // 0.5x to 1.5x damage
+		// Base damage scales with AttackDamage (STR for physical heroes, INT for magical)
+		float adStat = PlayerStats?.AttackDamage ?? 15;
+		float baseDamage = adStat * 0.5f; // Half of AD as base hit
+		float powerMultiplier = 0.5f + (power / 100f); // basic=0.75x, perfect=1.5x, charged=2.5x
 		return baseDamage * powerMultiplier;
 	}
 

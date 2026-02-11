@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://c8k7m4v3l1p2"]
+
+[ext_resource type="Script" path="res://Scripts/VFX/PlagueEffect.cs" id="1_script"]
+
+[sub_resource type="Curve" id="Curve_fade"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.3, 1), 0.0, 0.0, 0, 0, Vector2(0.7, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="CurveTexture" id="CurveTexture_alpha"]
+curve = SubResource("Curve_fade")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_wispy"]
+emission_shape = 1
+emission_sphere_radius = 0.5
+direction = Vector3(0, 1, 0)
+spread = 30.0
+gravity = Vector3(0, 1, 0)
+initial_velocity_min = 1.0
+initial_velocity_max = 2.0
+scale_min = 0.5
+scale_max = 1.5
+color = Color(0, 0.5, 0, 0.5)
+alpha_curve = SubResource("CurveTexture_alpha")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wispy"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_particle"]
+material = SubResource("StandardMaterial3D_wispy")
+size = Vector2(0.5, 0.5)
+
+[node name="PlagueEffect" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="WispySmoke" type="GPUParticles3D" parent="."]
+amount = 20
+lifetime = 0.8
+randomness = 0.5
+process_material = SubResource("ParticleProcessMaterial_wispy")
+draw_pass_1 = SubResource("QuadMesh_particle")

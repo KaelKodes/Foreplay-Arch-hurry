@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://cccv1xru06lcv"]
+
+[ext_resource type="Script" uid="uid://s1mynw5om6ra" path="res://Scripts/MOBA/MobaMinion.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://b2n8k4l5m6n7" path="res://Characters/Monsters/Skeleton_Visuals.tscn" id="2_visuals"]
+[ext_resource type="Script" uid="uid://ugwqkbmwgx83" path="res://Scripts/MOBA/SummonedSkeletonAI.cs" id="3_ai"]
+[ext_resource type="PackedScene" uid="uid://c7l8nan0o1p2" path="res://Characters/Monsters/Falchion_Visuals.tscn" id="4_weapon"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_skeleton"]
+radius = 0.3
+height = 1.8
+
+[node name="Skeleton" type="CharacterBody3D" unique_id=846085267]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_script")
+Species = "Skeleton"
+ObjectName = "Summoned Skeleton"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=626852416]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_skeleton")
+
+[node name="Visuals" type="Node3D" parent="." unique_id=1566647868]
+
+[node name="scene" parent="Visuals" unique_id=1953582205 instance=ExtResource("2_visuals")]
+
+[node name="BoneAttachment3D" parent="Visuals/scene/root/Skeleton3D" parent_id_path=PackedInt32Array(1953582205, 20171828) index="1"]
+transform = Transform3D(0.04128851, -0.07797491, -0.9960996, -0.9847329, 0.16555406, -0.053777017, 0.16910169, 0.9831131, -0.06994906, -0.76884294, 0.04242527, 1.1979729)
+bone_name = "hand.r"
+bone_idx = 27
+
+[node name="Falchion" parent="Visuals/scene/root/Skeleton3D/BoneAttachment3D" index="0" unique_id=1717016028 instance=ExtResource("4_weapon")]
+transform = Transform3D(0.20116735, 0.97884506, -0.03732974, 0.9777182, -0.20297787, -0.05355281, -0.059997, -0.025724925, -0.99786735, -0.10006495, -0.01204896, 0.10284454)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1038374641]
+
+[node name="SummonedSkeletonAI" type="Node" parent="." unique_id=1309970380]
+script = ExtResource("3_ai")
+
+[editable path="Visuals/scene"]

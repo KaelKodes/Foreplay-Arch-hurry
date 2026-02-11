@@ -23,6 +23,7 @@ public partial class CharacterRegistry : Node
         public bool IsCustomSkeleton { get; set; } = false;
         public Dictionary<string, string> AnimationMap { get; set; } = new();
         public Dictionary<string, string> AnimationSources { get; set; } = new(); // New
+        public bool IsPlayable { get; set; } = true; // Default to true (Heroes), set false for Mobs
 
         // Transform Adjustments for Custom Rigs
         public Vector3 RotationOffset { get; set; } = Vector3.Zero;
@@ -162,14 +163,14 @@ public partial class CharacterRegistry : Node
             MeleeScenePath = "res://Assets/Heroes/Cleric/Animations/Knight D Pelegrini.fbx",
             ArcheryScenePath = "res://Assets/Heroes/Cleric/Animations/Knight D Pelegrini.fbx",
             IsCustomSkeleton = true,
-            PositionOffset = new Vector3(0, -0.18f, 0),
+            PositionOffset = new Vector3(0, -0.01f, 0),
             WeaponOverridePath = "res://Assets/Heroes/Cleric/Animations/GreatswordT-Pose.fbx",
             WeaponPositionOffset = new Vector3(-0.816f, -0.062f, -1.272f),
             WeaponRotationOffset = new Vector3(-46.647f, 132.593f, 50.388f),
             AnimationSources = new Dictionary<string, string> {
                 { "Idle", "res://Assets/Heroes/Cleric/Animations/great sword idle.fbx" },
                 { "Walk", "res://Assets/Heroes/Cleric/Animations/great sword walk.fbx" },
-                { "Run", "res://Assets/Heroes/Cleric/Animations/great sword run.fbx" },
+                { "Run", "res://Assets/Heroes/Cleric/Animations/great sword run (2).fbx" },
                 { "Jump", "res://Assets/Heroes/Cleric/Animations/great sword jump.fbx" },
                 // Melee combat
                 { "MeleeAttack1", "res://Assets/Heroes/Cleric/Animations/great sword slash.fbx" },
@@ -177,6 +178,7 @@ public partial class CharacterRegistry : Node
                 { "SlashCombo", "res://Assets/Heroes/Cleric/Animations/great sword slash (2).fbx" },
                 // Ability slots
                 { "CastingSlot1", "res://Assets/Heroes/Cleric/Animations/great sword casting.fbx" },
+                { "SpellCast", "res://Assets/Heroes/Cleric/Animations/spell cast.fbx" },
                 { "IdleSlot2", "res://Assets/Heroes/Cleric/Animations/great sword idle (2).fbx" },
                 { "SpinSlot3", "res://Assets/Heroes/Cleric/Animations/great sword high spin attack.fbx" },
                 { "CastingSlot4", "res://Assets/Heroes/Cleric/Animations/great sword casting.fbx" },
@@ -197,6 +199,7 @@ public partial class CharacterRegistry : Node
             ArcheryScenePath = "res://Assets/Heroes/Necromancer/Animations/Vampire A Lusth.fbx",
             IsCustomSkeleton = true,
             PositionOffset = new Vector3(0, -0.1f, 0),
+            RotationOffset = new Vector3(0, 0, 0),
             AnimationSources = new Dictionary<string, string> {
                 { "Idle", "res://Assets/Heroes/Necromancer/Animations/standing idle.fbx" },
                 { "Walk", "res://Assets/Heroes/Necromancer/Animations/Standing Walk Forward.fbx" },
@@ -217,6 +220,29 @@ public partial class CharacterRegistry : Node
                 { "ArcheryFire", "res://Assets/Heroes/Necromancer/Animations/Standing 1H Magic Attack 01.fbx" },
                 { "Death", "res://Assets/Heroes/Necromancer/Animations/Standing React Death Backward.fbx" }
             }
+        });
+
+        // Skeleton (New Split Assets)
+        AvailableModels.Add(new CharacterModel
+        {
+            Id = "Skeleton",
+            DisplayName = "Skeleton Warrior",
+            MeleeScenePath = "res://Assets/Monsters/Skeleton/uploads_files_4709840_Skeleton_Model_110.fbx",
+            ArcheryScenePath = "res://Assets/Monsters/Skeleton/uploads_files_4709840_Skeleton_Model_110.fbx",
+            IsCustomSkeleton = true,
+            PositionOffset = new Vector3(0, 0, 0),
+            RotationOffset = new Vector3(0, 0, 0),
+            AnimationSources = new Dictionary<string, string> {
+                { "Idle", "res://Assets/Monsters/Skeleton/Skeleton_idle.fbx" },
+                { "Walk", "res://Assets/Monsters/Skeleton/Skeleton_walk_forward.fbx" },
+                { "Run", "res://Assets/Monsters/Skeleton/Skeleton_run_forward.fbx" },
+                { "Attack", "res://Assets/Monsters/Skeleton/Skeleton_slash01.fbx" },
+                { "Death", "res://Assets/Monsters/Skeleton/Skeleton_death.fbx" },
+                { "Hit", "res://Assets/Monsters/Skeleton/Skeleton_take_damage.fbx" }
+            },
+            WeaponPositionOffset = Vector3.Zero,
+            WeaponRotationOffset = Vector3.Zero,
+            IsPlayable = false // Monster - do not show in lobby
         });
 
         // Note: Guardian, Monk and Pale Knight removed - they had compatibility issues
@@ -241,8 +267,9 @@ public partial class CharacterRegistry : Node
     /// </summary>
     public CharacterModel GetModelByIndex(int index)
     {
-        if (AvailableModels.Count == 0) return null;
-        return AvailableModels[index % AvailableModels.Count];
+        var playableModels = AvailableModels.FindAll(m => m.IsPlayable);
+        if (playableModels.Count == 0) return null;
+        return playableModels[index % playableModels.Count];
     }
 
     /// <summary>
@@ -250,10 +277,11 @@ public partial class CharacterRegistry : Node
     /// </summary>
     public CharacterModel GetNextModel(string currentModelId)
     {
-        int currentIndex = AvailableModels.FindIndex(m => m.Id == currentModelId);
+        var playableModels = AvailableModels.FindAll(m => m.IsPlayable);
+        int currentIndex = playableModels.FindIndex(m => m.Id == currentModelId);
         if (currentIndex < 0) currentIndex = 0;
-        int nextIndex = (currentIndex + 1) % AvailableModels.Count;
-        return AvailableModels[nextIndex];
+        int nextIndex = (currentIndex + 1) % playableModels.Count;
+        return playableModels[nextIndex];
     }
 
     /// <summary>

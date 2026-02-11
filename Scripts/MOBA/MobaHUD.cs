@@ -21,6 +21,7 @@ public partial class MobaHUD : CanvasLayer
 	// Player stats
 	private Panel _statsPanel;
 	private ProgressBar _playerHpBar;
+	private ProgressBar _shieldBar;
 	private Label _playerHpLabel;
 	private ProgressBar _staminaBar;
 	private Label _staminaLabel;
@@ -177,7 +178,7 @@ public partial class MobaHUD : CanvasLayer
 		_statsPanel.AnchorBottom = 1f;
 		_statsPanel.OffsetLeft = 10;
 		_statsPanel.OffsetRight = 220;
-		_statsPanel.OffsetTop = -220;
+		_statsPanel.OffsetTop = -190;
 		_statsPanel.OffsetBottom = -10;
 		_statsPanel.Visible = _isRpgMode;
 		AddChild(_statsPanel);
@@ -193,13 +194,22 @@ public partial class MobaHUD : CanvasLayer
 		statsVBox.AddThemeConstantOverride("separation", 3);
 		_statsPanel.AddChild(statsVBox);
 
-		// Level
-		_levelLabel = MobaTheme.CreateHeadingLabel("LVL -", MobaTheme.AccentGold);
-		statsVBox.AddChild(_levelLabel);
+		// HP Bar (first in stats panel)
 
 		// HP Bar
 		_playerHpBar = MobaTheme.CreateHpBar(100f);
 		statsVBox.AddChild(_playerHpBar);
+
+		// Overlay Shield Bar
+		_shieldBar = MobaTheme.CreateHpBar(0f);
+		_shieldBar.AddThemeStyleboxOverride("fill", MobaTheme.CreateBarFill(MobaTheme.ShieldFill));
+		_shieldBar.AddThemeStyleboxOverride("background", new StyleBoxEmpty());
+		_shieldBar.MouseFilter = Control.MouseFilterEnum.Ignore;
+		_playerHpBar.AddChild(_shieldBar);
+		_shieldBar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		_shieldBar.Position = Vector2.Zero;
+		_shieldBar.GrowHorizontal = Control.GrowDirection.Both;
+		_shieldBar.GrowVertical = Control.GrowDirection.Both;
 
 		_playerHpLabel = MobaTheme.CreateBodyLabel("-- / -- HP", MobaTheme.TextPrimary);
 		_playerHpLabel.HorizontalAlignment = HorizontalAlignment.Center;
@@ -225,9 +235,15 @@ public partial class MobaHUD : CanvasLayer
 		_xpBar = MobaTheme.CreateXpBar(100f);
 		statsVBox.AddChild(_xpBar);
 
-		// Gold
+		// Level (bottom of stats, after XP bar)
+		_levelLabel = MobaTheme.CreateHeadingLabel("Level -", MobaTheme.AccentGold);
+		_levelLabel.HorizontalAlignment = HorizontalAlignment.Center;
+		statsVBox.AddChild(_levelLabel);
+
+		// Gold - attached to the InventoryPanel (top-right)
 		_goldLabel = MobaTheme.CreateHeadingLabel("💰 0", MobaTheme.AccentGold);
-		statsVBox.AddChild(_goldLabel);
+		_goldLabel.HorizontalAlignment = HorizontalAlignment.Right;
+		CallDeferred(nameof(AttachGoldToInventory));
 
 		// Apply class-specific secondary bar styling
 		UpdateSecondaryBarStyle();
@@ -380,10 +396,21 @@ public partial class MobaHUD : CanvasLayer
 
     // ── Public update methods ──
 
-    public void UpdateHp(float current, float max)
+    public void UpdateHp(float current, float max, float shield = 0)
     {
         if (_playerHpBar != null) { _playerHpBar.MaxValue = max; _playerHpBar.Value = current; }
-        if (_playerHpLabel != null) _playerHpLabel.Text = $"{(int)current} / {(int)max} HP";
+        if (_shieldBar != null)
+        {
+            _shieldBar.MaxValue = max;
+            _shieldBar.Value = shield;
+            _shieldBar.Visible = shield > 0;
+        }
+
+        string hpText = $"{(int)current}";
+        if (shield > 0) hpText += $" (+{(int)shield})";
+        hpText += $" / {(int)max} HP";
+
+        if (_playerHpLabel != null) _playerHpLabel.Text = hpText;
     }
 
     public void UpdateStamina(float current, float max)
@@ -412,87 +439,121 @@ public partial class MobaHUD : CanvasLayer
 
     public void UpdateLevel(int level)
     {
-        if (_levelLabel != null) _levelLabel.Text = $"LVL {level}";
+        if (_levelLabel != null) _levelLabel.Text = $"Level {level}";
     }
 
-    // ── Live Stats Polling ──
+    /// <summary>
+	/// Attaches the gold label to the InventoryPanel's top-right corner.
+	/// Called deferred so the InventoryPanel exists in the tree.
+	/// </summary>
+	private void AttachGoldToInventory()
+	{
+		var invPanel = GetTree().CurrentScene.FindChild("InventoryPanel", true, false) as Control;
+		if (invPanel != null)
+		{
+			_goldLabel.AnchorLeft = 1f;
+			_goldLabel.AnchorRight = 1f;
+			_goldLabel.AnchorTop = 0f;
+			_goldLabel.AnchorBottom = 0f;
+			_goldLabel.OffsetLeft = -80;
+			_goldLabel.OffsetRight = -4;
+			_goldLabel.OffsetTop = -24;
+			_goldLabel.OffsetBottom = -4;
+			invPanel.AddChild(_goldLabel);
+		}
+		else
+		{
+			// Fallback: just add to this layer
+			AddChild(_goldLabel);
+			_goldLabel.AnchorLeft = 1f;
+			_goldLabel.AnchorRight = 1f;
+			_goldLabel.AnchorTop = 1f;
+			_goldLabel.AnchorBottom = 1f;
+			_goldLabel.OffsetLeft = -100;
+			_goldLabel.OffsetRight = -20;
+			_goldLabel.OffsetTop = -184;
+			_goldLabel.OffsetBottom = -164;
+		}
+	}
 
-    private Stats _cachedStats;
-    private ArcherySystem _cachedArcherySystem;
-    private bool _statsSearched = false;
+	// ── Live Stats Polling ──
 
-    private void PollPlayerStats()
-    {
-        if (!_isRpgMode) return;
+	private Stats _cachedStats;
+	private ArcherySystem _cachedArcherySystem;
+	private bool _statsSearched = false;
 
-        // Reliable lookup via local_player group
-        if (_cachedStats == null)
-        {
-            var player = GetTree().GetFirstNodeInGroup("local_player") as Node;
-            var archerySystem = player?.FindChild("ArcherySystem", true, false) as ArcherySystem;
+	private void PollPlayerStats()
+	{
+		if (!_isRpgMode) return;
 
-            if (archerySystem == null && player != null)
-            {
-                // Fallback: search by type if name check fails
-                foreach (var child in player.GetChildren())
-                {
-                    if (child is ArcherySystem asys)
-                    {
-                        archerySystem = asys;
-                        break;
-                    }
-                }
-            }
+		// Reliable lookup via local_player group
+		if (_cachedStats == null)
+		{
+			var player = GetTree().GetFirstNodeInGroup("local_player") as Node;
+			var archerySystem = player?.FindChild("ArcherySystem", true, false) as ArcherySystem;
 
-            if (archerySystem != null)
-            {
-                _cachedStats = archerySystem.PlayerStats;
-                _subscribedStatsService = archerySystem.PlayerStatsService;
-                if (_subscribedStatsService != null)
-                {
-                    // Avoid double sub
-                    _subscribedStatsService.AbilityUpgraded -= OnAbilityUpgraded;
-                    _subscribedStatsService.AbilityUpgraded += OnAbilityUpgraded;
-                }
-                GD.Print("[MobaHUD] Linked to local player stats.");
+			if (archerySystem == null && player != null)
+			{
+				// Fallback: search by type if name check fails
+				foreach (var child in player.GetChildren())
+				{
+					if (child is ArcherySystem asys)
+					{
+						archerySystem = asys;
+						break;
+					}
+				}
+			}
 
-                if (ToolManager.Instance != null)
-                {
-                    var heroClass = ToolManager.Instance.CurrentHeroClass;
-                    if (!string.IsNullOrEmpty(heroClass))
-                        SetHeroClass(heroClass);
-                }
-            }
-        }
+			if (archerySystem != null)
+			{
+				_cachedStats = archerySystem.PlayerStats;
+				_subscribedStatsService = archerySystem.PlayerStatsService;
+				if (_subscribedStatsService != null)
+				{
+					// Avoid double sub
+					_subscribedStatsService.AbilityUpgraded -= OnAbilityUpgraded;
+					_subscribedStatsService.AbilityUpgraded += OnAbilityUpgraded;
+				}
+				GD.Print("[MobaHUD] Linked to local player stats.");
 
-        if (_cachedStats == null) return;
+				if (ToolManager.Instance != null)
+				{
+					var heroClass = ToolManager.Instance.CurrentHeroClass;
+					if (!string.IsNullOrEmpty(heroClass))
+						SetHeroClass(heroClass);
+				}
+			}
+		}
 
-        UpdateHp(_cachedStats.CurrentHealth, _cachedStats.MaxHealth);
-        UpdateStamina(_cachedStats.CurrentStamina, _cachedStats.MaxStamina);
+		if (_cachedStats == null) return;
 
-        bool isFury = _heroClass == "warrior";
-        if (isFury)
-            UpdateSecondaryResource(_cachedStats.CurrentFury, _cachedStats.MaxFury);
-        else
-            UpdateSecondaryResource(_cachedStats.CurrentMana, _cachedStats.MaxMana);
+		UpdateHp(_cachedStats.CurrentHealth, _cachedStats.MaxHealth, _cachedStats.CurrentShield);
+		UpdateStamina(_cachedStats.CurrentStamina, _cachedStats.MaxStamina);
 
-        UpdateLevel(_cachedStats.Level);
-        UpdateGold(_cachedStats.Gold);
+		bool isFury = _heroClass == "warrior";
+		if (isFury)
+			UpdateSecondaryResource(_cachedStats.CurrentFury, _cachedStats.MaxFury);
+		else
+			UpdateSecondaryResource(_cachedStats.CurrentMana, _cachedStats.MaxMana);
 
-        int xpForNext = GetRequiredXpForCurrentLevel(_cachedStats.Level);
-        UpdateXp(_cachedStats.Experience, xpForNext);
-    }
+		UpdateLevel(_cachedStats.Level);
+		UpdateGold(_cachedStats.Gold);
 
-    private int GetRequiredXpForCurrentLevel(int level)
-    {
-        switch (level)
-        {
-            case 1: return 480;
-            case 2: return 960;
-            case 3: return 1600;
-            case 4: return 2400;
-            case 5: return 3600;
-            default: return 1000 * level;
-        }
-    }
+		int xpForNext = GetRequiredXpForCurrentLevel(_cachedStats.Level);
+		UpdateXp(_cachedStats.Experience, xpForNext);
+	}
+
+	private int GetRequiredXpForCurrentLevel(int level)
+	{
+		switch (level)
+		{
+			case 1: return 480;
+			case 2: return 960;
+			case 3: return 1600;
+			case 4: return 2400;
+			case 5: return 3600;
+			default: return 1000 * level;
+		}
+	}
 }

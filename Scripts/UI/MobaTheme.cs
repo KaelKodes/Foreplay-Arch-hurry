@@ -19,6 +19,7 @@ public static class MobaTheme
     // Bar fills
     public static readonly Color HpFill = new(0.2f, 0.85f, 0.3f);               // #33D94D
     public static readonly Color HpBg = new(0.2f, 0.1f, 0.1f, 0.8f);
+    public static readonly Color ShieldFill = new(0.3f, 0.6f, 1.0f);            // #4DA6FF (Bright Blue)
     public static readonly Color ManaFill = new(0.2f, 0.4f, 1f);                  // #3366FF
     public static readonly Color ManaBg = new(0.1f, 0.1f, 0.2f, 0.8f);
     public static readonly Color StaminaFill = new(1f, 0.72f, 0.2f);                 // #FFB833

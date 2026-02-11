@@ -5,7 +5,7 @@
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_zombie"]
 radius = 0.28222656
-height = 1.125241
+height = 1.2944939
 
 [node name="MobaZombie" type="CharacterBody3D" unique_id=1458182932]
 collision_mask = 3
@@ -17,11 +17,11 @@ ObjectName = "MobaZombie"
 Team = 1
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=29318665]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.63344073, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6551391, 0)
 shape = SubResource("CapsuleShape3D_zombie")
 
 [node name="Visuals" type="Node3D" parent="." unique_id=351418286]
-transform = Transform3D(0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0, -0.032066047, 0)
+transform = Transform3D(0.65645516, 0, 0, 0, 0.73251593, 0, 0, 0, 0.6, 0, -0.032066047, 0)
 
 [node name="scene" parent="Visuals" unique_id=2078296635 instance=ExtResource("2_mesh")]
 transform = Transform3D(0.99999994, 0, 0, 0, 0.99999994, 0, 0, 0, 0.99999994, 0, -0.13303721, 0)

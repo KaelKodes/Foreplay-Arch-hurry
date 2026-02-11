@@ -26,6 +26,7 @@ public partial class CharacterModelManager
                            lowAnim.Contains("slot") ||
                            lowAnim.Contains("attack") ||
                            lowAnim.Contains("casting") ||
+                           lowAnim.Contains("spellcast") ||
                            lowAnim == "kick" ||
                            lowAnim == "powerup" ||
                            lowAnim == "impact" ||
@@ -136,19 +137,13 @@ public partial class CharacterModelManager
         }
     }
 
+    /// <summary>
+    /// Loads animations from individual FBX files defined in the model's AnimationSources.
+    /// Each FBX is loaded, the first animation inside is extracted, bone tracks are
+    /// remapped to match the hero's own skeleton, and root motion is stripped.
+    /// </summary>
     private void LoadRetargetedStandardAnimations(AnimationPlayer animPlayer, CharacterRegistry.CharacterModel model)
     {
-        // 0. Get Bone Map
-        Dictionary<string, string> boneMap = null;
-        if (model.AnimationMap.ContainsKey("__BONE_MAP__"))
-        {
-            try
-            {
-                boneMap = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(model.AnimationMap["__BONE_MAP__"]);
-            }
-            catch { GD.PrintErr("[CharacterModelManager] Failed to deserialize BoneMap"); }
-        }
-
         // Ensure default library exists
         AnimationLibrary lib;
         if (animPlayer.HasAnimationLibrary("")) lib = animPlayer.GetAnimationLibrary("");
@@ -161,210 +156,98 @@ public partial class CharacterModelManager
         var skeleton = FindSkeletonRecursive(_currentCustomModel);
         if (skeleton == null) return;
 
-        // Map standard names to what SetupErikaAnimations uses
-        var fileMap = new Dictionary<string, string> {
-            { "Idle", "standing idle 01" },
-            { "Walk", "standing walk forward" },
-            { "Run", "standing run forward" },
-            { "Jump", "standing jump" },
-            { "MeleeAttack1", "melee attack" },
-            { "MeleeAttack2", "melee perfect attack" },
-            { "MeleeAttack3", "melee triple attack" },
-            { "ArcheryIdle", "archery idle normal" },
-            { "ArcheryDraw", "archery draw" },
-            { "ArcheryFire", "archery recoil" },
-            { "Death", "death" }
-        };
+        string skelName = skeleton.Name.ToString();
 
-        var skeletonBones = new HashSet<string>();
-        for (int i = 0; i < skeleton.GetBoneCount(); i++) skeletonBones.Add(skeleton.GetBoneName(i));
-
-        // 0. Load Erika's skeleton as a rest-pose reference
-        Skeleton3D erikaSkeleton = null;
-        const string erikaPath = "res://Assets/Heroes/Ranger/Animations/Erika Archer With Bow Arrow.fbx";
-        if (ResourceLoader.Exists(erikaPath))
+        // Load each animation from its FBX source
+        foreach (var kvp in model.AnimationSources)
         {
-            var erikaScn = GD.Load<PackedScene>(erikaPath);
-            var erikaInst = erikaScn.Instantiate();
-            erikaSkeleton = FindSkeletonRecursive(erikaInst);
-        }
+            string animName = kvp.Key;
+            string source = kvp.Value;
 
-        // Load all defined animation sources
-        foreach (var animName in model.AnimationSources.Keys)
-        {
-            string source = model.AnimationSources[animName];
+            if (!source.StartsWith("res://")) continue;
+            if (!ResourceLoader.Exists(source)) continue;
 
-            if (source == "standard")
+            var fbxScene = GD.Load<PackedScene>(source);
+            if (fbxScene == null) continue;
+
+            var instance = fbxScene.Instantiate();
+            var srcPlayer = FindPopulatedAnimationPlayerRecursive(instance);
+
+            if (srcPlayer == null)
             {
-                if (boneMap == null || boneMap.Count == 0) continue;
-                if (!fileMap.ContainsKey(animName)) continue;
-                string fileKey = fileMap[animName];
-
-                if (!ErikaAnimationFiles.ContainsKey(fileKey)) continue;
-                string fbxPath = ErikaAnimationFiles[fileKey];
-
-                if (!ResourceLoader.Exists(fbxPath)) continue;
-                var fbxScene = GD.Load<PackedScene>(fbxPath);
-                if (fbxScene == null) continue;
-
-                var instance = fbxScene.Instantiate();
-                var srcPlayer = instance.FindChild("AnimationPlayer", true, false) as AnimationPlayer;
-                if (srcPlayer == null) { instance.QueueFree(); continue; }
-
-                var srcList = srcPlayer.GetAnimationList();
-                if (srcList.Length == 0) { instance.QueueFree(); continue; }
-
-                var srcAnim = srcPlayer.GetAnimation(srcList[0]);
-                var newAnim = srcAnim.Duplicate() as Animation;
                 instance.QueueFree();
-
-                int trackCount = newAnim.GetTrackCount();
-                for (int i = trackCount - 1; i >= 0; i--)
-                {
-                    string trackPath = newAnim.TrackGetPath(i).ToString();
-                    string[] parts = trackPath.Split(':');
-                    string propertyPart = (parts.Length > 1) ? parts[1] : "";
-                    string boneInTrack = !string.IsNullOrEmpty(propertyPart) ? propertyPart : parts[0];
-                    int lastSlash = boneInTrack.LastIndexOf('/');
-                    if (lastSlash != -1) boneInTrack = boneInTrack.Substring(lastSlash + 1);
-
-                    string standardBone = boneInTrack.Replace("mixamorig_", "");
-
-                    string targetBone = null;
-                    if (boneMap.ContainsKey(standardBone)) targetBone = boneMap[standardBone];
-                    else if (boneMap.ContainsKey(boneInTrack)) targetBone = boneMap[boneInTrack];
-
-                    if (targetBone != null && skeletonBones.Contains(targetBone))
-                    {
-                        string newPath = $"{skeleton.Name}:{targetBone}";
-                        newAnim.TrackSetPath(i, newPath);
-
-                        if (erikaSkeleton != null)
-                        {
-                            string eBoneName = "mixamorig_" + standardBone;
-                            int eBoneIdx = erikaSkeleton.FindBone(eBoneName);
-                            if (eBoneIdx == -1) eBoneIdx = erikaSkeleton.FindBone(standardBone);
-
-                            if (eBoneIdx != -1)
-                            {
-                                int tBoneIdx = skeleton.FindBone(targetBone);
-                                Quaternion sRest = erikaSkeleton.GetBoneRest(eBoneIdx).Basis.GetRotationQuaternion();
-                                Quaternion tRest = skeleton.GetBoneRest(tBoneIdx).Basis.GetRotationQuaternion();
-                                Quaternion correction = tRest.Inverse() * sRest;
-
-                                if (newAnim.TrackGetType(i) == Animation.TrackType.Rotation3D)
-                                {
-                                    for (int k = 0; k < newAnim.TrackGetKeyCount(i); k++)
-                                    {
-                                        Quaternion oldQ = (Quaternion)newAnim.TrackGetKeyValue(i, k);
-                                        newAnim.TrackSetKeyValue(i, k, correction * oldQ);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        newAnim.RemoveTrack(i);
-                    }
-                }
-
-                newAnim.LoopMode = Animation.LoopModeEnum.None;
-                if (animName == "Idle" || animName == "Run" || animName == "Walk" || animName == "ArcheryIdle" || animName == "ArcheryDraw")
-                {
-                    newAnim.LoopMode = Animation.LoopModeEnum.Linear;
-                }
-
-                if (lib.HasAnimation(animName)) lib.RemoveAnimation(animName);
-                lib.AddAnimation(animName, newAnim);
+                continue;
             }
-            else if (source.StartsWith("res://"))
+
+            var srcList = srcPlayer.GetAnimationList();
+            if (srcList.Length == 0)
             {
-                if (!ResourceLoader.Exists(source)) continue;
-                var fbxScene = GD.Load<PackedScene>(source);
-                if (fbxScene == null) continue;
-
-                var instance = fbxScene.Instantiate();
-                var srcPlayer = FindPopulatedAnimationPlayerRecursive(instance);
-
-                if (srcPlayer == null)
-                {
-                    instance.QueueFree();
-                    continue;
-                }
-
-                var srcList = srcPlayer.GetAnimationList();
-                if (srcList.Length == 0)
-                {
-                    instance.QueueFree();
-                    continue;
-                }
-
-                var srcAnim = srcPlayer.GetAnimation(srcList[0]);
-                var newAnim = srcAnim.Duplicate() as Animation;
                 instance.QueueFree();
-
-                int trackCount = newAnim.GetTrackCount();
-                for (int i = 0; i < trackCount; i++)
-                {
-                    string trackPath = newAnim.TrackGetPath(i).ToString();
-                    string boneName = trackPath;
-                    string propertyPart = "";
-
-                    if (trackPath.Contains(":"))
-                    {
-                        var parts = trackPath.Split(':');
-                        boneName = parts[0];
-                        if (parts.Length > 1)
-                        {
-                            if (parts[0].ToLower().Contains("skeleton"))
-                            {
-                                boneName = parts[1];
-                                if (parts.Length > 2) propertyPart = parts[2];
-                            }
-                            else
-                            {
-                                propertyPart = parts[1];
-                            }
-                        }
-                    }
-
-                    int lastSlash = boneName.LastIndexOf('/');
-                    if (lastSlash != -1) boneName = boneName.Substring(lastSlash + 1);
-
-                    string newPath = $"{skeleton.Name}:{boneName}";
-                    if (!string.IsNullOrEmpty(propertyPart)) newPath += $":{propertyPart}";
-
-                    newAnim.TrackSetPath(i, newPath);
-
-                    string lowerBone = boneName.ToLower();
-                    if (lowerBone.Contains("hips") || lowerBone.Contains("root"))
-                    {
-                        if (newAnim.TrackGetType(i) == Animation.TrackType.Position3D)
-                        {
-                            for (int k = 0; k < newAnim.TrackGetKeyCount(i); k++)
-                            {
-                                Vector3 pos = (Vector3)newAnim.TrackGetKeyValue(i, k);
-                                newAnim.TrackSetKeyValue(i, k, new Vector3(0, pos.Y, 0));
-                            }
-                        }
-                    }
-                }
-
-                newAnim.LoopMode = Animation.LoopModeEnum.None;
-                if (animName == "Idle" || animName == "Run" || animName == "Walk" || animName == "ArcheryIdle" || animName == "ArcheryDraw")
-                {
-                    newAnim.LoopMode = Animation.LoopModeEnum.Linear;
-                }
-
-                if (lib.HasAnimation(animName)) lib.RemoveAnimation(animName);
-                lib.AddAnimation(animName, newAnim);
+                continue;
             }
-        }
 
-        if (erikaSkeleton != null)
-        {
-            erikaSkeleton.GetParent().QueueFree();
+            var srcAnim = srcPlayer.GetAnimation(srcList[0]);
+            var newAnim = srcAnim.Duplicate() as Animation;
+            instance.QueueFree();
+
+            // Remap bone tracks to point at the hero's skeleton
+            int trackCount = newAnim.GetTrackCount();
+            for (int i = 0; i < trackCount; i++)
+            {
+                string trackPath = newAnim.TrackGetPath(i).ToString();
+                string boneName = trackPath;
+                string propertyPart = "";
+
+                if (trackPath.Contains(":"))
+                {
+                    var parts = trackPath.Split(':');
+                    boneName = parts[0];
+                    if (parts.Length > 1)
+                    {
+                        if (parts[0].ToLower().Contains("skeleton"))
+                        {
+                            boneName = parts[1];
+                            if (parts.Length > 2) propertyPart = parts[2];
+                        }
+                        else
+                        {
+                            propertyPart = parts[1];
+                        }
+                    }
+                }
+
+                int lastSlash = boneName.LastIndexOf('/');
+                if (lastSlash != -1) boneName = boneName.Substring(lastSlash + 1);
+
+                string newPath = $"{skelName}:{boneName}";
+                if (!string.IsNullOrEmpty(propertyPart)) newPath += $":{propertyPart}";
+
+                newAnim.TrackSetPath(i, newPath);
+
+                // Strip root motion (keep only Y position for hips/root)
+                string lowerBone = boneName.ToLower();
+                if (lowerBone.Contains("hips") || lowerBone.Contains("root"))
+                {
+                    if (newAnim.TrackGetType(i) == Animation.TrackType.Position3D)
+                    {
+                        for (int k = 0; k < newAnim.TrackGetKeyCount(i); k++)
+                        {
+                            Vector3 pos = (Vector3)newAnim.TrackGetKeyValue(i, k);
+                            newAnim.TrackSetKeyValue(i, k, new Vector3(0, pos.Y, 0));
+                        }
+                    }
+                }
+            }
+
+            // Set loop mode
+            newAnim.LoopMode = Animation.LoopModeEnum.None;
+            if (animName == "Idle" || animName == "Run" || animName == "Walk" || animName == "ArcheryIdle" || animName == "ArcheryDraw")
+            {
+                newAnim.LoopMode = Animation.LoopModeEnum.Linear;
+            }
+
+            if (lib.HasAnimation(animName)) lib.RemoveAnimation(animName);
+            lib.AddAnimation(animName, newAnim);
         }
     }
 
@@ -407,65 +290,36 @@ public partial class CharacterModelManager
         RemapBoneTracks(ap);
     }
 
+    /// <summary>
+    /// Ensures all animation tracks point at the correct skeleton node.
+    /// Only fixes the node-path prefix (e.g. "Skeleton3D:" -> actual skeleton name).
+    /// Does NOT do fuzzy bone name matching — bones should already be correct
+    /// since each hero uses their own animations.
+    /// </summary>
     private void RemapBoneTracks(AnimationPlayer ap)
     {
         var skeleton = _currentCustomModel.GetNodeOrNull<Skeleton3D>("Skeleton3D") ?? FindSkeletonRecursive(_currentCustomModel);
         if (skeleton == null) return;
 
         string skelName = skeleton.Name.ToString();
-        var skeletonBones = new HashSet<string>();
-        for (int i = 0; i < skeleton.GetBoneCount(); i++) skeletonBones.Add(skeleton.GetBoneName(i));
 
         var animNames = ap.GetAnimationList();
         foreach (var animName in animNames)
         {
             var anim = ap.GetAnimation(animName);
-            // Iterate backwards when removing tracks!
             for (int i = anim.GetTrackCount() - 1; i >= 0; i--)
             {
-                var path = anim.TrackGetPath(i);
-                // ... [previous track logic remains same, just ensuring backwards loop]
-                string pathStr = path.ToString();
+                string pathStr = anim.TrackGetPath(i).ToString();
                 if (!pathStr.Contains(":")) continue;
 
                 string[] parts = pathStr.Split(':');
-                string bonePart = parts[parts.Length - 1];
 
-                bool needsFix = false;
-                string newNodePart = skelName;
-                string newBonePart = bonePart;
-
-                if (!skeletonBones.Contains(bonePart))
+                // Only fix if the node part doesn't already match the skeleton name
+                if (parts[0] != skelName)
                 {
-                    string bestMatch = "";
-                    string strippedBone = bonePart.Replace("mixamorig_", "").Replace("%", "").ToLower();
-                    if (strippedBone.Contains("_")) strippedBone = strippedBone.Split('_')[strippedBone.Split('_').Length - 1];
-
-                    foreach (var sb in skeletonBones)
-                    {
-                        string lowerSb = sb.ToLower();
-                        if (lowerSb == strippedBone || lowerSb.Contains(strippedBone) || strippedBone.Contains(lowerSb))
-                        {
-                            bestMatch = sb;
-                            break;
-                        }
-                    }
-
-                    if (bestMatch != "")
-                    {
-                        newBonePart = bestMatch;
-                        needsFix = true;
-                    }
-                }
-
-                if (!pathStr.StartsWith(skelName + ":"))
-                {
-                    needsFix = true;
-                }
-
-                if (needsFix)
-                {
-                    var newPath = new NodePath(newNodePart + ":" + newBonePart);
+                    // Rebuild with correct skeleton name
+                    parts[0] = skelName;
+                    var newPath = new NodePath(string.Join(":", parts));
                     anim.TrackSetPath(i, newPath);
                 }
             }

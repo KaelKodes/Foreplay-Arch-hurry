@@ -56,7 +56,7 @@ public partial class ArcherySystem : Node
 	public BuildManager BuildManager => _buildManager;
 	public ObjectPlacer ObjectPlacer => _objectPlacer;
 	public StatsService PlayerStatsService => _statsService;
-	public Stats PlayerStats => _statsService?.PlayerStats ?? new Stats { Power = 10, Control = 10, Touch = 10 };
+	public Stats PlayerStats => _statsService?.PlayerStats ?? new Stats { Strength = 10, Agility = 10 };
 	public Vector3 ChestOffset => new Vector3(0, 1.3f, 0);
 	public Vector3 SpawnPosition { get; private set; } = Vector3.Zero;
 
@@ -76,7 +76,9 @@ public partial class ArcherySystem : Node
 	public Node3D CurrentTarget => _currentPlayer?.CurrentTarget;
 
 	// Bow cooldown
-	private const float BowCooldownTime = 0.5f;
+	private const float BaseBowCooldown = 1.5f;
+	/// <summary>Effective bow cooldown after Haste reduction.</summary>
+	private float BowCooldownTime => BaseBowCooldown * (PlayerStats?.AttackCooldownMultiplier ?? 1.0f);
 	private float _bowCooldownRemaining = 0f;
 	public bool IsBowOnCooldown => _bowCooldownRemaining > 0;
 

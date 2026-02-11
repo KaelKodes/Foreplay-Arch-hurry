@@ -36,6 +36,7 @@ public partial class PlayerController : CharacterBody3D
         get => _isVaulting;
         set => _isVaulting = value;
     }
+    public float CurrentDashTime => _dashTime;
 
     // Multiplayer Properties
     [Export] public int PlayerIndex { get; set; } = 0;
@@ -89,6 +90,24 @@ public partial class PlayerController : CharacterBody3D
         set => _isSprinting = value;
     }
 
+    private float _moveSpeedMultiplier = 1.0f;
+    private float _moveSpeedTimer = 0f;
+
+    // Haste Buff (from Rapid Fire etc.)
+    private int _hasteBuffAmount = 0;
+    private float _hasteBuffTimer = 0f;
+    private float _hastePulseTimer = 0f;
+
+    // Avatar of War red pulse
+    private float _avatarPulseTimer = 0f;
+
+    // Speed Buff (Celestial Buff: Haste + Concentration + Agility)
+    private int _speedBuffHaste = 0;
+    private int _speedBuffConc = 0;
+    private int _speedBuffAgi = 0;
+    private float _speedBuffTimer = 0f;
+    private float _speedPulseTimer = 0f;
+
     public string SynchronizedModel
     {
         get => _modelManager?.CurrentModelId ?? _currentModelId;
@@ -114,10 +133,31 @@ public partial class PlayerController : CharacterBody3D
             var stats = _archerySystem?.PlayerStats;
             if (stats != null)
             {
-                stats.CurrentHealth -= (int)damage;
-                if (stats.CurrentHealth < 0) stats.CurrentHealth = 0;
+                float remainingDamage = damage;
 
-                GD.Print($"[Player {PlayerIndex}] HP: {stats.CurrentHealth}/{stats.MaxHealth}");
+                // 1. Consume Shield first
+                if (stats.CurrentShield > 0)
+                {
+                    if (stats.CurrentShield >= remainingDamage)
+                    {
+                        stats.CurrentShield -= (int)remainingDamage;
+                        remainingDamage = 0;
+                    }
+                    else
+                    {
+                        remainingDamage -= stats.CurrentShield;
+                        stats.CurrentShield = 0;
+                    }
+                }
+
+                // 2. Consume Health
+                if (remainingDamage > 0)
+                {
+                    stats.CurrentHealth -= (int)remainingDamage;
+                    if (stats.CurrentHealth < 0) stats.CurrentHealth = 0;
+                }
+
+                GD.Print($"[Player {PlayerIndex}] HP: {stats.CurrentHealth}/{stats.MaxHealth}, Shield: {stats.CurrentShield}");
 
                 // Trigger death if HP reaches zero (placeholder for Respawn logic)
                 if (stats.CurrentHealth <= 0)
@@ -136,6 +176,7 @@ public partial class PlayerController : CharacterBody3D
     public float LifestealPercent { get; private set; } = 0f;
     private float _ccImmunityTimer = 0f;
     private float _lifestealTimer = 0f;
+    private float _shieldTimer = 0f;
 
     public int SynchronizedTool
     {
@@ -195,6 +236,7 @@ public partial class PlayerController : CharacterBody3D
     public Node3D FluidTarget => _fluidTarget;
 
     [Signal] public delegate void HitScoredEventHandler();
+    [Signal] public delegate void AbilityUsedEventHandler(int slotIndex, float cooldownDuration);
 
     public override void _EnterTree()
     {
@@ -206,6 +248,8 @@ public partial class PlayerController : CharacterBody3D
 
     public override void _Ready()
     {
+        // PhysicsInterpolationMode = PhysicsInterpolationModeEnum.On; // API not available
+        AddToGroup("Players");
         GD.Print($"[PlayerController] _Ready starting for {Name}. Authority: {GetMultiplayerAuthority()}, IsLocal: {IsLocal}");
 
         if (!CameraPath.IsEmpty)
@@ -471,14 +515,141 @@ public partial class PlayerController : CharacterBody3D
         if (_ccImmunityTimer > 0)
         {
             _ccImmunityTimer -= dt;
-            if (_ccImmunityTimer <= 0) IsCCImmune = false;
+            if (_ccImmunityTimer <= 0)
+            {
+                IsCCImmune = false;
+                GD.Print("[PlayerController] CC Immunity expired.");
+            }
+        }
+
+        if (_moveSpeedTimer > 0)
+        {
+            _moveSpeedTimer -= dt;
+            if (_moveSpeedTimer <= 0)
+            {
+                _moveSpeedMultiplier = 1.0f;
+                GD.Print("[PlayerController] Move Speed buff expired.");
+            }
         }
 
         if (_lifestealTimer > 0)
         {
             _lifestealTimer -= dt;
-            if (_lifestealTimer <= 0) LifestealPercent = 0f;
+            _avatarPulseTimer += dt;
+
+            // Red pulse while Avatar of War is active
+            float pulse = (Mathf.Sin(_avatarPulseTimer * 6f) + 1f) * 0.5f; // 0..1
+            ApplyEmissionToAllMeshes(new Color(pulse * 0.8f, 0.05f, 0.05f), pulse * 2.5f);
+
+            if (_lifestealTimer <= 0)
+            {
+                LifestealPercent = 0f;
+                _avatarPulseTimer = 0f;
+                ApplyEmissionToAllMeshes(Colors.Black, 0f, clearEmission: true);
+                GD.Print("[PlayerController] Avatar of War expired.");
+            }
         }
+
+        if (_shieldTimer > 0)
+        {
+            _shieldTimer -= dt;
+            if (_shieldTimer <= 0)
+            {
+                var stats = _archerySystem?.PlayerStats;
+                if (stats != null) stats.CurrentShield = 0;
+                GD.Print("[PlayerController] Shield expired.");
+            }
+        }
+
+        // Haste Buff countdown + green pulse
+        if (_hasteBuffTimer > 0)
+        {
+            _hasteBuffTimer -= dt;
+            _hastePulseTimer += dt;
+
+            // Pulse green on model (sine wave for smooth pulsing)
+            float pulse = (Mathf.Sin(_hastePulseTimer * 6f) + 1f) * 0.5f; // 0..1
+            ApplyEmissionToAllMeshes(new Color(0.0f, pulse * 0.6f, 0.0f), pulse * 2.0f);
+
+            if (_hasteBuffTimer <= 0)
+            {
+                // Remove buff
+                var statsB = _archerySystem?.PlayerStats;
+                if (statsB != null && _hasteBuffAmount > 0)
+                {
+                    statsB.Haste -= _hasteBuffAmount;
+                    _hasteBuffAmount = 0;
+                    GD.Print($"[PlayerController] Haste buff expired. Haste: {statsB.Haste}");
+                }
+
+                // Clear green pulse
+                ApplyEmissionToAllMeshes(Colors.Black, 0f, clearEmission: true);
+            }
+        }
+
+        // Speed Buff countdown + gold pulse (Celestial Buff)
+        if (_speedBuffTimer > 0)
+        {
+            _speedBuffTimer -= dt;
+            _speedPulseTimer += dt;
+
+            // Pulse gold/yellow while Speed buffed
+            float pulse = (Mathf.Sin(_speedPulseTimer * 4f) + 1f) * 0.5f;
+            ApplyEmissionToAllMeshes(new Color(pulse * 0.8f, pulse * 0.6f, 0.05f), pulse * 1.5f);
+
+            if (_speedBuffTimer <= 0)
+            {
+                var statsS = _archerySystem?.PlayerStats;
+                if (statsS != null)
+                {
+                    statsS.Haste -= _speedBuffHaste;
+                    statsS.Concentration -= _speedBuffConc;
+                    statsS.Agility -= _speedBuffAgi;
+                    GD.Print($"[PlayerController] Speed buff expired. Haste:{statsS.Haste} Conc:{statsS.Concentration} Agi:{statsS.Agility}");
+                }
+                _speedBuffHaste = 0;
+                _speedBuffConc = 0;
+                _speedBuffAgi = 0;
+                _speedPulseTimer = 0f;
+                ApplyEmissionToAllMeshes(Colors.Black, 0f, clearEmission: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Recursively applies emission to all MeshInstance3D nodes on the active character model.
+    /// </summary>
+    private void ApplyEmissionToAllMeshes(Color emissionColor, float energy, bool clearEmission = false)
+    {
+        var meshes = new System.Collections.Generic.List<MeshInstance3D>();
+        Node3D modelRoot = _meleeModel ?? _modelManager?.ActiveModelRoot;
+        if (modelRoot != null) CollectMeshes(modelRoot, meshes);
+
+        foreach (var mesh in meshes)
+        {
+            var mat = mesh.GetActiveMaterial(0);
+            if (mat is StandardMaterial3D stdMat)
+            {
+                if (clearEmission)
+                {
+                    stdMat.EmissionEnabled = false;
+                    stdMat.Emission = Colors.Black;
+                    stdMat.EmissionEnergyMultiplier = 0f;
+                }
+                else
+                {
+                    stdMat.EmissionEnabled = true;
+                    stdMat.Emission = emissionColor;
+                    stdMat.EmissionEnergyMultiplier = energy;
+                }
+            }
+        }
+    }
+
+    private void CollectMeshes(Node node, System.Collections.Generic.List<MeshInstance3D> meshes)
+    {
+        if (node is MeshInstance3D mesh) meshes.Add(mesh);
+        foreach (Node child in node.GetChildren()) CollectMeshes(child, meshes);
     }
 
     public void Heal(float amount)
@@ -489,7 +660,90 @@ public partial class PlayerController : CharacterBody3D
         if (stats != null)
         {
             stats.CurrentHealth = Mathf.Clamp(stats.CurrentHealth + (int)amount, 0, stats.MaxHealth);
+            SpawnHealNumber(amount);
             GD.Print($"[Player {PlayerIndex}] Healed for {amount}. HP: {stats.CurrentHealth}/{stats.MaxHealth}");
+        }
+    }
+
+    public void ApplyMoveSpeedBuff(float multiplier, float duration)
+    {
+        _moveSpeedMultiplier = multiplier;
+        _moveSpeedTimer = duration;
+        GD.Print($"[PlayerController] Move Speed set to {multiplier}x for {duration}s");
+    }
+
+    /// <summary>
+    /// Grants a temporary Haste bonus (e.g. +25 Haste from Rapid Fire).
+    /// While active, the player pulses green.
+    /// </summary>
+    public void ApplyHasteBuff(int hasteAmount, float duration)
+    {
+        var stats = _archerySystem?.PlayerStats;
+        if (stats != null)
+        {
+            // Remove old buff if re-applying
+            if (_hasteBuffAmount > 0) stats.Haste -= _hasteBuffAmount;
+
+            _hasteBuffAmount = hasteAmount;
+            stats.Haste += _hasteBuffAmount;
+            _hasteBuffTimer = duration;
+            _hastePulseTimer = 0f;
+            GD.Print($"[PlayerController] Haste buff +{hasteAmount} active for {duration}s (total Haste: {stats.Haste})");
+        }
+    }
+
+    /// <summary>
+    /// Grants a temporary Speed buff (+Haste, +Concentration, +Agility).
+    /// While active, the player pulses gold.
+    /// </summary>
+    public void ApplySpeedBuff(int hasteBonus, int concBonus, int agiBonus, float duration)
+    {
+        var stats = _archerySystem?.PlayerStats;
+        if (stats != null)
+        {
+            // Remove old buff if re-applying
+            if (_speedBuffHaste > 0) stats.Haste -= _speedBuffHaste;
+            if (_speedBuffConc > 0) stats.Concentration -= _speedBuffConc;
+            if (_speedBuffAgi > 0) stats.Agility -= _speedBuffAgi;
+
+            _speedBuffHaste = hasteBonus;
+            _speedBuffConc = concBonus;
+            _speedBuffAgi = agiBonus;
+            stats.Haste += hasteBonus;
+            stats.Concentration += concBonus;
+            stats.Agility += agiBonus;
+            _speedBuffTimer = duration;
+            _speedPulseTimer = 0f;
+            GD.Print($"[PlayerController] Speed buff active for {duration}s — Haste+{hasteBonus} Conc+{concBonus} Agi+{agiBonus}");
+        }
+    }
+
+    private void SpawnHealNumber(float amount)
+    {
+        if (!GameSettings.ShowDamageNumbers) return;
+
+        var scene = GD.Load<PackedScene>("res://Scenes/VFX/DamageNumber.tscn");
+        if (scene != null)
+        {
+            var dmgNum = scene.Instantiate<Node3D>();
+            GetTree().CurrentScene.AddChild(dmgNum);
+            dmgNum.GlobalPosition = GlobalPosition + new Vector3(0, 2.0f, 0);
+
+            if (dmgNum is DamageNumber dn)
+            {
+                dn.SetHeal(amount);
+            }
+        }
+    }
+
+    public void ApplyShield(int amount, float duration)
+    {
+        var stats = _archerySystem?.PlayerStats;
+        if (stats != null)
+        {
+            stats.CurrentShield += amount;
+            if (duration > _shieldTimer) _shieldTimer = duration;
+            GD.Print($"[Player {PlayerIndex}] Shield +{amount} applied. Total: {stats.CurrentShield}, Duration: {_shieldTimer}s");
         }
     }
 
@@ -500,5 +754,54 @@ public partial class PlayerController : CharacterBody3D
             float healAmount = damage * LifestealPercent;
             Heal(healAmount);
         }
+    }
+
+    private float _flashTimer = 0f;
+    public void FlashRed(float duration = 0.2f)
+    {
+        _flashTimer = duration;
+        ApplyFlashVisuals(Colors.Red);
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_flashTimer > 0)
+        {
+            _flashTimer -= (float)delta;
+            if (_flashTimer <= 0)
+            {
+                _flashTimer = 0;
+                ApplyFlashVisuals(Colors.White, true); // Restore
+            }
+        }
+    }
+
+    private void ApplyFlashVisuals(Color color, bool restore = false)
+    {
+        // Recursively find and flash all meshes in the player visuals
+        void FlashRecursive(Node node)
+        {
+            if (node is MeshInstance3D mesh)
+            {
+                if (restore)
+                {
+                    mesh.MaterialOverride = null;
+                }
+                else
+                {
+                    var mat = new StandardMaterial3D();
+                    mat.AlbedoColor = color;
+                    mat.EmissionEnabled = true;
+                    mat.Emission = color;
+                    mat.EmissionEnergyMultiplier = 2.0f;
+                    mesh.MaterialOverride = mat;
+                }
+            }
+            foreach (Node child in node.GetChildren()) FlashRecursive(child);
+        }
+
+        // Search Erika or custom models
+        var visuals = GetNodeOrNull("Visuals") ?? GetNodeOrNull("Erika") ?? (Node)this;
+        FlashRecursive(visuals);
     }
 }

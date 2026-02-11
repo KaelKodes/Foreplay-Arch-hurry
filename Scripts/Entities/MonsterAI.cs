@@ -102,11 +102,28 @@ public partial class MonsterAI : Node
             DetectPlayers();
         }
 
-        // 3. Clear target if too far
-        if (_combatTarget != null && _combatTarget.GlobalPosition.DistanceTo(_monster.GlobalPosition) > DetectionRange * 1.5f)
+        // 3. Clear target if too far (Leash)
+        if (_combatTarget != null && _combatTarget.GlobalPosition.DistanceTo(_monster.GlobalPosition) > DetectionRange * 1.25f)
         {
             _combatTarget = null;
             _isHelping = false;
+        }
+    }
+
+    public void OnAttacked(Node attacker)
+    {
+        if (attacker is not Node3D attacker3D || attacker == _monster) return;
+
+        // Defensive switch: If hit while idle/wandering, or hit by a minion while chasing a player
+        bool isChasingPlayer = _combatTarget is PlayerController;
+        bool attackerIsMinion = attacker is MobaMinion || attacker is Monsters;
+
+        if (_combatTarget == null || (isChasingPlayer && attackerIsMinion))
+        {
+            _combatTarget = attacker3D;
+            _isWalking = true;
+            _stateTimer = WanderDuration;
+            GD.Print($"[MonsterAI] {_monster.Species} defending itself against {attacker.Name}");
         }
     }
 

@@ -20,13 +20,19 @@ public partial class DamageNumber : Node3D
         Scale = Vector3.One * 0.5f;
     }
 
-    public void SetDamage(float damage)
+    public void SetDamage(float damage, bool isLocalPlayer = true)
     {
         if (_label != null)
         {
             _label.Text = damage.ToString("F0");
 
-            // Color based on damage amount
+            if (!isLocalPlayer)
+            {
+                _label.Modulate = new Color(0.6f, 0.6f, 0.6f); // Grey for others
+                return;
+            }
+
+            // Color based on damage amount (Local Player Only)
             if (damage >= 30f)
             {
                 _label.Modulate = new Color(1.0f, 0.3f, 0.1f); // Orange-red for big hits
@@ -39,6 +45,24 @@ public partial class DamageNumber : Node3D
             {
                 _label.Modulate = new Color(1.0f, 1.0f, 1.0f); // White for normal hits
             }
+        }
+    }
+
+    public void SetHeal(float amount)
+    {
+        if (_label != null)
+        {
+            _label.Text = "+" + amount.ToString("F0");
+            _label.Modulate = new Color(0.2f, 1.0f, 0.2f); // Vibrant Green
+        }
+    }
+
+    public void SetText(string text, Color color)
+    {
+        if (_label != null)
+        {
+            _label.Text = text;
+            _label.Modulate = color;
         }
     }
 

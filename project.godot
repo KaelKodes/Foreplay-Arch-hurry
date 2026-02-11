@@ -27,6 +27,16 @@ ToolManager="*res://Scripts/Systems/ToolManager.cs"
 CharacterRegistry="*res://Scripts/Systems/CharacterRegistry.cs"
 LobbyManager="*res://Scripts/Systems/LobbyManager.cs"
 
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=1200
+
 [dotnet]
 
 project/assembly_name="Foreplay- Par-Tee Time"
+
+[physics]
+
+common/physics_jitter_fix=0.0
+common/physics_interpolation=true

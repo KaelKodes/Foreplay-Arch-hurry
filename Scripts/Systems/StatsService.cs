@@ -18,7 +18,7 @@ public partial class StatsService : Node
             {
                 connection.Open();
                 var command = connection.CreateCommand();
-                command.CommandText = "SELECT Level, Experience, Gold, Strength, Agility, Dexterity, Vitality, Intelligence, MaxHealth, CurrentHealth, MaxStamina, CurrentStamina, MaxMana, CurrentMana, MaxFury, CurrentFury, IsRightHanded FROM Characters WHERE Name = @name";
+                command.CommandText = "SELECT Level, Experience, Gold, Strength, Agility, Wisdom, Vitality, Intelligence, Haste, Concentration, Stance, DamageType, ResourceType, MaxHealth, CurrentHealth, MaxStamina, CurrentStamina, MaxMana, CurrentMana, MaxFury, CurrentFury, IsRightHanded FROM Characters WHERE Name = @name";
                 command.Parameters.AddWithValue("@name", _currentHeroName);
 
                 using (var reader = command.ExecuteReader())
@@ -30,18 +30,23 @@ public partial class StatsService : Node
                         _playerStats.Gold = reader.GetInt32(2);
                         _playerStats.Strength = reader.GetInt32(3);
                         _playerStats.Agility = reader.GetInt32(4);
-                        _playerStats.Dexterity = reader.GetInt32(5);
+                        _playerStats.Wisdom = reader.GetInt32(5);
                         _playerStats.Vitality = reader.GetInt32(6);
                         _playerStats.Intelligence = reader.GetInt32(7);
-                        _playerStats.MaxHealth = reader.GetInt32(8);
-                        _playerStats.CurrentHealth = reader.GetInt32(9);
-                        _playerStats.MaxStamina = reader.GetInt32(10);
-                        _playerStats.CurrentStamina = reader.GetInt32(11);
-                        _playerStats.MaxMana = reader.GetInt32(12);
-                        _playerStats.CurrentMana = reader.GetInt32(13);
-                        _playerStats.MaxFury = reader.GetInt32(14);
-                        _playerStats.CurrentFury = reader.GetInt32(15);
-                        _playerStats.IsRightHanded = reader.GetInt32(16) == 1;
+                        _playerStats.Haste = reader.GetInt32(8);
+                        _playerStats.Concentration = reader.GetInt32(9);
+                        _playerStats.Stance = (HeroStance)reader.GetInt32(10);
+                        _playerStats.DamageType = (DamageType)reader.GetInt32(11);
+                        _playerStats.ResourceType = (ResourceType)reader.GetInt32(12);
+                        _playerStats.MaxHealth = reader.GetInt32(13);
+                        _playerStats.CurrentHealth = reader.GetInt32(14);
+                        _playerStats.MaxStamina = reader.GetInt32(15);
+                        _playerStats.CurrentStamina = reader.GetInt32(16);
+                        _playerStats.MaxMana = reader.GetInt32(17);
+                        _playerStats.CurrentMana = reader.GetInt32(18);
+                        _playerStats.MaxFury = reader.GetInt32(19);
+                        _playerStats.CurrentFury = reader.GetInt32(20);
+                        _playerStats.IsRightHanded = reader.GetInt32(21) == 1;
                         GD.Print($"[StatsService] Found record for {_currentHeroName}. HP: {_playerStats.CurrentHealth}");
                     }
                     else
@@ -67,8 +72,9 @@ public partial class StatsService : Node
                 var command = connection.CreateCommand();
                 command.CommandText = @"UPDATE Characters SET 
                     Level = @lvl, Experience = @xp, Gold = @gold,
-                    Strength = @str, Agility = @agi, Dexterity = @dex,
+                    Strength = @str, Agility = @agi, Wisdom = @wis,
                     Vitality = @vit, Intelligence = @int,
+                    Haste = @haste, Concentration = @conc,
                     MaxHealth = @mhp, CurrentHealth = @chp,
                     MaxStamina = @mst, CurrentStamina = @cst,
                     MaxMana = @mmp, CurrentMana = @cmp,
@@ -81,9 +87,11 @@ public partial class StatsService : Node
                 command.Parameters.AddWithValue("@gold", _playerStats.Gold);
                 command.Parameters.AddWithValue("@str", _playerStats.Strength);
                 command.Parameters.AddWithValue("@agi", _playerStats.Agility);
-                command.Parameters.AddWithValue("@dex", _playerStats.Dexterity);
+                command.Parameters.AddWithValue("@wis", _playerStats.Wisdom);
                 command.Parameters.AddWithValue("@vit", _playerStats.Vitality);
                 command.Parameters.AddWithValue("@int", _playerStats.Intelligence);
+                command.Parameters.AddWithValue("@haste", _playerStats.Haste);
+                command.Parameters.AddWithValue("@conc", _playerStats.Concentration);
                 command.Parameters.AddWithValue("@mhp", _playerStats.MaxHealth);
                 command.Parameters.AddWithValue("@chp", _playerStats.CurrentHealth);
                 command.Parameters.AddWithValue("@mst", _playerStats.MaxStamina);
@@ -146,27 +154,29 @@ public partial class StatsService : Node
 
     private void ApplyLevelUpBonuses()
     {
-        // Simple scaling: +10% HP, +5% Resource pools, +2 to primary stats
-        _playerStats.MaxHealth += (int)(_playerStats.MaxHealth * 0.10f);
+        // +2 to core attributes per level
+        _playerStats.Strength += 2;
+        _playerStats.Intelligence += 2;
+        _playerStats.Vitality += 2;
+        _playerStats.Wisdom += 2;
+        _playerStats.Agility += 2;
+        // Haste and Concentration do NOT increase on level-up (items/buffs only)
+
+        // Recalculate derived vitals from stats
+        _playerStats.MaxHealth = 20 * _playerStats.Vitality;
         _playerStats.CurrentHealth = _playerStats.MaxHealth; // Full heal
 
-        _playerStats.Strength += 2;
-        _playerStats.Agility += 2;
-        _playerStats.Dexterity += 2;
-        _playerStats.Vitality += 2;
-        _playerStats.Intelligence += 2;
-
-        _playerStats.MaxStamina += (int)(_playerStats.MaxStamina * 0.05f);
+        _playerStats.MaxStamina = 100 + (5 * _playerStats.Agility);
         _playerStats.CurrentStamina = _playerStats.MaxStamina;
 
-        _playerStats.MaxMana += (int)(_playerStats.MaxMana * 0.05f);
+        _playerStats.MaxMana = 15 * _playerStats.Wisdom;
         _playerStats.CurrentMana = _playerStats.MaxMana;
 
-        // Step 4: Grant points
+        // Grant points
         _playerStats.AbilityPoints += 1;
         _playerStats.AttributePoints += 5;
 
-        GD.Print($"[StatsService] Points granted! Ability: {_playerStats.AbilityPoints}, Attribute: {_playerStats.AttributePoints}");
+        GD.Print($"[StatsService] Level {_playerStats.Level}! STR:{_playerStats.Strength} INT:{_playerStats.Intelligence} VIT:{_playerStats.Vitality} WIS:{_playerStats.Wisdom} AGI:{_playerStats.Agility}");
     }
 
     [Signal] public delegate void LevelUpEventHandler(int newLevel);
@@ -207,8 +217,5 @@ public partial class StatsService : Node
         GD.Print($"[StatsService] {amount} Gold added. Total: {_playerStats.Gold}");
     }
 
-    public void UpdateAnger(float accuracyError)
-    {
-        // Legacy anger mechanic from golf era - disabled for Arch Hurry
-    }
+    // Riverside logic for objective kills.
 }

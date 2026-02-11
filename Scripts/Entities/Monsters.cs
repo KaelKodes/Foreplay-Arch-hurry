@@ -82,7 +82,7 @@ public partial class Monsters : InteractableObject
             string s = Species.ToLower();
             if (s == "zombie") LoadZombieAnimations();
             else if (s == "crawler") LoadCrawlerAnimations();
-            else if (s == "skeleton" || s == "lich" || s == "conjurer") AliasEmbeddedAnimations();
+            else if (s == "skeleton" || s == "lich" || s == "conjurer") LoadSkeletonAnimations();
 
             if (_animPlayer.GetAnimationList().Length > 0) PlayAnimationRobust("Idle");
         }
@@ -95,15 +95,17 @@ public partial class Monsters : InteractableObject
     {
         if (_isDead) return;
         _lastAttacker = attacker;
+        NodePath path = attacker != null ? attacker.GetPath() : new NodePath();
 
-        if (Multiplayer.IsServer()) Rpc(nameof(NetOnHit), damage, hitPosition, hitNormal);
+        if (Multiplayer.IsServer()) Rpc(nameof(NetOnHit), damage, hitPosition, hitNormal, path);
         ProcessHit(damage, hitPosition, hitNormal);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
-    public void NetOnHit(float damage, Vector3 hitPosition, Vector3 hitNormal)
+    public void NetOnHit(float damage, Vector3 hitPosition, Vector3 hitNormal, NodePath attackerPath)
     {
         if (_isDead || Multiplayer.IsServer()) return;
+        _lastAttacker = (attackerPath.ToString() != "") ? GetNodeOrNull(attackerPath) : null;
         ProcessHit(damage, hitPosition, hitNormal);
     }
 
@@ -120,7 +122,11 @@ public partial class Monsters : InteractableObject
         }
 
         if (Health <= 0) Die();
-        else PlayHitReaction();
+        else
+        {
+            PlayHitReaction();
+            if (_ai != null) _ai.OnAttacked(_lastAttacker);
+        }
     }
 
     public void ApplyKnockback(Vector3 direction, float force)
@@ -158,13 +164,19 @@ public partial class Monsters : InteractableObject
 		if (colShape != null) colShape.SetDeferred("disabled", true);
 		RemoveFromGroup("targetables");
 
+		// ADD TO CORPSES GROUP for Necromancer consumption
+		AddToGroup("corpses");
+
 		if (_healthBar != null)
 		{
-			GetTree().CreateTimer(1.0f).Timeout += () =>
-			{
-				if (_healthBar != null && IsInstanceValid(_healthBar)) { _healthBar.QueueFree(); _healthBar = null; }
-			};
+			if (IsInstanceValid(_healthBar)) { _healthBar.QueueFree(); _healthBar = null; }
 		}
+
+		// Delay cleanup to allow for Corpse Consumption
+		GetTree().CreateTimer(30.0f).Timeout += () =>
+		{
+			if (IsInstanceValid(this)) QueueFree();
+		};
 	}
 
 	public override void _Process(double delta)
@@ -209,6 +221,15 @@ public partial class Monsters : InteractableObject
 		DamageModifier = 1.0f - reductionPercent;
 		_debuffTimer = duration;
 		GD.Print($"[Monsters] {Species} AP reduced by {reductionPercent * 100}% for {duration}s");
+	}
+
+	public void Heal(float amount)
+	{
+		if (_isDead) return;
+		Health = Mathf.Min(Health + amount, MaxHealth);
+		UpdateHealthBar();
+		SpawnHealNumber(amount);
+		GD.Print($"[Monsters] {Species} healed for {amount}. HP: {Health}/{MaxHealth}");
 	}
 
 	public virtual void OnPartDestroyed(MonsterPart part)

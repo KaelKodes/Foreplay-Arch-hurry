@@ -43,6 +43,7 @@ public static class MonsterVisuals
         {
             // [DEACTIVATED] Let the artist/editor control position
             // CenterAndGroundVisuals(scene, species); 
+            ApplySpeciesSpecificFixes(scene, species);
             onCollisionUpdate?.Invoke();
         }
         else
@@ -50,6 +51,47 @@ public static class MonsterVisuals
             GD.PrintErr($"[MonsterVisuals] FAILED to find any nodes matching Species: '{species}'. Showing everything as fallback.");
             ShowAllRecursive(scene);
             if (scene is Node3D n3d) n3d.Transform = Transform3D.Identity;
+            ApplySpeciesSpecificFixes(scene, species); // Try fixes anyway
+        }
+    }
+
+    /// <summary>
+    /// Programmatically apply visual fixes (materials, etc.) to specific species.
+    /// This resolves issues with imported assets missing materials.
+    /// </summary>
+    public static void ApplySpeciesSpecificFixes(Node scene, string species)
+    {
+        if (string.Equals(species, "Skeleton", StringComparison.OrdinalIgnoreCase))
+        {
+            // Apply Falchion Texture programmatically
+            // We search everything under the visual root for any node named Falchion
+            var root = scene.GetTree().CurrentScene;
+            var falchions = scene.FindChildren("Falchion*", "Node", true, false);
+
+            foreach (var falchion in falchions)
+            {
+                var mat = GD.Load<Material>("res://Assets/Monsters/Skeleton/M_Falchion.tres");
+                if (mat != null)
+                {
+                    var meshes = falchion.FindChildren("*", "MeshInstance3D", true, false);
+                    if (meshes.Count == 0 && falchion is MeshInstance3D m)
+                    {
+                        m.SetSurfaceOverrideMaterial(0, mat);
+                        GD.Print($"[MonsterVisuals] Applied M_Falchion material to direct mesh: {m.Name}");
+                    }
+                    else
+                    {
+                        foreach (var meshNode in meshes)
+                        {
+                            if (meshNode is MeshInstance3D mesh)
+                            {
+                                mesh.SetSurfaceOverrideMaterial(0, mat);
+                                GD.Print($"[MonsterVisuals] Applied M_Falchion material to {mesh.Name}");
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -171,7 +213,8 @@ public static class MonsterVisuals
         // Special case: Vampire and Crawler often have generic mesh names (Group####)
         // that shouldn't be filtered out if we already found the main match or if we want everything.
         bool bypassFilter = string.Equals(species, "Vampire", StringComparison.OrdinalIgnoreCase) ||
-                           string.Equals(species, "Crawler", StringComparison.OrdinalIgnoreCase);
+                           string.Equals(species, "Crawler", StringComparison.OrdinalIgnoreCase) ||
+                           string.Equals(species, "Skeleton", StringComparison.OrdinalIgnoreCase);
 
         foreach (Node child in node.GetChildren())
         {
@@ -253,6 +296,7 @@ public static class MonsterVisuals
         if (s.Contains("wizard")) return MonsterBodyType.Biped;
         if (s.Contains("demon")) return MonsterBodyType.Biped;
         if (s.Contains("crawler")) return MonsterBodyType.Biped;
+        if (s.Contains("skeleton")) return MonsterBodyType.Biped;
         if (s.Contains("vampire")) return MonsterBodyType.FlyingArms; // She has wings!
 
         return MonsterBodyType.Unknown;

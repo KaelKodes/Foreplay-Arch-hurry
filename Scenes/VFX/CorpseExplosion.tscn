@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://e8k7m4v3l1p2"]
+
+[sub_resource type="Curve" id="Curve_scale"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_scale"]
+curve = SubResource("Curve_scale")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_blood"]
+direction = Vector3(0, 1, 0)
+spread = 180.0
+gravity = Vector3(0, -5, 0)
+initial_velocity_min = 3.0
+initial_velocity_max = 6.0
+scale_min = 0.5
+scale_max = 2.0
+scale_curve = SubResource("CurveTexture_scale")
+color = Color(0.5, 0, 0, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_blood"]
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_particle"]
+material = SubResource("StandardMaterial3D_blood")
+size = Vector2(0.3, 0.3)
+
+[node name="CorpseExplosion" type="Node3D"]
+
+[node name="BloodParticles" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 50
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource("ParticleProcessMaterial_blood")
+draw_pass_1 = SubResource("QuadMesh_particle")
+
+[node name="Timer" type="Timer" parent="."]
+wait_time = 2.0
+one_shot = true
+autostart = true
+
+[connection signal="timeout" from="Timer" to="." method="queue_free"]
