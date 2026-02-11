@@ -47,6 +47,16 @@ public partial class NetworkManager
             MobaTeam hostTeam = lobbyData?.Team ?? SelectedTeam;
             string hostClass = lobbyData?.ClassName ?? "Ranger";
             SpawnPlayer(1, hostTeam, hostClass);
+
+            // Spawn all bots from lobby
+            var allPlayers = LobbyManager.Instance.GetPlayers();
+            foreach (var lobbyPlayer in allPlayers)
+            {
+                if (lobbyPlayer.IsBot)
+                {
+                    SpawnBot(lobbyPlayer);
+                }
+            }
         }
         else
         {
@@ -242,6 +252,56 @@ public partial class NetworkManager
         _players[id] = player;
         player.Rpc(nameof(PlayerController.NetTeleport), spawnPos, player.RotationDegrees);
         player.Rpc(nameof(PlayerController.NetSetPlayerIndex), playerIndex);
+    }
+
+    /// <summary>
+    /// Spawn a bot-controlled hero on the server.
+    /// Creates a PlayerController with a HeroBrain child for AI decision-making.
+    /// </summary>
+    public void SpawnBot(LobbyPlayerData botData)
+    {
+        if (!Multiplayer.IsServer()) return;
+
+        // Spawn the player entity (authority = server, ID 1)
+        SpawnPlayer(botData.Id, botData.Team, botData.ClassName);
+
+        if (!_players.ContainsKey(botData.Id))
+        {
+            GD.PrintErr($"[NetworkManager] Failed to spawn bot: {botData.Name}");
+            return;
+        }
+
+        var pc = _players[botData.Id];
+
+        // Override multiplayer authority to be the server
+        pc.SetMultiplayerAuthority(1);
+
+        // Initialize bot systems
+        pc.InitializeAsBot(botData);
+
+        // Offset spawn so bots start past the nexus, not inside it
+        if (MobaGameManager.Instance != null)
+        {
+            bool isRed = botData.Team == MobaTeam.Red;
+            Vector3 ownNexus = isRed ? MobaGameManager.Instance.RedSpawnPos : MobaGameManager.Instance.BlueSpawnPos;
+            Vector3 enemyNexus = isRed ? MobaGameManager.Instance.BlueSpawnPos : MobaGameManager.Instance.RedSpawnPos;
+            Vector3 laneDir = (enemyNexus - ownNexus).Normalized();
+            laneDir.Y = 0;
+
+            // Push 10 units forward along lane + small random lateral offset
+            float lateralOffset = (float)GD.RandRange(-2.0, 2.0);
+            Vector3 lateral = new Vector3(-laneDir.Z, 0, laneDir.X) * lateralOffset;
+            pc.GlobalPosition = ownNexus + laneDir * 10f + lateral + Vector3.Up * 1f;
+        }
+
+        // Attach AI brain
+        var brain = new HeroBrain();
+        brain.Name = "HeroBrain";
+        brain.Difficulty = BotDifficulty.Beginner;
+        brain.HeroClass = botData.ClassName;
+        pc.AddChild(brain);
+
+        GD.Print($"[NetworkManager] Bot spawned: {botData.Name} ({botData.ClassName}) on {botData.Team}");
     }
 
     public void SetupObjectSpawner()

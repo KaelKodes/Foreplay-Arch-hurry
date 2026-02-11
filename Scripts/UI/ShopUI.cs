@@ -110,6 +110,23 @@ public partial class ShopUI : CanvasLayer
                 GetViewport().SetInputAsHandled();
                 return;
             }
+
+            // P to toggle shop
+            if (key.Keycode == Key.P && !key.ShiftPressed && !key.CtrlPressed)
+            {
+                Toggle();
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+
+            // C to toggle hero stats panel
+            if (key.Keycode == Key.C && !key.ShiftPressed && !key.CtrlPressed)
+            {
+                var hud = GetTree().GetFirstNodeInGroup("moba_hud") as MobaHUD;
+                hud?.ToggleHeroStats();
+                GetViewport().SetInputAsHandled();
+                return;
+            }
         }
     }
 
@@ -133,6 +150,9 @@ public partial class ShopUI : CanvasLayer
         _searchBox?.GrabFocus();
         // Hide crosshair while shopping
         SetCrosshairVisible(false);
+        // Auto-open hero stats panel
+        var hud = GetTree().GetFirstNodeInGroup("moba_hud") as MobaHUD;
+        hud?.OpenHeroStatsForShop();
     }
 
     public new void Hide()
@@ -141,6 +161,9 @@ public partial class ShopUI : CanvasLayer
         Visible = false;
         // Restore crosshair
         SetCrosshairVisible(true);
+        // Auto-close hero stats if forced by shop
+        var hud = GetTree().GetFirstNodeInGroup("moba_hud") as MobaHUD;
+        hud?.CloseHeroStatsForShop();
     }
 
     private void SetCrosshairVisible(bool visible)
@@ -179,7 +202,7 @@ public partial class ShopUI : CanvasLayer
         mainStyle.ShadowColor = new Color(0, 0, 0, 0.5f);
         mainStyle.ShadowSize = 10;
         _mainPanel.AddThemeStyleboxOverride("panel", mainStyle);
-        _mainPanel.AnchorLeft = 0.09f;
+        _mainPanel.AnchorLeft = 0.20f;
         _mainPanel.AnchorRight = 0.88f;
         _mainPanel.AnchorTop = 0.06f;
         _mainPanel.AnchorBottom = 0.85f;
@@ -794,17 +817,36 @@ public partial class ShopUI : CanvasLayer
             slotPanel.AddThemeStyleboxOverride("panel", slotStyle);
             slotPanel.MouseFilter = Control.MouseFilterEnum.Ignore;
 
-            var slotLabel = new Label();
-            slotLabel.Text = (slots[i] != null && !string.IsNullOrEmpty(slots[i].DisplayName))
-                ? slots[i].DisplayName.Substring(0, Math.Min(3, slots[i].DisplayName.Length))
-                : $"{i + 1}";
-            slotLabel.AddThemeFontSizeOverride("font_size", 10);
-            slotLabel.AddThemeColorOverride("font_color", MobaTheme.TextMuted);
-            slotLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            slotLabel.VerticalAlignment = VerticalAlignment.Center;
-            slotLabel.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            slotLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
-            slotPanel.AddChild(slotLabel);
+            bool hasItem = slots[i] != null && !string.IsNullOrEmpty(slots[i].DisplayName);
+
+            if (hasItem && !string.IsNullOrEmpty(slots[i].IconPath) && ResourceLoader.Exists(slots[i].IconPath))
+            {
+                var iconTex = new TextureRect();
+                iconTex.Texture = GD.Load<Texture2D>(slots[i].IconPath);
+                iconTex.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+                iconTex.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+                iconTex.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+                iconTex.OffsetLeft = 2;
+                iconTex.OffsetTop = 2;
+                iconTex.OffsetRight = -2;
+                iconTex.OffsetBottom = -2;
+                iconTex.MouseFilter = Control.MouseFilterEnum.Ignore;
+                slotPanel.AddChild(iconTex);
+            }
+            else
+            {
+                var slotLabel = new Label();
+                slotLabel.Text = hasItem
+                    ? slots[i].DisplayName.Substring(0, Math.Min(3, slots[i].DisplayName.Length))
+                    : $"{i + 1}";
+                slotLabel.AddThemeFontSizeOverride("font_size", 10);
+                slotLabel.AddThemeColorOverride("font_color", MobaTheme.TextMuted);
+                slotLabel.HorizontalAlignment = HorizontalAlignment.Center;
+                slotLabel.VerticalAlignment = VerticalAlignment.Center;
+                slotLabel.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+                slotLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
+                slotPanel.AddChild(slotLabel);
+            }
 
             _inventoryRow.AddChild(slotPanel);
         }
@@ -848,7 +890,7 @@ public partial class ShopUI : CanvasLayer
             {
                 if (slots[i] == null || string.IsNullOrEmpty(slots[i].DisplayName))
                 {
-                    slots[i] = new ToolItem(ToolType.None, item.Name, "", "");
+                    slots[i] = new ToolItem(ToolType.None, item.Name, item.IconPath ?? "", item.Id ?? "");
                     break;
                 }
             }
@@ -867,6 +909,9 @@ public partial class ShopUI : CanvasLayer
         }
 
         GD.Print($"[Shop] Bought {item.Name} for {item.GoldCost}g!");
+
+        // Signal inventory panel to refresh
+        ToolManager.Instance?.EmitSignal(ToolManager.SignalName.HotbarUpdated);
 
         RefreshDetailPanel();
         RefreshItemGrid();
@@ -927,6 +972,9 @@ public partial class ShopUI : CanvasLayer
         }
 
         GD.Print($"[Shop] Sold {item.Name} for {refund}g!");
+
+        // Signal inventory panel to refresh
+        ToolManager.Instance?.EmitSignal(ToolManager.SignalName.HotbarUpdated);
 
         RefreshDetailPanel();
         RefreshItemGrid();

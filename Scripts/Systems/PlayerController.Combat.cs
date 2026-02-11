@@ -39,6 +39,17 @@ public partial class PlayerController
             _archerySystem.UpdateChargeProgress(chargePercent);
     }
 
+    /// <summary>
+    /// Returns true if the given ability slot is off cooldown and the player isn't animation-locked.
+    /// Used by HeroBrain to avoid spamming abilities on cooldown.
+    /// </summary>
+    public bool IsAbilityReady(int index)
+    {
+        if (_abilities == null || !_abilities.ContainsKey(index)) return false;
+        if (_abilityBusyTimer > 0f) return false;
+        return !_abilities[index].IsOnCooldown;
+    }
+
     private void TriggerAbility(int index)
     {
         if (_abilities == null || !_abilities.ContainsKey(index)) return;

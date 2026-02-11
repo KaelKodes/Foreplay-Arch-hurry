@@ -550,7 +550,7 @@ shape = SubResource("BoxShape3D_eo4ho")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9612905, 0.21494293, -254.50003)
 
 [node name="Plant_12" parent="Floor" unique_id=64490696 instance=ExtResource("8_psq80")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.226959, 0.535024, 1.0059242)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.02762, 0.535024, 1.0059242)
 
 [node name="RockPath_Square_Wide2" parent="Floor" unique_id=1955527979 instance=ExtResource("9_5ihr2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.03856182, 0.40267098, 140.17468)
@@ -803,28 +803,28 @@ shape = SubResource("BoxShape3D_7cb6s")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.21055, 0.03136225, 244.7445)
 
 [node name="Grass_Wispy_Tall2" parent="." unique_id=144048632 instance=ExtResource("12_uo6ug")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.241293, 0.036051817, 0.7968998)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.902073, 0.036051817, 0.7968998)
 
 [node name="Grass_Wispy_Tall3" parent="." unique_id=1354870615 instance=ExtResource("12_uo6ug")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.2023487, 0.036051817, -0.5562954)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.863129, 0.036051817, -0.5562954)
 
 [node name="Grass_Wispy_Tall4" parent="." unique_id=1489892473 instance=ExtResource("12_uo6ug")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.3726606, 0.036051817, 1.5776663)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.03344, 0.036051817, 1.5776663)
 
 [node name="Grass_Wispy_Tall5" parent="." unique_id=1757952013 instance=ExtResource("12_uo6ug")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.348255, 0.036051817, -1.8085108)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.009035, 0.036051817, -1.8085108)
 
 [node name="Grass_Wispy_Tall6" parent="." unique_id=951835282 instance=ExtResource("12_uo6ug")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.0499334, 0.036051817, 2.120328)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.377081, 0.036051817, 2.120328)
 
 [node name="Grass_Wispy_Tall7" parent="." unique_id=1918663381 instance=ExtResource("12_uo6ug")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.1063623, 0.036051817, 0.97221184)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.43351, 0.036051817, 0.97221184)
 
 [node name="Grass_Wispy_Tall8" parent="." unique_id=1659608285 instance=ExtResource("12_uo6ug")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.8611975, 0.036051817, -0.09450245)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.188345, 0.036051817, -0.09450245)
 
 [node name="Grass_Wispy_Tall9" parent="." unique_id=184303632 instance=ExtResource("12_uo6ug")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.8853426, 0.036051817, -1.5819273)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.21249, 0.036051817, -1.5819273)
 
 [node name="DeadTree_12" parent="." unique_id=957608000 instance=ExtResource("2_iqjgu")]
 transform = Transform3D(0.40777746, 0, 1.0365287, 0, 1.3350903, 0, -0.97006416, 0, 0.43571663, 12.667563, 0.3355546, -277.0507)
@@ -867,7 +867,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.09595966, 7.4968176, -0.120
 shape = SubResource("BoxShape3D_umt3i")
 
 [node name="TwistedTree_42" parent="." unique_id=1459099008 instance=ExtResource("24_g404y")]
-transform = Transform3D(0.9016745, 0, 0, 0, 1, 0, 0, 0, 1, -11.720715, 0.20147468, 0.3736267)
+transform = Transform3D(0.9016745, 0, 0, 0, 1, 0, 0, 0, 1, -15.841857, 0.20147468, 0.3736267)
 script = ExtResource("nature_script")
 ObjectName = "TwistedTree_42"
 IsMovable = false

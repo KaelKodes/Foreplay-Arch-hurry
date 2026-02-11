@@ -11,7 +11,7 @@ public partial class CharacterModelManager
     /// Logic mirrors Erika's AnimationTree but via direct Play() calls.
     /// lockedPower: 0=no charge, 50=basic, 100=perfect, 200=overcharged
     /// </summary>
-    public void UpdateCustomAnimations(bool isMoving, bool sprinting, bool jumping, bool swinging, bool firing, float lockedPower = 0f)
+    public void UpdateCustomAnimations(bool isMoving, bool sprinting, bool jumping, bool swinging, bool firing, float lockedPower = 0f, bool isVaulting = false)
     {
         if (_customAnimPlayer == null) return;
 
@@ -52,13 +52,14 @@ public partial class CharacterModelManager
         else
         {
             // We are NOT currently triggering an action.
-            // If we are currently playing an action animation, LET IT FINISH.
-            if (isActionAnim && _customAnimPlayer.IsPlaying())
+            // If we are currently playing an action animation, LET IT FINISH
+            // UNLESS we're vaulting/jumping (physics override takes priority)
+            if (isActionAnim && _customAnimPlayer.IsPlaying() && !isVaulting && !jumping)
             {
                 return;
             }
 
-            if (jumping) target = "Jump";
+            if (isVaulting || jumping) target = "Jump";
             else if (isMoving) target = sprinting ? "Run" : "Walk";
         }
 

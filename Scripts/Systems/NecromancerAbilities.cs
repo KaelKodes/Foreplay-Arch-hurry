@@ -47,8 +47,8 @@ public static class NecromancerAbilities
 
                         // 3. Calculation
                         int intel = stats?.Intelligence ?? 10;
-                        float damage = 80f + (1.5f * intel);
-                        float heal = damage * 0.4f;
+                        float damage = (80f + (1.5f * intel)) * 0.8f; // Nerfed: 20% less damage
+                        float heal = damage * 0.5f; // Nerfed: heals 50% of damage dealt
 
                         // 4. Hit Effect & Visual Feedback
                         if (target is Monsters m)

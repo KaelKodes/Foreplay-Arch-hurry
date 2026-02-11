@@ -212,7 +212,7 @@ public partial class StatsService : Node
     // Riverside logic for objective kills.
     public void AddGold(int amount)
     {
-        if (amount <= 0) return;
+        if (amount == 0) return;
         _playerStats.Gold += amount;
         GD.Print($"[StatsService] {amount} Gold added. Total: {_playerStats.Gold}");
     }

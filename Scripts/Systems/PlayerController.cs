@@ -42,10 +42,15 @@ public partial class PlayerController : CharacterBody3D
     [Export] public int PlayerIndex { get; set; } = 0;
     private int _lastPlayerIndex = -1;
 
+    // ── Bot Support ───────────────────────────────────
+    public bool IsBot { get; private set; } = false;
+    public BotInputProvider BotInput { get; private set; }
+
     public bool IsLocal
     {
         get
         {
+            if (IsBot) return false; // Bots are never "local" — driven by HeroBrain
             if (Multiplayer == null || Multiplayer.MultiplayerPeer == null ||
                 Multiplayer.MultiplayerPeer.GetConnectionStatus() == MultiplayerPeer.ConnectionStatus.Disconnected)
             {
@@ -53,6 +58,16 @@ public partial class PlayerController : CharacterBody3D
             }
             return IsMultiplayerAuthority();
         }
+    }
+
+    /// <summary>
+    /// Initialize this PlayerController as a bot. Called by NetworkManager after spawning.
+    /// </summary>
+    public void InitializeAsBot(LobbyPlayerData data)
+    {
+        IsBot = true;
+        BotInput = new BotInputProvider();
+        GD.Print($"[PlayerController] Initialized as bot: {data.Name} ({data.ClassName}) on {data.Team}");
     }
 
     private PlayerState _currentState = PlayerState.WalkMode;
@@ -76,6 +91,7 @@ public partial class PlayerController : CharacterBody3D
     private InteractableObject _lastHoveredObject;
     private MainHUDController _hud;
     private MeleeSystem _meleeSystem;
+    private HealthBar3D _heroHealthBar;
     private AnimationTree _animTree;
     private AnimationPlayer _animPlayer;
     private Dictionary<int, HeroAbilityBase> _abilities = new();
@@ -159,6 +175,9 @@ public partial class PlayerController : CharacterBody3D
 
                 GD.Print($"[Player {PlayerIndex}] HP: {stats.CurrentHealth}/{stats.MaxHealth}, Shield: {stats.CurrentShield}");
 
+                // Update floating HP bar
+                UpdateHeroHealthBar();
+
                 // Trigger death if HP reaches zero
                 if (stats.CurrentHealth <= 0 && CurrentState != PlayerState.Dead)
                 {
@@ -166,6 +185,27 @@ public partial class PlayerController : CharacterBody3D
                 }
             }
         }
+    }
+
+    private void DeferredCreateHeroHealthBar()
+    {
+        if (IsLocal) return; // Local player sees their HP in the HUD
+        var scene = GD.Load<PackedScene>("res://Scenes/UI/Combat/HealthBar3D.tscn");
+        if (scene != null)
+        {
+            _heroHealthBar = scene.Instantiate<HealthBar3D>();
+            AddChild(_heroHealthBar);
+            _heroHealthBar.Position = new Vector3(0, 2.5f, 0);
+        }
+    }
+
+    private void UpdateHeroHealthBar()
+    {
+        if (_heroHealthBar == null) return;
+        var stats = _archerySystem?.PlayerStats;
+        if (stats == null) return;
+        _heroHealthBar.UpdateHealth(stats.CurrentHealth, stats.MaxHealth, stats.CurrentShield);
+        _heroHealthBar.Visible = CurrentState != PlayerState.Dead;
     }
     private bool _isIntercepting = false;
     private float _interceptTime = 0.0f;
@@ -275,6 +315,9 @@ public partial class PlayerController : CharacterBody3D
         _archerySystem = GetNodeOrNull<ArcherySystem>("ArcherySystem");
         AddToGroup("player");
         AddToGroup("targetables");
+
+        // Floating HP bar for non-local heroes (so you can see enemy/ally HP)
+        CallDeferred(nameof(DeferredCreateHeroHealthBar));
         _meleeSystem = GetNodeOrNull<MeleeSystem>("MeleeSystem");
 
         if (_archerySystem == null && !ArcherySystemPath.IsEmpty)
@@ -374,6 +417,12 @@ public partial class PlayerController : CharacterBody3D
 
             _archerySystem?.PlayerStatsService?.Connect("PerkSelected", new Callable(this, nameof(OnPerkSelected)));
         }
+        else if (IsBot)
+        {
+            // Bots need team groups and combat systems, but no camera/HUD/input
+            AddToGroup("player");
+            if (Team != MobaTeam.None) AddToGroup($"team_{Team.ToString().ToLower()}");
+        }
         else
         {
             if (_camera != null) { _camera.QueueFree(); _camera = null; }
@@ -403,6 +452,13 @@ public partial class PlayerController : CharacterBody3D
         }
 
         UpdateAnimations(delta);
+
+        // ── Bot processing ───────────────────────────────────────
+        if (IsBot)
+        {
+            ProcessBotPhysics(delta);
+            return;
+        }
 
         if (!IsLocal) return;
 
@@ -470,6 +526,70 @@ public partial class PlayerController : CharacterBody3D
             case PlayerState.BuildMode:
                 HandleBuildModeInput(delta);
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Physics processing for bot-controlled players.
+    /// Reads from BotInputProvider instead of Godot Input.
+    /// </summary>
+    private void ProcessBotPhysics(double delta)
+    {
+        float dt = (float)delta;
+
+        // ── Tick recall cooldown ─────────────────────────────────
+        if (_recallCooldown > 0f)
+        {
+            _recallCooldown -= dt;
+            if (_recallCooldown < 0f) _recallCooldown = 0f;
+        }
+
+        // ── Dead state ───────────────────────────────────────────
+        if (CurrentState == PlayerState.Dead)
+        {
+            _respawnTimer -= dt;
+            if (_respawnTimer <= 0f) Respawn();
+            return;
+        }
+
+        // ── Tick ability cooldowns ───────────────────────────────
+        if (_abilityBusyTimer > 0f)
+        {
+            _abilityBusyTimer -= dt;
+            if (_abilityBusyTimer < 0f) _abilityBusyTimer = 0f;
+        }
+        foreach (var ability in _abilities.Values)
+            ability.UpdateCooldown(dt);
+
+        if (BotInput == null) return;
+
+        // ── Movement from BotInputProvider ───────────────────────
+        HandleBotMovement(delta);
+
+        // ── Recall ───────────────────────────────────────────────
+        if (BotInput.WantRecall && _recallCooldown <= 0f)
+        {
+            TriggerRecall();
+        }
+
+        // ── Target locking ───────────────────────────────────────
+        if (BotInput.DesiredTarget != null)
+        {
+            _hardLockTarget = BotInput.DesiredTarget;
+            _archerySystem?.SetTarget(_hardLockTarget);
+        }
+
+        // ── Abilities ────────────────────────────────────────────
+        if (BotInput.WantAbility >= 0 && BotInput.WantAbility < 3)
+        {
+            TriggerAbility(BotInput.WantAbility);
+        }
+
+        // ── Attack ───────────────────────────────────────────────
+        if (BotInput.WantAttackPress)
+        {
+            // Uses melee or ranged based on class (same as human players)
+            PerformBasicAttack();
         }
     }
 
@@ -731,13 +851,26 @@ public partial class PlayerController : CharacterBody3D
         Vector3 spawnPos = GetTeamSpawnPosition();
         TeleportTo(spawnPos, spawnPos + Vector3.Forward * 10f);
 
+        // Bots: offset past the nexus so they don't get stuck on it
+        if (IsBot && MobaGameManager.Instance != null)
+        {
+            bool isRed = Team == MobaTeam.Red;
+            Vector3 ownNexus = isRed ? MobaGameManager.Instance.RedSpawnPos : MobaGameManager.Instance.BlueSpawnPos;
+            Vector3 enemyNexus = isRed ? MobaGameManager.Instance.BlueSpawnPos : MobaGameManager.Instance.RedSpawnPos;
+            Vector3 laneDir = (enemyNexus - ownNexus).Normalized();
+            laneDir.Y = 0;
+            float lateralOffset = (float)GD.RandRange(-2.0, 2.0);
+            Vector3 lateral = new Vector3(-laneDir.Z, 0, laneDir.X) * lateralOffset;
+            GlobalPosition = ownNexus + laneDir * 10f + lateral + Vector3.Up * 1f;
+        }
+
         // Play idle anim to reset from death
         var modelMgr = GetNodeOrNull<CharacterModelManager>("ModelManager")
                     ?? GetNodeOrNull<CharacterModelManager>("CharacterModelManager");
         modelMgr?.PlayAnimation("Idle");
 
         EmitSignal(SignalName.PlayerRespawned);
-        GD.Print($"[Player {PlayerIndex}] Respawned at {spawnPos} with full HP ({stats?.MaxHealth})");
+        GD.Print($"[Player {PlayerIndex}] Respawned at {GlobalPosition} with full HP ({stats?.MaxHealth})");
     }
 
     // ══════════════════════════════════════════════════════════════

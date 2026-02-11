@@ -35,6 +35,11 @@ public partial class MobaHUD : CanvasLayer
 	private ShopUI _shopUI;
 	private Button _shopButton;
 
+	// Hero Stats Panel
+	private HeroStatsPanel _heroStatsPanel;
+	private Button _heroStatsButton;
+	private bool _heroStatsForcedByShop;
+
 	// Perk Choice UI
 	private Panel _perkChoicePanel;
 	private HBoxContainer _perkContainer;
@@ -59,9 +64,11 @@ public partial class MobaHUD : CanvasLayer
 	public override void _Ready()
 	{
 		Layer = 10;
+		AddToGroup("moba_hud");
 		BuildUI();
 		BuildPerkUI();
 		BuildShop();
+		BuildHeroStatsPanel();
 		CallDeferred(nameof(FindGameManager));
 		ConnectModeSignal();
 	}
@@ -76,6 +83,96 @@ public partial class MobaHUD : CanvasLayer
 	public void ToggleShop()
 	{
 		_shopUI?.Toggle();
+	}
+
+	// ── Hero Stats Panel API ────────────────────────────────
+
+	public bool IsHeroStatsOpen => _heroStatsPanel?.IsStatsVisible ?? false;
+
+	public void ToggleHeroStats()
+	{
+		_heroStatsPanel?.Toggle();
+	}
+
+	/// <summary>
+	/// Called when the shop opens. If stats panel is closed, force it open.
+	/// </summary>
+	public void OpenHeroStatsForShop()
+	{
+		if (_heroStatsPanel == null) return;
+		if (!_heroStatsPanel.IsStatsVisible)
+		{
+			_heroStatsPanel.ShowPanel();
+			_heroStatsForcedByShop = true;
+		}
+	}
+
+	/// <summary>
+	/// Called when the shop closes. Close stats panel only if we forced it open.
+	/// </summary>
+	public void CloseHeroStatsForShop()
+	{
+		if (_heroStatsPanel == null) return;
+		if (_heroStatsForcedByShop)
+		{
+			_heroStatsPanel.HidePanel();
+			_heroStatsForcedByShop = false;
+		}
+	}
+
+	private void BuildHeroStatsPanel()
+	{
+		_heroStatsPanel = new HeroStatsPanel();
+		_heroStatsPanel.Name = "HeroStatsPanel";
+		// Position above the resource panel (which ends at OffsetTop = -190)
+		_heroStatsPanel.AnchorLeft = 0f;
+		_heroStatsPanel.AnchorTop = 1f;
+		_heroStatsPanel.AnchorBottom = 1f;
+		_heroStatsPanel.OffsetLeft = 10;
+		_heroStatsPanel.OffsetRight = 330;
+		_heroStatsPanel.OffsetTop = -580;
+		_heroStatsPanel.OffsetBottom = -225;
+		AddChild(_heroStatsPanel);
+
+		// Triangle toggle button between hero stats panel and resource panel
+		_heroStatsButton = new Button();
+		_heroStatsButton.Text = "▲";
+		_heroStatsButton.AddThemeFontSizeOverride("font_size", 14);
+		_heroStatsButton.AddThemeColorOverride("font_color", MobaTheme.AccentGold);
+		var btnStyle = new StyleBoxFlat();
+		btnStyle.BgColor = new Color(0.1f, 0.1f, 0.16f, 0.85f);
+		MobaTheme.SetCorners(btnStyle, 4);
+		MobaTheme.SetBorder(btnStyle, 1, MobaTheme.AccentGold);
+		btnStyle.ContentMarginLeft = 8;
+		btnStyle.ContentMarginRight = 8;
+		btnStyle.ContentMarginTop = 2;
+		btnStyle.ContentMarginBottom = 2;
+		_heroStatsButton.AddThemeStyleboxOverride("normal", btnStyle);
+		var btnHover = new StyleBoxFlat();
+		btnHover.BgColor = new Color(0.15f, 0.15f, 0.22f, 0.95f);
+		MobaTheme.SetCorners(btnHover, 4);
+		MobaTheme.SetBorder(btnHover, 2, MobaTheme.AccentGold);
+		btnHover.ContentMarginLeft = 8;
+		btnHover.ContentMarginRight = 8;
+		btnHover.ContentMarginTop = 2;
+		btnHover.ContentMarginBottom = 2;
+		_heroStatsButton.AddThemeStyleboxOverride("hover", btnHover);
+		_heroStatsButton.AddThemeStyleboxOverride("pressed", btnHover);
+		_heroStatsButton.Pressed += () =>
+		{
+			ToggleHeroStats();
+			_heroStatsButton.Text = IsHeroStatsOpen ? "▼" : "▲";
+		};
+
+		// Position: centered above the resource panel
+		_heroStatsButton.AnchorLeft = 0f;
+		_heroStatsButton.AnchorTop = 1f;
+		_heroStatsButton.AnchorBottom = 1f;
+		_heroStatsButton.OffsetLeft = 90;
+		_heroStatsButton.OffsetRight = 140;
+		_heroStatsButton.OffsetTop = -218;
+		_heroStatsButton.OffsetBottom = -195;
+		AddChild(_heroStatsButton);
 	}
 
 	public bool IsShopOpen => _shopUI?.IsShopVisible ?? false;

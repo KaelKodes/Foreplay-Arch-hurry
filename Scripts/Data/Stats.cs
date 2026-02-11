@@ -30,7 +30,7 @@ public class Stats
     // ── Progression ───────────────────────────────────────────────
     public int Level { get; set; } = 1;
     public int Experience { get; set; } = 0;
-    public int Gold { get; set; } = 0;
+    public int Gold { get; set; } = 500;
     public int AbilityPoints { get; set; } = 0;
     public int AttributePoints { get; set; } = 0;
     public int[] AbilityLevels { get; set; } = new int[4] { 1, 1, 1, 1 };

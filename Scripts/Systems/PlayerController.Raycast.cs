@@ -37,9 +37,14 @@ public partial class PlayerController
 
             if (interactable != null) return interactable;
 
-            // 2. Check for other targetables (Remote Players)
-            if (collider is PlayerController pc && !pc.IsLocal) return pc;
-            if (collider.GetParent() is PlayerController pc2 && !pc2.IsLocal) return pc2;
+            // 2. Check for other targetables (Remote Players + Bots)
+            // Walk up the tree to find PlayerController (collider could be child shape)
+            Node current = collider;
+            for (int i = 0; i < 4 && current != null; i++)
+            {
+                if (current is PlayerController pc && pc != this) return pc;
+                current = current.GetParent();
+            }
         }
         return null;
     }

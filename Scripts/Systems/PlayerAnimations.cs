@@ -54,7 +54,7 @@ public static class PlayerAnimations
                                 (archeryStage == DrawStage.Executing || archeryStage == DrawStage.ShotComplete));
 
                 float lockedPower = (meleeSystem != null) ? meleeSystem.LockedPower : 0f;
-                modelManager.UpdateCustomAnimations(speed > 0.1f, currentlySprinting, isJumping, customSwinging, isFiring, lockedPower);
+                modelManager.UpdateCustomAnimations(speed > 0.1f, currentlySprinting, isJumping, customSwinging, isFiring, lockedPower, player.SynchronizedVaulting);
                 return;
             }
         }

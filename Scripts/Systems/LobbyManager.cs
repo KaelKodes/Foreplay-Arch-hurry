@@ -14,6 +14,7 @@ public class LobbyPlayerData
     public string ClassName { get; set; } = "Ranger";
     public bool IsReady { get; set; } = false;
     public bool IsBot { get; set; } = false;
+    public BotDifficulty BotDifficultyLevel { get; set; } = BotDifficulty.Beginner;
 }
 
 public partial class LobbyManager : Node
@@ -106,11 +107,11 @@ public partial class LobbyManager : Node
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
-    public void AddBot(MobaTeam team)
+    public void AddBot(MobaTeam team, string className = "Warrior")
     {
         if (!Multiplayer.IsServer())
         {
-            RpcId(1, nameof(AddBot), (int)team);
+            RpcId(1, nameof(AddBot), (int)team, className);
             return;
         }
 
@@ -120,8 +121,9 @@ public partial class LobbyManager : Node
             Id = botId,
             Name = $"Bot {botId}",
             Team = team,
-            ClassName = "Warrior",
-            IsBot = true
+            ClassName = className,
+            IsBot = true,
+            BotDifficultyLevel = BotDifficulty.Beginner
         };
         _bots.Add(bot);
         BroadcastState();

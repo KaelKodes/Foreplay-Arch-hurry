@@ -70,12 +70,11 @@ public static class TargetingHelper
     {
         if (target == null || !GodotObject.IsInstanceValid(target)) return true;
 
+        if (target is PlayerController pc) return pc.CurrentState == PlayerState.Dead;
         if (target is Monsters monster) return monster.Health <= 0;
         if (target is MobaTower tower) return tower.IsDestroyed;
         if (target is MobaNexus nexus) return nexus.IsDestroyed;
 
-        // Check for common Health or IsDead properties via Duck Typing if needed, 
-        // but for now we stick to known types.
         return false;
     }
 

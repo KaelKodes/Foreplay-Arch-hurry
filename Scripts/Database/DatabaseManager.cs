@@ -95,13 +95,13 @@ public partial class DatabaseManager : Node
                 INSERT OR IGNORE INTO Characters (Id, Name, Level, Experience, Gold, Strength, Agility, Wisdom, Vitality, Intelligence, Haste, Concentration, Stance, DamageType, ResourceType, MaxHealth, CurrentHealth, MaxStamina, CurrentStamina, MaxMana, CurrentMana, MaxFury, CurrentFury, IsRightHanded)
                 VALUES
                     -- Ranger: Ranged/Physical/Mana. Fast, balanced damage. HP=400, SP=225, MP=270
-                    (1, 'Ranger',      1, 0, 0,  28, 25, 18, 20, 18,  0, 0,  1, 0, 0,  400, 400,  225, 225,  270, 270,  100, 0,  1),
+                    (1, 'Ranger',      1, 0, 500,  28, 25, 18, 20, 18,  0, 0,  1, 0, 0,  400, 400,  225, 225,  270, 270,  100, 0,  1),
                     -- Warrior: Melee/Physical/Fury. Tanky bruiser. HP=760, SP=190, MP=0 (Fury=50)
-                    (2, 'Warrior',     1, 0, 0,  42, 18, 10, 38, 12,  0, 0,  0, 0, 1,  760, 760,  190, 190,  0, 0,  50, 0,  1),
+                    (2, 'Warrior',     1, 0, 500,  42, 18, 10, 38, 12,  0, 0,  0, 0, 1,  760, 760,  190, 190,  0, 0,  50, 0,  1),
                     -- Cleric: Melee/Magical/Mana. Tanky caster. HP=500, SP=180, MP=525
-                    (3, 'Cleric',      1, 0, 0,  20, 16, 35, 25, 45,  0, 0,  0, 1, 0,  500, 500,  180, 180,  525, 525,  100, 0,  1),
+                    (3, 'Cleric',      1, 0, 500,  20, 16, 35, 25, 45,  0, 0,  0, 1, 0,  500, 500,  180, 180,  525, 525,  100, 0,  1),
                     -- Necromancer: Ranged/Magical/Mana. Glass cannon. HP=400, SP=175, MP=600
-                    (4, 'Necromancer', 1, 0, 0,  12, 15, 40, 20, 50,  0, 0,  1, 1, 0,  400, 400,  175, 175,  600, 600,  100, 0,  1);
+                    (4, 'Necromancer', 1, 0, 500,  12, 15, 40, 20, 50,  0, 0,  1, 1, 0,  400, 400,  175, 175,  600, 600,  100, 0,  1);
             ";
             int rowsAffected = command.ExecuteNonQuery();
             GD.Print($"[DatabaseManager] Initialization complete. Rows affected: {rowsAffected}");
