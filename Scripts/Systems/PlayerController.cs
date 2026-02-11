@@ -159,10 +159,10 @@ public partial class PlayerController : CharacterBody3D
 
                 GD.Print($"[Player {PlayerIndex}] HP: {stats.CurrentHealth}/{stats.MaxHealth}, Shield: {stats.CurrentShield}");
 
-                // Trigger death if HP reaches zero (placeholder for Respawn logic)
-                if (stats.CurrentHealth <= 0)
+                // Trigger death if HP reaches zero
+                if (stats.CurrentHealth <= 0 && CurrentState != PlayerState.Dead)
                 {
-                    GD.Print($"[Player {PlayerIndex}] DIED!");
+                    Die();
                 }
             }
         }
@@ -237,6 +237,16 @@ public partial class PlayerController : CharacterBody3D
 
     [Signal] public delegate void HitScoredEventHandler();
     [Signal] public delegate void AbilityUsedEventHandler(int slotIndex, float cooldownDuration);
+    [Signal] public delegate void RespawnTimerUpdatedEventHandler(float remaining);
+    [Signal] public delegate void PlayerDiedEventHandler();
+    [Signal] public delegate void PlayerRespawnedEventHandler();
+
+    // Recall
+    private float _recallCooldown = 0f;
+    private const float RecallCooldownDuration = 60f;
+    private bool _isDead = false;
+    private float _respawnTimer = 0f;
+    private const float RespawnDuration = 5f;
 
     public override void _EnterTree()
     {
@@ -395,6 +405,25 @@ public partial class PlayerController : CharacterBody3D
         UpdateAnimations(delta);
 
         if (!IsLocal) return;
+
+        // ── Tick recall cooldown ──────────────────────────────────
+        if (_recallCooldown > 0f)
+        {
+            _recallCooldown -= (float)delta;
+            if (_recallCooldown < 0f) _recallCooldown = 0f;
+        }
+
+        // ── Dead state: only tick respawn timer, no input ─────────
+        if (CurrentState == PlayerState.Dead)
+        {
+            _respawnTimer -= (float)delta;
+            EmitSignal(SignalName.RespawnTimerUpdated, _respawnTimer);
+            if (_respawnTimer <= 0f)
+            {
+                Respawn();
+            }
+            return; // Block ALL other input while dead
+        }
 
         // ── Tick ability cooldowns ────────────────────────────────
         if (_abilityBusyTimer > 0f)
@@ -663,6 +692,106 @@ public partial class PlayerController : CharacterBody3D
             SpawnHealNumber(amount);
             GD.Print($"[Player {PlayerIndex}] Healed for {amount}. HP: {stats.CurrentHealth}/{stats.MaxHealth}");
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  DEATH / RESPAWN
+    // ══════════════════════════════════════════════════════════════
+
+    public void Die()
+    {
+        if (_isDead) return;
+        _isDead = true;
+        CurrentState = PlayerState.Dead;
+        _respawnTimer = RespawnDuration;
+
+        // Play death animation
+        var modelMgr = GetNodeOrNull<CharacterModelManager>("ModelManager")
+                    ?? GetNodeOrNull<CharacterModelManager>("CharacterModelManager");
+        modelMgr?.PlayAnimation("Death");
+
+        EmitSignal(SignalName.PlayerDied);
+        GD.Print($"[Player {PlayerIndex}] DIED! Respawning in {RespawnDuration}s...");
+    }
+
+    private void Respawn()
+    {
+        _isDead = false;
+        CurrentState = PlayerState.WalkMode;
+
+        // Restore HP
+        var stats = _archerySystem?.PlayerStats;
+        if (stats != null)
+        {
+            stats.CurrentHealth = stats.MaxHealth;
+            stats.CurrentShield = 0;
+        }
+
+        // Teleport to team nexus
+        Vector3 spawnPos = GetTeamSpawnPosition();
+        TeleportTo(spawnPos, spawnPos + Vector3.Forward * 10f);
+
+        // Play idle anim to reset from death
+        var modelMgr = GetNodeOrNull<CharacterModelManager>("ModelManager")
+                    ?? GetNodeOrNull<CharacterModelManager>("CharacterModelManager");
+        modelMgr?.PlayAnimation("Idle");
+
+        EmitSignal(SignalName.PlayerRespawned);
+        GD.Print($"[Player {PlayerIndex}] Respawned at {spawnPos} with full HP ({stats?.MaxHealth})");
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  RECALL
+    // ══════════════════════════════════════════════════════════════
+
+    public void TriggerRecall()
+    {
+        if (CurrentState == PlayerState.Dead) return;
+
+        if (_recallCooldown > 0f)
+        {
+            GD.Print($"[Player {PlayerIndex}] Recall on cooldown ({_recallCooldown:F1}s remaining)");
+            return;
+        }
+
+        // Teleport to team nexus
+        Vector3 spawnPos = GetTeamSpawnPosition();
+        TeleportTo(spawnPos, spawnPos + Vector3.Forward * 10f);
+
+        // Start cooldown
+        _recallCooldown = RecallCooldownDuration;
+
+        // Notify UI (slot 4 = Recall)
+        EmitSignal(SignalName.AbilityUsed, 4, RecallCooldownDuration);
+
+        GD.Print($"[Player {PlayerIndex}] Recalled to nexus at {spawnPos}. Cooldown: {RecallCooldownDuration}s");
+    }
+
+    /// <summary>
+    /// Resolves the team's spawn point (near nexus) for respawn/recall.
+    /// </summary>
+    private Vector3 GetTeamSpawnPosition()
+    {
+        string teamSpawnName = $"SpawnPoint_{Team}";
+        Node3D spawnPoint = GetTree().CurrentScene.FindChild(teamSpawnName, true, false) as Node3D;
+
+        if (spawnPoint != null)
+        {
+            float rngX = (float)GD.RandRange(-1.5, 1.5);
+            float rngZ = (float)GD.RandRange(-1.5, 1.5);
+            return spawnPoint.GlobalPosition + new Vector3(rngX, 2f, rngZ);
+        }
+
+        // Fallback: MobaGameManager positions
+        if (MobaGameManager.Instance != null)
+        {
+            MobaTeam finalTeam = (Team == MobaTeam.None) ? MobaTeam.Red : Team;
+            return finalTeam == MobaTeam.Red
+                ? MobaGameManager.Instance.RedSpawnPos
+                : MobaGameManager.Instance.BlueSpawnPos;
+        }
+
+        return GlobalPosition; // Last resort: stay put
     }
 
     public void ApplyMoveSpeedBuff(float multiplier, float duration)

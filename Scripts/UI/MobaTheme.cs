@@ -199,7 +199,7 @@ public static class MobaTheme
         return bar;
     }
 
-    private static void SetCorners(StyleBoxFlat style, int radius)
+    public static void SetCorners(StyleBoxFlat style, int radius)
     {
         style.CornerRadiusTopLeft = radius;
         style.CornerRadiusTopRight = radius;
@@ -207,7 +207,7 @@ public static class MobaTheme
         style.CornerRadiusBottomRight = radius;
     }
 
-    private static void SetBorder(StyleBoxFlat style, int width, Color color)
+    public static void SetBorder(StyleBoxFlat style, int width, Color color)
     {
         style.BorderWidthTop = width;
         style.BorderWidthBottom = width;

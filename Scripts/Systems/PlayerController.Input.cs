@@ -30,6 +30,16 @@ public partial class PlayerController
             CycleCharacterModel();
         }
 
+        // B key: Recall to nexus
+        if (isRPGMode && @event is InputEventKey recallKey && recallKey.Pressed && !recallKey.Echo && recallKey.Keycode == Key.B)
+        {
+            if (CurrentState != PlayerState.Dead)
+            {
+                TriggerRecall();
+                GetViewport().SetInputAsHandled();
+            }
+        }
+
         // F key: Clear Target
         if (isRPGMode && @event is InputEventKey fKey && fKey.Pressed && !fKey.Echo && fKey.Keycode == Key.F)
         {

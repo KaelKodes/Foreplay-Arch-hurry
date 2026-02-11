@@ -80,6 +80,14 @@ public partial class HotbarController
     private void OnSlotPressed(int slotIndex)
     {
         GD.Print($"[Hotbar] Slot {slotIndex + 1} pressed");
+
+        // Slot 4 = Recall (universal, not part of class abilities)
+        if (slotIndex == 4)
+        {
+            _cachedPlayer?.TriggerRecall();
+            return;
+        }
+
         ToolManager.Instance?.SelectSlot(slotIndex);
     }
 
@@ -113,10 +121,20 @@ public partial class HotbarController
         if (ToolManager.Instance == null) return;
         if (ToolManager.Instance.CurrentMode != ToolManager.HotbarMode.RPG) return;
 
-        var item = ToolManager.Instance.GetSlotItem(slotIndex);
-        if (item == null || string.IsNullOrEmpty(item.DisplayName)) return;
+        AbilityInfo abilityInfo = null;
 
-        var abilityInfo = AbilityData.Get(item.DisplayName);
+        // Slot 4 = Recall (universal ability, not in ToolManager)
+        if (slotIndex == 4)
+        {
+            abilityInfo = AbilityData.Get("Recall");
+        }
+        else
+        {
+            var item = ToolManager.Instance.GetSlotItem(slotIndex);
+            if (item == null || string.IsNullOrEmpty(item.DisplayName)) return;
+            abilityInfo = AbilityData.Get(item.DisplayName);
+        }
+
         if (abilityInfo == null) return;
 
         // Position tooltip above the hovered slot

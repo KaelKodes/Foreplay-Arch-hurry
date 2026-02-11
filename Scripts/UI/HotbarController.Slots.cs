@@ -29,8 +29,15 @@ public partial class HotbarController
 
             slot.Name = $"Slot{i + 1}";
 
-            // Set Label
-            slot.SetLabel((i + 1).ToString());
+            // Set Label — slot 4 (index 4) is the Recall button
+            if (i == 4)
+            {
+                slot.SetLabel("B");
+                var recallIcon = GD.Load<Texture2D>("res://Assets/UI/Icons/icon_recall.png");
+                if (recallIcon != null) slot.SetIcon(recallIcon);
+            }
+            else
+                slot.SetLabel((i + 1).ToString());
 
             // Add to container and tracker
             _slotContainer.AddChild(slot);
@@ -55,6 +62,9 @@ public partial class HotbarController
 
         for (int i = 0; i < SlotCount && i < _slots.Length; i++)
         {
+            // Slot 4 = Recall (not managed by ToolManager)
+            if (i == 4) continue;
+
             var item = ToolManager.Instance.GetSlotItem(i);
             var slot = _slots[i] as AbilityIcon;
             if (slot == null) continue;
@@ -63,12 +73,10 @@ public partial class HotbarController
             if (!string.IsNullOrEmpty(item?.IconPath) && ResourceLoader.Exists(item.IconPath))
             {
                 slot.SetIcon(GD.Load<Texture2D>(item.IconPath));
-                // slot.SetNameVisible(false); // If we add this method later
             }
             else
             {
                 slot.SetIcon(null);
-                // slot.SetName(item?.DisplayName ?? "");
             }
         }
 
@@ -108,6 +116,9 @@ public partial class HotbarController
 
         for (int i = 0; i < _slots.Length; i++)
         {
+            // Slot 4 = Recall (no upgrades)
+            if (i == 4) continue;
+
             var slot = _slots[i] as AbilityIcon;
             if (slot == null) continue;
 

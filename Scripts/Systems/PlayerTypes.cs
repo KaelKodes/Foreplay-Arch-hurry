@@ -8,7 +8,8 @@ public enum PlayerState
     BuildMode,      // Town Building / Placement
 
     SpectateMode,   // Free-cam
-    PlacingObject   // Manipulating objects
+    PlacingObject,  // Manipulating objects
+    Dead            // Dead — waiting for respawn
 }
 
 public enum AbilityType

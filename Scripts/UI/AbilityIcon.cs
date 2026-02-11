@@ -15,6 +15,7 @@ public partial class AbilityIcon : TextureButton
     [Export] public AnimationPlayer AnimPlayer;
 
     private string _labelText = "";
+    private Texture2D _pendingIcon;
     private Tween _cooldownTween;
 
     public override void _Ready()
@@ -38,6 +39,13 @@ public partial class AbilityIcon : TextureButton
         if (!string.IsNullOrEmpty(_labelText) && NumberLabel != null)
         {
             NumberLabel.Text = _labelText;
+        }
+
+        // Apply pending icon
+        if (_pendingIcon != null && IconRect != null)
+        {
+            IconRect.Texture = _pendingIcon;
+            _pendingIcon = null;
         }
 
         // Ensure overlay is hidden initially
@@ -100,6 +108,10 @@ public partial class AbilityIcon : TextureButton
         if (IconRect != null)
         {
             IconRect.Texture = texture;
+        }
+        else
+        {
+            _pendingIcon = texture; // Apply once _Ready runs
         }
     }
 

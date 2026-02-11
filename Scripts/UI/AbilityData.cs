@@ -136,6 +136,14 @@ public static class AbilityData
             "5.0s", "30", "Mana",
             "+1s snare duration, +5u swarm range"
         ),
+
+        // ── Universal ──────────────────────────────────────────────
+        ["Recall"] = new AbilityInfo(
+            "Recall",
+            "Teleport back to your team's nexus. Press B to activate.",
+            "60s", "0", "None",
+            ""
+        ),
     };
 
     /// <summary>Get ability info by name. Returns null if not found.</summary>

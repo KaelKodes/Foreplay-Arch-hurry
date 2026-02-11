@@ -11,7 +11,7 @@ public partial class HotbarController
 
     private void OnHotbarModeChanged(ToolManager.HotbarMode mode)
     {
-        SlotCount = mode == ToolManager.HotbarMode.Design ? 8 : 4;
+        SlotCount = mode == ToolManager.HotbarMode.Design ? 8 : 5; // 4 abilities + Recall
 
         if (mode == ToolManager.HotbarMode.RPG)
         {

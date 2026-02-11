@@ -31,6 +31,10 @@ public partial class MobaHUD : CanvasLayer
 	private Label _goldLabel;
 	private Label _levelLabel;
 
+	// Shop
+	private ShopUI _shopUI;
+	private Button _shopButton;
+
 	// Perk Choice UI
 	private Panel _perkChoicePanel;
 	private HBoxContainer _perkContainer;
@@ -57,9 +61,24 @@ public partial class MobaHUD : CanvasLayer
 		Layer = 10;
 		BuildUI();
 		BuildPerkUI();
+		BuildShop();
 		CallDeferred(nameof(FindGameManager));
 		ConnectModeSignal();
 	}
+
+	private void BuildShop()
+	{
+		_shopUI = new ShopUI();
+		_shopUI.Name = "ShopUI";
+		AddChild(_shopUI);
+	}
+
+	public void ToggleShop()
+	{
+		_shopUI?.Toggle();
+	}
+
+	public bool IsShopOpen => _shopUI?.IsShopVisible ?? false;
 
 	private void FindGameManager()
 	{
@@ -243,6 +262,33 @@ public partial class MobaHUD : CanvasLayer
 		// Gold - attached to the InventoryPanel (top-right)
 		_goldLabel = MobaTheme.CreateHeadingLabel("💰 0", MobaTheme.AccentGold);
 		_goldLabel.HorizontalAlignment = HorizontalAlignment.Right;
+
+		// Shop button — next to gold label
+		_shopButton = new Button();
+		_shopButton.Text = "🛒";
+		_shopButton.AddThemeFontSizeOverride("font_size", 16);
+		_shopButton.AddThemeColorOverride("font_color", MobaTheme.AccentGold);
+		var shopBtnStyle = new StyleBoxFlat();
+		shopBtnStyle.BgColor = new Color(0.1f, 0.1f, 0.16f, 0.85f);
+		MobaTheme.SetCorners(shopBtnStyle, 4);
+		MobaTheme.SetBorder(shopBtnStyle, 1, MobaTheme.AccentGold);
+		shopBtnStyle.ContentMarginLeft = 6;
+		shopBtnStyle.ContentMarginRight = 6;
+		shopBtnStyle.ContentMarginTop = 2;
+		shopBtnStyle.ContentMarginBottom = 2;
+		_shopButton.AddThemeStyleboxOverride("normal", shopBtnStyle);
+		var shopBtnHover = new StyleBoxFlat();
+		shopBtnHover.BgColor = new Color(0.15f, 0.15f, 0.22f, 0.95f);
+		MobaTheme.SetCorners(shopBtnHover, 4);
+		MobaTheme.SetBorder(shopBtnHover, 2, MobaTheme.AccentGold);
+		shopBtnHover.ContentMarginLeft = 6;
+		shopBtnHover.ContentMarginRight = 6;
+		shopBtnHover.ContentMarginTop = 2;
+		shopBtnHover.ContentMarginBottom = 2;
+		_shopButton.AddThemeStyleboxOverride("hover", shopBtnHover);
+		_shopButton.AddThemeStyleboxOverride("pressed", shopBtnHover);
+		_shopButton.Pressed += () => ToggleShop();
+
 		CallDeferred(nameof(AttachGoldToInventory));
 
 		// Apply class-specific secondary bar styling
@@ -451,15 +497,22 @@ public partial class MobaHUD : CanvasLayer
 		var invPanel = GetTree().CurrentScene.FindChild("InventoryPanel", true, false) as Control;
 		if (invPanel != null)
 		{
-			_goldLabel.AnchorLeft = 1f;
-			_goldLabel.AnchorRight = 1f;
-			_goldLabel.AnchorTop = 0f;
-			_goldLabel.AnchorBottom = 0f;
-			_goldLabel.OffsetLeft = -80;
-			_goldLabel.OffsetRight = -4;
-			_goldLabel.OffsetTop = -24;
-			_goldLabel.OffsetBottom = -4;
-			invPanel.AddChild(_goldLabel);
+			// Gold + Shop in a horizontal row
+			var goldRow = new HBoxContainer();
+			goldRow.AnchorLeft = 1f;
+			goldRow.AnchorRight = 1f;
+			goldRow.AnchorTop = 0f;
+			goldRow.AnchorBottom = 0f;
+			goldRow.OffsetLeft = -120;
+			goldRow.OffsetRight = -4;
+			goldRow.OffsetTop = -28;
+			goldRow.OffsetBottom = -4;
+			goldRow.AddThemeConstantOverride("separation", 4);
+			goldRow.Alignment = BoxContainer.AlignmentMode.End;
+			invPanel.AddChild(goldRow);
+
+			goldRow.AddChild(_shopButton);
+			goldRow.AddChild(_goldLabel);
 		}
 		else
 		{

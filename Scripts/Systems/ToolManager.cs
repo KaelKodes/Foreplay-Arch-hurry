@@ -218,6 +218,15 @@ public partial class ToolManager : Node
     {
         if (@event is InputEventKey key && key.Pressed && !key.Echo)
         {
+            // P = Toggle Shop
+            if (key.Keycode == Key.P && !key.ShiftPressed && !key.CtrlPressed)
+            {
+                var mobaHud = GetTree().GetFirstNodeInGroup("moba_hud") as MobaHUD;
+                mobaHud?.ToggleShop();
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+
             // Shift + B Toggle
             if (key.Keycode == Key.B && key.ShiftPressed)
             {

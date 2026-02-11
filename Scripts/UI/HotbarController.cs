@@ -91,7 +91,7 @@ public partial class HotbarController : Control
             ToolManager.Instance.HotbarModeChanged += (m) => OnHotbarModeChanged((ToolManager.HotbarMode)m);
 
             // Sync initial state
-            SlotCount = ToolManager.Instance.CurrentMode == ToolManager.HotbarMode.Design ? 8 : 4;
+            SlotCount = ToolManager.Instance.CurrentMode == ToolManager.HotbarMode.Design ? 8 : 5;
             RebuildContainer();
         }
         else
